@@ -447,11 +447,6 @@ contains
     qlmnlast = 0.
     wthvtmnlast = 0.
 
-    !$acc enter data create(qlhavl, wqlsubl, wqlresl, wthlsubl, wthlresl, wqtsubl, wqtresl, wthvsubl, wthvresl, &
-    !$acc&                  uwsubl, vwsubl, uwresl, vwresl, u2avl, v2avl, w2avl, w3avl, w2subavl, qt2avl, thl2avl, &
-    !$acc&                  thv2avl, th2avl, ql2avl, umav, vmav, thlmav, qtmav, qlmav, cfracavl, thvmav, svmav, sv2avl, &
-    !$acc&                  thv0, thmav)
-
       if(myid==0)then
          if (.not. lwarmstart) then
             open (ifoutput,file='field.'//cexpnr,status='replace')
@@ -554,6 +549,7 @@ contains
 
     use modglobal, only : rk3step,timee,dt_lim
     use modtimer, only: timer_tic, timer_toc
+    use modgpu, only: update_host
     implicit none
     if (.not. lstat) return
     if (rk3step/=3) return
@@ -600,6 +596,9 @@ contains
     real    upcu, vpcv
     real    qls
 
+    !$acc update self(u0, v0, w0, um, vm, wm, qtm, thlm, thl0, qt0, qt0h, &
+    !$acc&            ql0, ql0h, thl0h, thv0h, sv0, svm, e12m, exnf, exnh, &
+    !$acc&            ustar, thlflux, qtflux, svflux)
   !-----------------------------------------------------------------------
   !     1.    INITIALISE LOCAL CONSTANTS
   !     --    --------------------------
@@ -609,7 +608,6 @@ contains
   !     ---    ------------------------------
   !     --------------------------------------------------------
     call timer_tic("Resetting arrays")
-    !$acc kernels default(present)
     qlhavl      = 0.0
     cfracavl    = 0.0
     u2avl     = 0.0
@@ -643,8 +641,6 @@ contains
     uwsubl  = 0.
     vwsubl  = 0.
     svmav = 0.
-    !$acc end kernels
-
     qlptavl     = 0.0
     wqltot      = 0.0
     wqttot      = 0.0
@@ -659,7 +655,6 @@ contains
     cszav = 0.
     call timer_toc("Resetting arrays")
 
-    !$acc parallel loop collapse(3) default(present)
     do  k=1,k1
       do  j=2,j1
         do  i=2,i1
@@ -669,13 +664,11 @@ contains
       enddo
     enddo
 
-    !$acc parallel loop default(present) reduction(+: cfracavl)
     do k=1,k1
       cfracavl(k)    = cfracavl(k)+count(ql0(2:i1,2:j1,k)>0)
     end do
 
     call timer_tic("Communication")
-    !$acc update self(cfracavl)
     call D_MPI_ALLREDUCE(cfracavl,cfracav,k1,MPI_SUM,comm3d,mpierr)
     call timer_toc("Communication")
 
@@ -696,7 +689,6 @@ contains
       enddo
     end if
 
-    !$acc kernels default(present)
     umav  = umav  /ijtot + cu
     vmav  = vmav  /ijtot + cv
     thlmav = thlmav/ijtot
@@ -705,8 +697,6 @@ contains
     thmav  = thlmav + (rlv/cp)*qlmav/exnf
     thvmav = thvmav/ijtot
     svmav = svmav/ijtot
-    !$acc end kernels
-
     cszav  = csz
   !------------------------------------------------------------------
   !     4     CALCULATE SLAB AVERAGED OF FLUXES AND SEVERAL MOMENTS
@@ -714,7 +704,6 @@ contains
   !        4.1 special treatment for lowest level
   !     -------------------------------------------------
     call timer_tic("Fluxes")
-    !$acc update self(exnh(1))
 
     qls   = 0.0 ! hj: no liquid water at the surface
     tsurf = thls*exnh(1)+(rlv/cp)*qls
@@ -733,8 +722,6 @@ contains
     cthl = (exnh(1)*cp/rlv)*((1-den)/den)
     cqt = 1./den
 
-    !$acc parallel loop collapse(2) default(present) private(upcu, vpcv) &
-    !$acc& reduction(+: qlhavl, wthlsubl, wqtsubl, wthvsubl, uwsubl, vwsubl)
     do j = 2, j1
       do i = 2, i1
         qlhavl(1) = qlhavl(1) + ql0h(i,j,1)
@@ -761,11 +748,6 @@ contains
   !      --------------------------
   !      4.2 higher levels
   !      --------------------------
-    !$acc parallel loop collapse(3) default(present) &
-    !$acc& private(qs0h, t0h, den, cthl, cqt, c1, c2, ekhalf, euhalf, evhalf, wthls, wthlr, wqts, &
-    !$acc&         wqlr, wthvs, wthvr, uwr, vwr, uws, vws) &
-    !$acc& reduction(+: qlhavl, wqlsubl, wqlresl, wthlsubl, wthlresl, wthvsubl, wthvresl, &
-    !$acc&              wqtsubl, wqtresl, uwresl, vwresl, uwsubl, vwsubl)
     do k = 2, kmax
       do j = 2, j1
         do i = 2, i1
@@ -880,7 +862,6 @@ contains
         if (iadv_sv(n)==iadv_kappa) then
            call halflev_kappa(sv0(2-ih:i1+ih,2-jh:j1+jh,1:k1,n),sv0h)
         else
-          !$acc parallel loop collapse(3) default(present)
           do k = 2, k1
             do j = 2, j1
               do i = 2, i1
@@ -888,12 +869,9 @@ contains
               enddo
             enddo
           enddo
-          !$acc kernels default(present)
           sv0h(2:i1,2:j1,1) = svs(n)
-          !$acc end kernels
         end if
 
-        !$acc parallel loop collapse(3) default(present) reduction(+: wsvresl)
         do k = 2, kmax
           do j = 2, j1
             do i = 2, i1
@@ -902,14 +880,12 @@ contains
           end do
         end do
 
-        !$acc parallel loop collapse(2) default(present) reduction(+: wsvsubl)
         do j = 2, j1
           do i = 2, i1
             wsvsubl(1,n) = wsvsubl(1,n) + svflux(i,j,n)
           end do
         end do
 
-        !$acc parallel loop collapse(3) default(present) private(ekhalf) reduction(+: wsvsubl)
         do k = 2, kmax
           do j = 2, j1
             do i= 2, i1
@@ -934,10 +910,6 @@ contains
   !     ---------------------------------------------------------
   !         DEPRECATED
     call timer_tic("Communication, big")
-    !$acc update self(qlhavl, wqlsubl, wqlresl, wthlsubl, wthlresl, wqtsubl, wqtresl, wthvsubl, wthvresl, &
-    !$acc&            uwsubl, vwsubl, uwresl, vwresl, u2avl, v2avl, w2avl, w3avl, w2subavl, qt2avl, thl2avl, &
-    !$acc&            thv2avl, th2avl, ql2avl, umav, vmav, thlmav, qtmav, qlmav, cfracavl, thvmav, svmav, thv0, &
-    !$acc&            thmav)
 
   ! MPI communication
     call D_MPI_ALLREDUCE(qlhavl, qlhav, k1,     &
@@ -1141,7 +1113,6 @@ contains
     end if
 
     if (.not.present(mean)) then
-      !$acc parallel loop collapse(3) default(present) reduction(+: prof)
       do k = kb, ke
         do j = jb, je
           do i = ib, ie
@@ -1150,7 +1121,6 @@ contains
         end do 
       end do
     else
-      !$acc parallel loop collapse(3) default(present) reduction(+: prof)
       do k = kb, ke
         do j = jb, je
           do i = ib, ie
@@ -1160,9 +1130,7 @@ contains
       end do
     end if
 
-    !$acc kernels default(present)
     prof = prof / ijtot
-    !$acc end kernels
 
   end subroutine calc_moment
 
@@ -1627,11 +1595,6 @@ contains
     if(.not.(lstat)) return
 
     if(lnetcdf .and. myid==0) call exitstat_nc(ncid)
-
-    !$acc exit data delete(qlhavl, wqlsubl, wqlresl, wthlsubl, wthlresl, wqtsubl, wqtresl, wthvsubl, wthvresl, &
-    !$acc&                 uwsubl, vwsubl, uwresl, vwresl, u2avl, v2avl, w2avl, w3avl, w2subavl, qt2avl, thl2avl, &
-    !$acc&                 thv2avl, th2avl, ql2avl, umav, vmav, thlmav, qtmav, qlmav, cfracavl, thvmav, svmav, thv0, &
-    !$acc&                 thmav)
 
     deallocate(umn       ,vmn   )
     deallocate(thlmn        ,thvmn )

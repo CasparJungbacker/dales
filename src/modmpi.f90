@@ -765,26 +765,26 @@ contains
     is_present = acc_is_present(var)
 #endif
 
-   !$acc enter data copyin(averl, avers) if(is_present)
- 
-    !$acc kernels if(is_present)
+    !$acc enter data copyin(averl, avers) if(is_present)
+
+    !$acc kernels default(present) if(is_present)
     averl       = 0.
     avers       = 0.
     !$acc end kernels
     
-    !$acc kernels if(is_present)
+    !$acc kernels default(present) if(is_present)
     do k=kbs,kes
       averl(k) = sum(var(ibs:ies,jbs:jes,k))
     enddo
     !$acc end kernels
 
+    !$acc update self(averl) if(is_present)
     ! CUDA-aware MPI should figure out that it has to move data from the GPU
-    !$acc update host(averl) if(is_present)
     call MPI_ALLREDUCE(averl, avers, kf-ks+1,  MPI_REAL8, &
                        MPI_SUM, comm3d,mpierr)
     !$acc update device(avers) if(is_present)
 
-    !$acc kernels if(is_present)
+    !$acc kernels copy(aver) if(is_present)
     aver = aver + avers
     !$acc end kernels
 
