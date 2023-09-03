@@ -515,7 +515,7 @@ contains
   else
 
     ! Single processor, make sure the field is periodic
-    !$acc kernels default(present)
+    !$acc kernels default(present) async
     a(:,sy-jh:sy-1,:) = a(:,ey-jh+1:ey,:)
     a(:,ey+1:ey+jh,:) = a(:,sy:sy+jh-1,:)
     !$acc end kernels
@@ -549,7 +549,7 @@ contains
   else
 
     ! Single processor, make sure the field is periodic
-    !$acc kernels default(present)
+    !$acc kernels default(present) async
     a(sx-ih:sx-1,:,:) = a(ex-ih+1:ex,:,:)
     a(ex+1:ex+ih,:,:) = a(sx:sx+ih-1,:,:)
     !$acc end kernels
@@ -581,6 +581,7 @@ contains
     deallocate (recve, recvw)
 
   endif
+  !$acc wait
   end subroutine excjs_real64
 
   subroutine excjs_logical(a,sx,ex,sy,ey,sz,ez,ih,jh)
