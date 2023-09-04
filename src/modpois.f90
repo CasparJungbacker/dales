@@ -43,10 +43,12 @@ save
 
   integer :: ps,pe,qs,qe           ! start and end index of fourier space matrices
 
+  real(pois_r), allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:) ! Work arrays for rhs
+
 contains
 
   subroutine initpois
-    use modglobal, only : solver_id !,i1,j1,ih,jh,kmax
+    use modglobal, only : solver_id,i1,j1,ih,jh,kmax,k1
     use modfft2d, only : fft2dinit
     use modfftw, only : fftwinit
     use modhypre, only : inithypre
@@ -73,6 +75,12 @@ contains
 
       call inithypre
     endif
+
+    allocate(pup(2-ih:i1+ih,2-jh:j1+jh,kmax))
+    allocate(pvp(2-ih:i1+ih,2-jh:j1+jh,kmax))
+    allocate(pwp(2-ih:i1+ih,2-jh:j1+jh,k1))
+    !$acc enter data create(pup, pvp, pwp)
+
   end subroutine initpois
 
   subroutine exitpois
@@ -97,6 +105,7 @@ contains
       call fft2dexit(p,Fp,d,xyrt)
       call exithypre
     endif
+
   end subroutine exitpois
 
   subroutine poisson
@@ -173,16 +182,10 @@ contains
     use modglobal, only : rk3step,i1,j1,kmax,k1,dx,dy,dzf,rdt,ih,jh
     use modmpi,    only : excjs
     implicit none
-    real(pois_r),allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
     integer i,j,k
     real(pois_r) :: rk3coef
 
     ! TODO: allocate these in initpois
-    allocate(pup(2-ih:i1+ih,2-jh:j1+jh,kmax))
-    allocate(pvp(2-ih:i1+ih,2-jh:j1+jh,kmax))
-    allocate(pwp(2-ih:i1+ih,2-jh:j1+jh,k1))
-    !$acc enter data create(pup, pvp, pwp)
-
     rk3coef = rdt / (4. - dble(rk3step))
     
     !$acc parallel loop collapse(3) default(present)
@@ -226,9 +229,6 @@ contains
         end do
       end do
     end do
-
-    !$acc exit data delete(pup, pvp, pwp)
-    deallocate( pup,pvp,pwp )
 
   end subroutine fillps
 
