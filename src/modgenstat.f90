@@ -549,7 +549,9 @@ contains
 
     use modglobal, only : rk3step,timee,dt_lim
     use modtimer, only: timer_tic, timer_toc
+#if defined(_OPENACC)
     use modgpu, only: update_host
+#endif
     implicit none
     if (.not. lstat) return
     if (rk3step/=3) return
@@ -1149,6 +1151,7 @@ contains
       integer nsecs, nhrs, nminut,k,n
       real convt, convq
       character(40) :: name
+
       nsecs   = nint(rtimee)
       nhrs    = int(nsecs/3600)
       nminut  = int(nsecs/60)-nhrs*60
