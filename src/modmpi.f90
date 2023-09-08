@@ -246,6 +246,15 @@ contains
  ! if either nprocx = 0 or nprocy = 0 a value is computed automatically
  ! considering the total number of processors but not the itot,jtot grid size
     call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr)
+
+#if defined(_OPENACC)
+    if (nprocs > 1) then
+      if (myid == 0) then
+        stop "GPU runs with more than 1 CPU are not supported yet!"
+      end if
+    end if
+#endif
+
     call checkmpierror(mpierr, 'MPI_COMM_SIZE')
 
     call MPI_DIMS_CREATE( nprocs, 2, dims, mpierr )
