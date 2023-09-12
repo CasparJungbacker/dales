@@ -192,7 +192,7 @@ contains
     ! TODO: allocate these in initpois
     rk3coef = rdt / (4. - dble(rk3step))
     
-    !$acc parallel loop collapse(3) default(present)
+    !$acc parallel loop collapse(3) default(present) async(1)
     do k=1,kmax
       do j=2,j1
         do i=2,i1
@@ -212,7 +212,7 @@ contains
 
   !**************************************************************
 
-    !$acc parallel loop collapse(2) default(present)
+    !$acc parallel loop collapse(2) default(present) async(1)
     do j=2,j1
       do i=2,i1
         pwp(i,j,1)  = 0.
@@ -223,7 +223,7 @@ contains
     call excjs(pup,2,i1,2,j1,1,kmax,ih,jh)
     call excjs(pvp,2,i1,2,j1,1,kmax,ih,jh)
 
-    !$acc parallel loop collapse(3) default(present)
+    !$acc parallel loop collapse(3) default(present) async(1)
     do k=1,kmax
       do j=2,j1
         do i=2,i1
@@ -233,6 +233,8 @@ contains
         end do
       end do
     end do
+
+    !$acc wait
 
   end subroutine fillps
 
@@ -274,7 +276,7 @@ contains
   ! **  pressure gradients.  ***************************************
   !*****************************************************************
 
-    !$acc parallel loop collapse(3) default(present) 
+    !$acc parallel loop collapse(3) default(present) async(1)
     do k=1,kmax
       do j=2,j1
         do i=2,i1
@@ -284,7 +286,7 @@ contains
       end do
     end do
 
-    !$acc parallel loop collapse(3) default(present)
+    !$acc parallel loop collapse(3) default(present) async(1)
     do k=2,kmax
       do j=2,j1
         do i=2,i1
@@ -292,6 +294,8 @@ contains
         end do
       end do
     end do
+
+    !$acc wait
 
     return
   end subroutine tderive
