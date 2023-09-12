@@ -4,6 +4,7 @@ module modgpu
 
 save
   real(pois_r), allocatable, target :: workspace(:)
+  logical :: host_is_updated = .false.
 
 #if defined(_OPENACC)
 contains
@@ -130,14 +131,16 @@ contains
   end subroutine update_host
 
   !> @brief Allocate reusable workspace for transposes and FFT
-  subroutine allocate_workspace(nx, ny, nz)
+  subroutine allocate_workspace(n)
     implicit none
     
-    integer, intent(in) :: nx, ny, nz
+    integer, intent(in) :: n
 
-    allocate(workspace(nx*ny*nz))
+    allocate(workspace(n))
 
-    !$acc enter data create(workspace)
+    workspace = 0
+
+    !$acc enter data copyin(workspace)
   
   end subroutine allocate_workspace
 #endif
