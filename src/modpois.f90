@@ -426,39 +426,5 @@ contains
 
     !$acc wait
   end subroutine solmpj
-  
-  subroutine write_pointer(array)
-    implicit none
-    real, pointer, intent(in), dimension(:,:,:) :: array
-    integer :: i,j,k
-
-    do k=1, size(array, dim=3)
-      write(*,*) "k = ", k
-      do i=1, size(array, dim=1)
-        do j=1, size(array, dim=2)
-          write(*, ' (F10.4)', advance='no') array(i,j,k)
-        end do
-        write(*,*)
-      end do
-    end do
-  
-  end subroutine write_pointer
-
-  subroutine write_array(array)
-    implicit none
-    real, allocatable, intent(in), dimension(:,:,:) :: array
-    integer :: i,j,k
-
-    do k=1, size(array, dim=3)
-      write(*,*) "k = ", k
-      do i=1, size(array, dim=1)
-        do j=1, size(array, dim=2)
-          write(*, ' (F10.4)', advance='no') array(i,j,k)
-        end do
-        write(*,*)
-      end do
-    end do
-  
-  end subroutine write_array
 
 end module modpois
