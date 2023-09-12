@@ -130,7 +130,7 @@ contains
 
   if (lcoriol .eqv. .false.) return
 
-  !$acc parallel loop collapse(3) default(present)
+  !$acc parallel loop collapse(3) default(present) async
   do k=2,kmax
     do j=2,j1
       do i=2,i1
@@ -155,7 +155,7 @@ contains
 !     --------------------------------------------
 !     special treatment for lowest full level: k=1
 !     --------------------------------------------
-  !$acc parallel loop collapse(2) default(present)
+  !$acc parallel loop collapse(2) default(present) async
   do j=2,j1
     do i=2,i1
 
@@ -171,7 +171,7 @@ contains
     end do
   end do
 !     ----------------------------------------------end i,j-loop
-
+  !$acc wait
   return
   end subroutine coriolis
 
