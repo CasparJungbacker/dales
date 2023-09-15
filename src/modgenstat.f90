@@ -563,6 +563,9 @@ contains
     if (timee>=tnext) then
       tnext = tnext+idtav
       call timer_tic("Do genstat")
+#if defined(_OPENACC)
+      call update_host
+#endif
       call do_genstat
       call timer_toc("Do genstat")
     end if

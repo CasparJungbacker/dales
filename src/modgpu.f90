@@ -102,6 +102,8 @@ contains
 
     implicit none
 
+    if (host_is_updated) return
+
     !$acc update self(um, vm, wm, thlm, e12m, qtm, &
     !$acc&            u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
     !$acc&            up, vp, wp, thlp, e12p, qtp, &
@@ -127,6 +129,8 @@ contains
     !$acc&            rhof, &
     !$acc&            qvsl, qvsi, esl, qsat, &
     !$acc&            esatmtab, esatitab, esatltab)
+
+    host_is_updated = .true.
 
   end subroutine update_host
 
