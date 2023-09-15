@@ -64,8 +64,6 @@ contains
     ekm=0.; ekh=0.; zlt=0.; sbdiss=0.; sbshr=0.; sbbuo=0.; csz=0.
     anis_fac = 0.
 
-    !$acc enter data copyin(ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac)
-
     cm = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
 
 !     ch   = 2. * alpha_kolm / beta_kolm
