@@ -96,8 +96,10 @@ contains
     !$acc kernels default(present) async
     thvh=0.
     !$acc end kernels
-
+    
+    !$acc host_data use_device(thvh, thv0h)
     call slabsum(thvh,1,k1,thv0h,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1) ! redefine halflevel thv using calculated thv
+    !$acc end host_data
 
     !$acc kernels default(present) async
     thvh = thvh/ijtot
@@ -118,7 +120,9 @@ contains
     thvf = 0.0
     !$acc end kernels
 
+    !$acc host_data use_device(thvf, thv0)
     call slabsum(thvf,1,k1,thv0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
+    !$acc end host_data
 
     !$acc kernels default(present) async
     thvf = thvf/ijtot
@@ -295,6 +299,8 @@ contains
     !$acc end kernels
 
 !  !CvH changed momentum array dimensions to same value as scalars!
+   !$acc host_data use_device(u0av, u0, v0av, v0, thl0av, thl0, qt0av, qt0, &
+   !$acc&                     ql0av, ql0, sv0av, sv0)
    call slabsum(u0av  ,1,k1,u0  ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
    call slabsum(v0av  ,1,k1,v0  ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
    call slabsum(thl0av,1,k1,thl0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
@@ -303,6 +309,7 @@ contains
    do n=1,nsv
       call slabsum(sv0av(1:1,n),1,k1,sv0(:,:,:,n),2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
    end do
+   !$acc end host_data
 
    !$acc kernels default(present) async(1)
    u0av   = u0av  /ijtot + cu
@@ -418,7 +425,6 @@ contains
 
 !     2: higher levels
 
-  ! TODO: see if a parallel loop with an atomic update is faster here
   !$acc serial loop default(present) async(1)
   do k=2,k1
     thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
