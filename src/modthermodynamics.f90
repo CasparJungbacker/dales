@@ -188,7 +188,7 @@ contains
 
             dthv = del_thv_dry
 
-            if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
+            !if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
 
                temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
                qs   = qt0(i,j,k) - ql0(i,j,k)
@@ -206,7 +206,7 @@ contains
                if (chi < chi_sat) then  !mixed parcel is saturated
                  dthv = del_thv_sat
               end if
-            end if
+            !end if
 
             dthvdz(i,j,k) = dthv/(dzh(k+1)+dzh(k))
           end do
@@ -417,7 +417,7 @@ contains
 
 !     1: lowest level: use first level value for safety!
 
-  !$acc serial default(present) async(1)
+  !$acc serial default(present) async(2) wait(1)
   thvh(1) = th0av(1)*(1+(rv/rd-1)*qt0av(1)-rv/rd*ql0av(1))
   presf(1) = ps**rdocp - grav*(pref0**rdocp)*zf(1) /(cp*thvh(1))
   presf(1) = presf(1)**(1./rdocp)
@@ -425,7 +425,7 @@ contains
 
 !     2: higher levels
 
-  !$acc serial loop default(present) async(1)
+  !$acc serial loop default(present) async(2) wait(1)
   do k=2,k1
     thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
     presf(k) = presf(k-1)**rdocp - &
@@ -438,12 +438,12 @@ contains
 !           assuming hydrostatic equilibrium      *
 !**************************************************
 
-  !$acc serial default(present) async(1)
+  !$acc serial default(present) async(3) wait(1)
   presh(1) = ps
   thvf(1) = th0av(1)*(1+(rv/rd-1)*qt0av(1)-rv/rd*ql0av(1))
   !$acc end serial
 
-  !$acc serial loop default(present) async(1)
+  !$acc serial loop default(present) async(3) wait(1)
   do k=2,k1
     thvf(k)  = th0av(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
     presh(k) = presh(k-1)**rdocp - &
