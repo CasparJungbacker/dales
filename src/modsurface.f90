@@ -231,6 +231,7 @@ contains
       if (mod(itot,xpatches) .ne. 0) stop "NAMSURFACE: Not an integer amount of grid points per patch in the x-direction"
       if (mod(jtot,ypatches) .ne. 0) stop "NAMSURFACE: Not an integer amount of grid points per patch in the y-direction"
 
+      allocate(horvpatch(xpatches,ypatches))
       allocate(z0mav_patch(xpatches,ypatches))
       allocate(z0hav_patch(xpatches,ypatches))
       allocate(thls_patch(xpatches,ypatches))
@@ -721,7 +722,7 @@ contains
     implicit none
 
     integer  :: i, j, n, patchx, patchy
-    real     :: upcu, vpcv, horv, horvav, horvpatch(xpatches,ypatches)
+    real     :: upcu, vpcv, horv, horvav
     real     :: upatch(xpatches,ypatches), vpatch(xpatches,ypatches)
     real     :: Supatch(xpatches,ypatches), Svpatch(xpatches,ypatches)
     integer  :: Npatch(xpatches,ypatches), SNpatch(xpatches,ypatches)
@@ -774,45 +775,12 @@ contains
     ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
 
-      if(lneutral) then
-        obl(:,:) = -1.e10
-        oblav    = -1.e10
-      else
-        call getobl
-      end if
+      call getobl
 
       call D_MPI_BCAST(oblav ,1 ,0,comm3d,mpierr)
 
-      do j = 2, j1
-        do i = 2, i1
-          if(lhetero) then
-            patchx = patchxnr(i)
-            patchy = patchynr(j)
-          endif
+      call drag_coefficients
 
-          ! 3     -   Calculate the drag coefficient and aerodynamic resistance
-          Cm(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) ** 2.
-          Cs(i,j) = fkar ** 2. / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / &
-          (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
-
-          if(lmostlocal) then
-            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-            horv  = max(horv, 0.1)
-            ra(i,j) = 1. / ( Cs(i,j) * horv )
-          else
-            if (lhetero) then
-              ra(i,j) = 1. / ( Cs(i,j) * horvpatch(patchx,patchy) )
-            else
-              horvav  = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-              horvav  = max(horvav, 0.1)
-              ra(i,j) = 1. / ( Cs(i,j) * horvav )
-            endif
-          end if
-
-        end do
-      end do
     end if
 
     ! Solve the surface energy balance and the heat and moisture transport in the soil
@@ -932,12 +900,7 @@ contains
 
     else
 
-      if(lneutral) then
-        obl(:,:) = -1.e10
-        oblav    = -1.e10
-      else
-        call getobl
-      end if
+      call getobl
 
       thlsl = 0.
       qtsl  = 0.
@@ -1059,6 +1022,58 @@ contains
 
   end subroutine surface
 
+  subroutine drag_coefficients
+    use modglobal, only: i1, j1, fkar, zf, cu, cv
+    use modfields, only: u0, v0, u0av, v0av
+    implicit none
+
+    integer :: i, j, patchx, patchy
+    real :: upcu, vpcv, horv, horvav
+   
+    do j = 2, j1
+      do i = 2, i1 
+        Cm(i,j) = fkar**2 / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))**2 
+        Cs(i,j) = fkar**2 / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) / &
+                  (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j)))
+      end do
+    end do
+
+    if (lmostlocal) then
+      do j = 2, j1
+        do i = 2, i1
+          upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv = sqrt(upcu**2 + vpcv**2)
+          horv = max(horv, 0.1)
+          ra(i,j) = 1. / (Cs(i,j) * horv)
+        end do
+      end do
+    else
+      if (lhetero) then
+        do j = 2, j1
+          do i = 2, i1
+            patchx = patchxnr(i)
+            patchy = patchynr(j)
+            ra(i,j) = 1. / (Cs(i,j) * horvpatch(patchx, patchy))
+          end do
+        end do
+      else
+        do j = 2, j1
+          do i = 2, i1
+            horvav = sqrt(u0av(1)**2 + v0av(1)**2)
+            horvav = max(horvav, 0.1)
+            ra(i,j) = 1. / (Cs(i,j) * horvav)
+          end do
+        end do
+      end if
+    end if
+
+  end subroutine drag_coefficients
+
+  subroutine surface_flux
+    implicit none 
+  end subroutine surface_flux
+
 !> Calculate the surface humidity assuming saturation.
   subroutine qtsurf
     use modglobal,   only : tmelt,bt,at,rd,rv,cp,es0,pref0,ijtot,i1,j1
@@ -1144,6 +1159,12 @@ contains
     real                :: loblpatch(xpatches,ypatches)
 
     !$acc update self(thl0av, qt0av)
+
+    if (lneutral) then
+      obl(:,:) = -1.e10
+      oblav = -1.e10
+      return
+    endif
 
     if(lmostlocal) then
 
