@@ -688,6 +688,10 @@ contains
     !$acc enter data create(ustar, dudz, dvdz)
     !$acc enter data create(thlflux, qtflux, dqtdz, dthldz, svflux, svs)
 
+    if (lmostlocal) then
+      allocate(horv(2:i1,2:j1))
+    end if
+
     if (lrsAgs) then
       allocate(AnField   (2:i1,2:j1))
       allocate(gcco2Field(2:i1,2:j1))
@@ -722,7 +726,7 @@ contains
     implicit none
 
     integer  :: i, j, n, patchx, patchy
-    real     :: upcu, vpcv, horv, horvav
+    real     :: upcu, vpcv
     real     :: upatch(xpatches,ypatches), vpatch(xpatches,ypatches)
     real     :: Supatch(xpatches,ypatches), Svpatch(xpatches,ypatches)
     integer  :: Npatch(xpatches,ypatches), SNpatch(xpatches,ypatches)
@@ -771,6 +775,7 @@ contains
       horvpatch = max(horvpatch, 0.1)
     endif
 
+    call mean_wind
 
     ! CvH start with computation of drag coefficients to allow for implicit solver
     if(isurf <= 2) then
@@ -804,20 +809,13 @@ contains
     if(isurf <= 2) then
       do j = 2, j1
         do i = 2, i1
-          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv   = max(horv, 0.1)
-          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          horvav = max(horvav, 0.1)
-
           if(lhetero) then
             patchx = patchxnr(i)
             patchy = patchynr(j)
           endif
 
           if(lmostlocal) then
-            ustar  (i,j) = sqrt(Cm(i,j)) * horv
+            ustar  (i,j) = sqrt(Cm(i,j)) * horv(i,j)
           else
             if(lhetero) then
               ustar  (i,j) = sqrt(Cm(i,j)) * horvpatch(patchx,patchy)
@@ -844,8 +842,8 @@ contains
           phimzf = phim(zf(1)/obl(i,j))
           phihzf = phih(zf(1)/obl(i,j))
           
-          dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
-          dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
+          dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv(i,j))
+          dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv(i,j))
           dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
           dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
         end do
@@ -876,14 +874,9 @@ contains
 
             phimzf = phim(zf(1)/obl(i,j))
             phihzf = phih(zf(1)/obl(i,j))
-            
-            upcu  = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-            vpcv  = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-            horv  = sqrt(upcu ** 2. + vpcv ** 2.)
-            horv  = max(horv, 0.1)
 
-            dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
-            dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
+            dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv(i,j))
+            dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv(i,j))
             dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
             dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
           end do
@@ -911,15 +904,9 @@ contains
             patchy = patchynr(j)
           endif
 
-          upcu   = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv   = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv   = sqrt(upcu ** 2. + vpcv ** 2.)
-          horv   = max(horv, 0.1)
-          horvav = sqrt(u0av(1) ** 2. + v0av(1) ** 2.)
-          horvav = max(horvav, 0.1)
           if( isurf == 4) then
             if(lmostlocal) then
-              ustar (i,j) = fkar * horv  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
+              ustar (i,j) = fkar * horv(i,j)  / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))
             else
               if(lhetero) then
                 ustar (i,j) = fkar * horvpatch(patchx,patchy) / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j))&
@@ -958,16 +945,16 @@ contains
           phimzf = phim(zf(1)/obl(i,j))
           phihzf = phih(zf(1)/obl(i,j))
           
-          dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv)
-          dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv)
+          dudz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(upcu/horv(i,j))
+          dvdz  (i,j) = ustar(i,j) * phimzf / (fkar*zf(1))*(vpcv/horv(i,j))
           dthldz(i,j) = - thlflux(i,j) / ustar(i,j) * phihzf / (fkar*zf(1))
           dqtdz (i,j) = - qtflux(i,j)  / ustar(i,j) * phihzf / (fkar*zf(1))
 
           Cs(i,j) = fkar ** 2. / ((log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j))) * &
           (log(zf(1) / z0h(i,j)) - psih(zf(1) / obl(i,j)) + psih(z0h(i,j) / obl(i,j))))
 
-          tskin(i,j) = min(max(thlflux(i,j) / (Cs(i,j) * horv),-10.),10.)  + thl0(i,j,1)
-          qskin(i,j) = min(max( qtflux(i,j) / (Cs(i,j) * horv),-5e-2),5e-2) + qt0(i,j,1)
+          tskin(i,j) = min(max(thlflux(i,j) / (Cs(i,j) * horv(i,j)),-10.),10.)  + thl0(i,j,1)
+          qskin(i,j) = min(max( qtflux(i,j) / (Cs(i,j) * horv(i,j)),-5e-2),5e-2) + qt0(i,j,1)
 
           thlsl      = thlsl + tskin(i,j)
           qtsl       = qtsl  + qskin(i,j)
@@ -1021,7 +1008,7 @@ contains
     implicit none
 
     integer :: i, j, patchx, patchy
-    real :: upcu, vpcv, horv, horvav
+    real :: upcu, vpcv
    
     do j = 2, j1
       do i = 2, i1 
@@ -1034,31 +1021,23 @@ contains
     if (lmostlocal) then
       do j = 2, j1
         do i = 2, i1
-          upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
-          vpcv = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
-          horv = sqrt(upcu**2 + vpcv**2)
-          horv = max(horv, 0.1)
-          ra(i,j) = 1. / (Cs(i,j) * horv)
+          ra(i,j) = 1. / (Cs(i,j) * horv(i,j))
+        end do
+      end do
+    else if (lhetero) then
+      do j = 2, j1
+        do i = 2, i1
+          patchx = patchxnr(i)
+          patchy = patchynr(j)
+          ra(i,j) = 1. / (Cs(i,j) * horvpatch(patchx, patchy))
         end do
       end do
     else
-      if (lhetero) then
-        do j = 2, j1
-          do i = 2, i1
-            patchx = patchxnr(i)
-            patchy = patchynr(j)
-            ra(i,j) = 1. / (Cs(i,j) * horvpatch(patchx, patchy))
-          end do
+      do j = 2, j1
+        do i = 2, i1
+          ra(i,j) = 1. / (Cs(i,j) * horvav)
         end do
-      else
-        do j = 2, j1
-          do i = 2, i1
-            horvav = sqrt(u0av(1)**2 + v0av(1)**2)
-            horvav = max(horvav, 0.1)
-            ra(i,j) = 1. / (Cs(i,j) * horvav)
-          end do
-        end do
-      end if
+      end do
     end if
 
   end subroutine drag_coefficients
@@ -1084,6 +1063,32 @@ contains
     end if
 
   end subroutine skin_temperature
+
+  
+  !< Calculates the maginitude of the wind vector at the first level
+  subroutine mean_wind
+    use modglobal, only: i1, j1, cu, cv
+    use modfields, only: u0, v0, u0av, v0av
+    implicit none
+    
+    integer :: i, j
+    real :: upcu, vpcv
+    
+    if (lmostlocal) then
+      do j = 2, j1
+        do i = 2, i1
+          upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
+          vpcv = 0.5 * (v0(i,j,1) + v0(i,j+1,1)) + cv
+          horv(i,j) = sqrt(upcu**2. + vpcv**2.)
+          horv(i,j) = max(horv, 0.1)
+        end do
+      end do
+    else
+      horvav = sqrt(u0av(1)**2. + v0av(1)**2.)
+      horvav = max(horvav, 0.1)
+    end if
+
+  end subroutine mean_wind
 
   subroutine surface_flux
     implicit none 

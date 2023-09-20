@@ -278,7 +278,9 @@ SAVE
   real              :: rsisurf2_land(max_lands)    = 0  !< Vegetation resistance [s/m] if isurf2 is used
   real, allocatable :: albedo_patch(:,:)                !< Albedo
   real              :: albedo_land(max_lands)      = -1 !< Albedo
+  real, allocatable :: horv(:,:)                        !< Horizontal wind velocity [m/s]
   real, allocatable :: horvpatch(:,:)                   !< Horizontal wind velocity [m/s]
+  real              :: horvav                           !< Horizontal wind velocity [m/s]
   real, allocatable :: tsoil_patch(:,:,:)               !< Soil temperature [K]
   real, allocatable :: tsoildeep_patch(:,:)             !< Soil temperature [K]
   real, allocatable :: phiw_patch(:,:,:)                !<
