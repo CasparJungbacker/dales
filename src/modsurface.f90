@@ -788,15 +788,8 @@ contains
       call do_lsm
 
     elseif(isurf == 2) then
-      do j = 2, j1
-        do i = 2, i1
-          if(lhetero) then
-            tskin(i,j) = thls_patch(patchxnr(i),patchynr(j))
-          else
-            tskin(i,j) = thls
-          endif
-        end do
-      end do
+
+      call skin_temperature
 
       call qtsurf
 
@@ -1069,6 +1062,28 @@ contains
     end if
 
   end subroutine drag_coefficients
+
+  subroutine skin_temperature
+    use modglobal, only: j1, i1
+    implicit none
+    
+    integer :: i, j
+
+    if (lhetero) then
+      do j = 2, j1
+        do i = 2, i1
+          tskin(i,j) = thls_patch(patchxnr(i), patchynr(j))
+        end do
+      end do
+    else
+      do j = 2, j1
+        do i = 2, i1
+          tskin(i,j) = thls
+        end do
+      end do
+    end if
+
+  end subroutine skin_temperature
 
   subroutine surface_flux
     implicit none 
