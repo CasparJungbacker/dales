@@ -730,7 +730,7 @@ contains
         call calc_friction_velocity
         call calc_surface_flux
         call calc_surface_gradients
-      case (2)
+      case (2) ! Forced surface temperature, fluxes calculated
         call calc_mean_wind
         call getobl
         call calc_drag_coefficients
@@ -740,7 +740,7 @@ contains
         call calc_friction_velocity
         call calc_surface_flux
         call calc_surface_gradients
-      case (3)
+      case (3) ! Forced fluxes, surface temperature calculated
         call calc_mean_wind
         call calc_drag_coefficients
         call getobl
@@ -748,7 +748,7 @@ contains
         call presc_surface_flux
         call calc_surface_gradients
         call calc_surface_scalars
-      case (4)
+      case (4) ! Forced moisture and heat flux, u_star and surface temperature calculated
         call calc_mean_wind
         call calc_drag_coefficients
         call getobl
@@ -756,7 +756,7 @@ contains
         call presc_surface_flux
         call calc_surface_gradients
         call calc_surface_scalars
-      case (10)
+      case (10) ! User defined surface scheme
         call surf_user
       case default
         stop "Invalid option selected for isurf"
