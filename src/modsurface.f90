@@ -686,8 +686,6 @@ contains
     allocate(dthldz  (i2,j2))
     allocate(svflux  (i2,j2,nsv))
     allocate(svs(nsv))
-    !$acc enter data create(ustar, dudz, dvdz)
-    !$acc enter data create(thlflux, qtflux, dqtdz, dthldz, svflux, svs)
 
     allocate(horv(2:i1,2:j1))
 
@@ -709,8 +707,9 @@ contains
       endif  
     endif
 
-    !$acc enter data copyin(ustar, dudz, dvdz, thlflux, qtflux, &
-    !$acc&                  dqtdz, dthldz, svflux, svs)
+    !$acc enter data copyin(z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+    !$acc&                  ustar, dudz, dvdz, thlflux, qtflux, &
+    !$acc&                  dqtdz, dthldz, svflux, svs, horv)
 
     return
   end subroutine initsurface
@@ -772,7 +771,8 @@ contains
 
     integer :: i, j
     real :: upcu, vpcv
-   
+    
+   !$acc parallel loop collapse(2) default(present)
     do j = 2, j1
       do i = 2, i1 
         Cm(i,j) = fkar**2 / (log(zf(1) / z0m(i,j)) - psim(zf(1) / obl(i,j)) + psim(z0m(i,j) / obl(i,j)))**2 
@@ -853,13 +853,15 @@ contains
     integer :: Npatch(xpatches, ypatches), SNpatch(xpatches, ypatches)
     
     ! TODO: check if splitting these loops speeds things up on the GPU (async)
+    !$acc parallel loop collapse(2) default(present)
     do j = 2, j1
       do i = 2, i1
         tskin(i,j) = min(max(thlflux(i,j) / (Cs(i,j) * horv(i,j)), -10.), 10.) + thl0(i,j,1) 
         qskin(i,j) = min(max(qtflux(i,j) / (Cs(i,j) * horv(i,j)), -5.e-2), 5.e-2) + qt0(i,j,1)
       end do
     end do
-  
+    
+    !$acc parallel loop collapse(2) default(present) reduction(+: thls, qtsl) 
     do j = 2, j1
       do i = 2, i1
         thlsl = thlsl + tskin(i,j)
@@ -911,6 +913,7 @@ contains
     real :: Supatch(xpatches, ypatches), Svpatch(xpatches, ypatches)
     integer :: Npatch(xpatches, ypatches), SNpatch(xpatches, ypatches)
     
+    !$acc parallel loop collapse(2) default(present) private(upcu, vpcv)
     do j = 2, j1
       do i = 2, i1
         upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
@@ -945,6 +948,7 @@ contains
       horvpatch = sqrt(((Supatch/SNpatch) + cu) **2. + ((Svpatch/SNpatch) + cv) ** 2.)
       horvpatch = max(horvpatch, 0.1)
     else
+      !$acc update self(u0av(1), v0av(1))
       horvav = sqrt(u0av(1)**2. + v0av(1)**2.)
       horvav = max(horvav, 0.1)
     end if
@@ -1004,13 +1008,15 @@ contains
         end do
       end do
     else
+      !$acc parallel loop collapse(2) default(present)
       do j = 2, j1
         do i = 2, i1
           ustar(i,j) = ustin
         end do
       end do
     end if
-
+    
+    !$acc parallel loop collapse(2) default(present)
     do j = 2, j1
       do i = 2, i1
         ustar(i,j) = max(ustar(i,j), 1.e-2)
@@ -1119,6 +1125,7 @@ contains
         end do
       end if
     else 
+      !$acc parallel loop collapse(2) default(present)
       do j = 2, j1
         do i = 2, i1
           thlflux(i,j) = wtsurf
@@ -1127,6 +1134,7 @@ contains
       end do
 
       if (nsv > 0) then
+        !$acc parallel loop collapse(3) default(present)
         do n = 1, nsv
           do j = 2, j1
             do i = 2, i1
@@ -1149,6 +1157,7 @@ contains
     real :: phimzf, phihzf
 
     ! Momentum fluxes
+    !$acc parallel loop collapse(2) default(present) private(upcu, vpcv, phimzf)
     do j = 2, j1
       do i = 2, i1
         upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
@@ -1160,6 +1169,7 @@ contains
     end do
 
     ! Scalar fluxes
+    !$acc parallel loop collapse(2) default(present) private(phihzf)
     do j = 2, j1
       do i = 2, i1
         phihzf = phih(zf(1) / obl(i,j))
@@ -1255,7 +1265,6 @@ contains
                            lqpatch(xpatches,ypatches), qpatch(xpatches,ypatches)
     real                :: loblpatch(xpatches,ypatches)
 
-    !$acc update self(thl0av, qt0av)
 
     if (lneutral) then
       obl(:,:) = -1.e10
@@ -1417,6 +1426,7 @@ contains
     endif
 
     !CvH also do a global evaluation if lmostlocal = .true. to get an appropriate local mean
+    !$acc update self(thl0av(1), qt0av(1))
     thv    = thl0av(1) * (1. + (rv/rd - 1.) * qt0av(1))
 
     horv2 = u0av(1)**2. + v0av(1)**2.
@@ -1460,7 +1470,12 @@ contains
        if (abs(L)>1e6) L = sign(1.0e6,L)
        if(.not. lmostlocal) then
           if(.not. lhetero) then
-             obl(:,:) = L
+            !$acc parallel loop collapse(2) default(present)
+            do j = 2, j1
+              do i = 2, i1 
+                obl(i,j) = L
+              end do
+            end do
           endif
        end if
     end if
@@ -1517,7 +1532,8 @@ contains
   ! Phi and Psi above are related by an integral and should in principle match, 
   ! currently they do not.
   ! FJ 2018: For very stable situations, zeta > 1 add cap to phi - the linear expression is valid only for zeta < 1
- function phim(zeta)
+  function phim(zeta)
+    !$acc routine seq
     implicit none
     real             :: phim
     real, intent(in) :: zeta
@@ -1534,8 +1550,9 @@ contains
     return
   end function phim
 
-   ! stability function Phi for heat.  
- function phih(zeta)
+  ! stability function Phi for heat.  
+  function phih(zeta)
+    !$acc routine seq
     implicit none
     real             :: phih
     real, intent(in) :: zeta
@@ -1630,6 +1647,11 @@ contains
 
   subroutine exitsurface
     implicit none
+
+    !$acc exit data delete(z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+    !$acc&                 ustar, dudz, dvdz, thlflux, qtflux, &
+    !$acc&                 dqtdz, dthldz, svflux, svs, horv)
+
     return
   end subroutine exitsurface
 

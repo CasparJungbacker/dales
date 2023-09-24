@@ -29,9 +29,9 @@ contains
                          qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
                          rd, rv, esatmtab, esatitab, esatltab
-    use modsurfdata, only: ustar, dudz, dvdz, &
-                           thlflux, qtflux, dqtdz, dthldz, &
-                           svflux, svs
+    use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+                           ustar, dudz, dvdz, thlflux, qtflux, &
+                           dqtdz, dthldz, svflux, svs, horv
     use modsubgriddata, only: ekm, ekh, zlt, csz, anis_fac, &
                               sbdiss, sbshr, sbbuo
     use modradiation, only: thlprad
@@ -56,11 +56,11 @@ contains
     !$acc&              dudxls, dudyls, dudtls, &
     !$acc&              dvdxls, dvdyls, dvdtls, &
     !$acc&              dzf, dzh, zh, zf, delta, deltai, &
-    !$acc&              ustar, dudz, dvdz, &
-    !$acc&              thlflux, qtflux, dqtdz, dthldz, &
+    !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+    !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
+    !$acc&              dqtdz, dthldz, svflux, svs, horv, &
     !$acc&              tsc, &
     !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac, &
-    !$acc&              svflux, &
     !$acc&              thlpcar, thlprad, &
     !$acc&              presf, presh, exnf, exnh, &
     !$acc&              rhof, &
@@ -90,9 +90,9 @@ contains
                          qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
                          rd, rv, esatmtab, esatitab, esatltab
-    use modsurfdata, only: ustar, dudz, dvdz, &
-                           thlflux, qtflux, dqtdz, dthldz, &
-                           svflux, svs
+    use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+                           ustar, dudz, dvdz, thlflux, qtflux, &
+                           dqtdz, dthldz, svflux, svs, horv
     use modsubgriddata, only: ekm, ekh, zlt, csz, anis_fac, &
                               sbdiss, sbshr, sbbuo
     use modradiation, only: thlprad
@@ -105,30 +105,30 @@ contains
     if (host_is_updated) return
 
     !$acc update self(um, vm, wm, thlm, e12m, qtm, &
-    !$acc&            u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
-    !$acc&            up, vp, wp, thlp, e12p, qtp, &
-    !$acc&            svm, sv0, svp, &
-    !$acc&            rhobf, rhobh, &
-    !$acc&            ql0, ql0h, tmp0, thv0h, dthvdz, &
-    !$acc&            whls, ug, vg, &
-    !$acc&            thvf, thvh, &
-    !$acc&            qt0av, ql0av, thl0av, u0av, v0av, sv0av, &
-    !$acc&            dpdxl, dpdyl, &
-    !$acc&            dthldxls, dthldyls, dthldtls, &
-    !$acc&            dqtdxls, dqtdyls, dqtdtls, &
-    !$acc&            dudxls, dudyls, dudtls, &
-    !$acc&            dvdxls, dvdyls, dvdtls, &
-    !$acc&            dzf, dzh, zh, zf, delta, deltai, &
-    !$acc&            ustar, dudz, dvdz, &
-    !$acc&            thlflux, qtflux, dqtdz, dthldz, &
-    !$acc&            tsc, &
-    !$acc&            ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac, &
-    !$acc&            svflux, &
-    !$acc&            thlpcar, thlprad, &
-    !$acc&            presf, presh, exnf, exnh, &
-    !$acc&            rhof, &
-    !$acc&            qvsl, qvsi, esl, qsat, &
-    !$acc&            esatmtab, esatitab, esatltab)
+    !$acc&              u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
+    !$acc&              up, vp, wp, thlp, e12p, qtp, &
+    !$acc&              svm, sv0, svp, &
+    !$acc&              rhobf, rhobh, &
+    !$acc&              ql0, ql0h, tmp0, thv0h, dthvdz, &
+    !$acc&              whls, ug, vg, &
+    !$acc&              thvf, thvh, &
+    !$acc&              qt0av, ql0av, thl0av, u0av, v0av, sv0av, &
+    !$acc&              dpdxl, dpdyl, &
+    !$acc&              dthldxls, dthldyls, dthldtls, &
+    !$acc&              dqtdxls, dqtdyls, dqtdtls, &
+    !$acc&              dudxls, dudyls, dudtls, &
+    !$acc&              dvdxls, dvdyls, dvdtls, &
+    !$acc&              dzf, dzh, zh, zf, delta, deltai, &
+    !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+    !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
+    !$acc&              dqtdz, dthldz, svflux, svs, horv, &
+    !$acc&              tsc, &
+    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac, &
+    !$acc&              thlpcar, thlprad, &
+    !$acc&              presf, presh, exnf, exnh, &
+    !$acc&              rhof, &
+    !$acc&              qvsl, qvsi, esl, qsat, &
+    !$acc&              esatmtab, esatitab, esatltab)
 
     host_is_updated = .true.
 
