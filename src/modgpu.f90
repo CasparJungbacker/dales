@@ -45,12 +45,12 @@ contains
     !$acc&              wfls, whls, thlpcar, dthldxls, dthldyls, &
     !$acc&              dthldtls, dqtdxls, dqtdyls, dqtdtls, &
     !$acc&              dudxls, dudyls, dudtls, dvdxls, dvdyls, &
-    !$acc&              dvdtls, dthvdz, qvsl, qvsi, esl, qsat)
+    !$acc&              dvdtls, dthvdz, qvsl, qvsi, esl, qsat, &
     !$acc&              dzf, dzh, zh, zf, delta, deltai, &
     !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
     !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
     !$acc&              dqtdz, dthldz, svflux, svs, horv, &
-    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz &
+    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, &
     !$acc&              anis_fac, tsc, thlpcar, thlprad, presf, & 
     !$acc&              presh, exnf, exnh, rhof, &
     !$acc&              qvsl, qvsi, esl, qsat, &
@@ -60,23 +60,17 @@ contains
   
   !> @brief Copies data from GPU to host, mostly for debugging
   subroutine update_host
-    use modfields, only: um, vm, wm, thlm, e12m, qtm, &
-                         u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
-                         up, vp, wp, thlp, e12p, qtp, &
-                         svm, sv0, svp, &
-                         rhobf, rhobh, &
-                         ql0, ql0h, tmp0, thv0h, dthvdz, &
-                         whls, ug, vg, thvf, thvh, &
-                         presf, presh,exnf, exnh, &
-                         rhof, &
-                         qt0av, ql0av, thl0av, u0av, v0av, &
-                         dpdxl, dpdyl, &
-                         dthldxls, dthldyls, dthldtls, &
-                         dqtdxls, dqtdyls, dqtdtls, &
-                         dudxls, dudyls, dudtls, &
-                         dvdxls, dvdyls, dvdtls, &
-                         thlpcar, sv0av, &
-                         qvsl, qvsi, esl, qsat
+    use modfields, only: um, u0, up, vm, v0, vp, wm, w0, wp, &
+                         thlm, thl0, thlp, qtm, qt0, qtp, &
+                         e12m, e120, e12p, svm, sv0, svp, &
+                         rhobf, rhobh, ql0, tmp0, ql0h, thv0h, &
+                         thl0h, qt0h, presf, presh, exnf, exnh, &
+                         thvh, thvf, rhof, qt0av, ql0av, thl0av, &
+                         u0av, v0av, sv0av, ug, vg, dpdxl, dpdyl, &
+                         wfls, whls, thlpcar, dthldxls, dthldyls, &
+                         dthldtls, dqtdxls, dqtdyls, dqtdtls, &
+                         dudxls, dudyls, dudtls, dvdxls, dvdyls, &
+                         dvdtls, dthvdz, qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
                          rd, rv, esatmtab, esatitab, esatltab
     use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
@@ -103,12 +97,12 @@ contains
     !$acc&            wfls, whls, thlpcar, dthldxls, dthldyls, &
     !$acc&            dthldtls, dqtdxls, dqtdyls, dqtdtls, &
     !$acc&            dudxls, dudyls, dudtls, dvdxls, dvdyls, &
-    !$acc&            dvdtls, dthvdz, qvsl, qvsi, esl, qsat)
+    !$acc&            dvdtls, dthvdz, qvsl, qvsi, esl, qsat, &
     !$acc&            dzf, dzh, zh, zf, delta, deltai, &
     !$acc&            z0m, z0h, obl, tskin, qskin, Cm, Cs, &
     !$acc&            ustar, dudz, dvdz, thlflux, qtflux, &
     !$acc&            dqtdz, dthldz, svflux, svs, horv, &
-    !$acc&            ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz &
+    !$acc&            ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, &
     !$acc&            anis_fac, tsc, thlpcar, thlprad, presf, & 
     !$acc&            presh, exnf, exnh, rhof, &
     !$acc&            qvsl, qvsi, esl, qsat, &
