@@ -10,23 +10,17 @@ save
 contains
   !> @brief Copies fields and arrays to GPU  
   subroutine update_gpu
-    use modfields, only: um, vm, wm, thlm, e12m, qtm, &
-                         u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
-                         up, vp, wp, thlp, e12p, qtp, &
-                         svm, sv0, svp, &
-                         rhobf, rhobh, &
-                         ql0, ql0h, tmp0, thv0h, dthvdz, &
-                         whls, ug, vg, thvf, thvh, &
-                         presf, presh,exnf, exnh, &
-                         rhof, &
-                         qt0av, ql0av, thl0av, u0av, v0av, &
-                         dpdxl, dpdyl, &
-                         dthldxls, dthldyls, dthldtls, &
-                         dqtdxls, dqtdyls, dqtdtls, &
-                         dudxls, dudyls, dudtls, &
-                         dvdxls, dvdyls, dvdtls, &
-                         thlpcar, sv0av, &
-                         qvsl, qvsi, esl, qsat
+    use modfields, only: um, u0, up, vm, v0, vp, wm, w0, wp, &
+                         thlm, thl0, thlp, qtm, qt0, qtp, &
+                         e12m, e120, e12p, svm, sv0, svp, &
+                         rhobf, rhobh, ql0, tmp0, ql0h, thv0h, &
+                         thl0h, qt0h, presf, presh, exnf, exnh, &
+                         thvh, thvf, rhof, qt0av, ql0av, thl0av, &
+                         u0av, v0av, sv0av, ug, vg, dpdxl, dpdyl, &
+                         wfls, whls, thlpcar, dthldxls, dthldyls, &
+                         dthldtls, dqtdxls, dqtdyls, dqtdtls, &
+                         dudxls, dudyls, dudtls, dvdxls, dvdyls, &
+                         dvdtls, dthvdz, qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
                          rd, rv, esatmtab, esatitab, esatltab
     use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
@@ -41,29 +35,24 @@ contains
 
     implicit none
 
-    !$acc update device(um, vm, wm, thlm, e12m, qtm, &
-    !$acc&              u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
-    !$acc&              up, vp, wp, thlp, e12p, qtp, &
-    !$acc&              svm, sv0, svp, &
-    !$acc&              rhobf, rhobh, &
-    !$acc&              ql0, ql0h, tmp0, thv0h, dthvdz, &
-    !$acc&              whls, ug, vg, &
-    !$acc&              thvf, thvh, &
-    !$acc&              qt0av, ql0av, thl0av, u0av, v0av, sv0av, &
-    !$acc&              dpdxl, dpdyl, &
-    !$acc&              dthldxls, dthldyls, dthldtls, &
-    !$acc&              dqtdxls, dqtdyls, dqtdtls, &
-    !$acc&              dudxls, dudyls, dudtls, &
-    !$acc&              dvdxls, dvdyls, dvdtls, &
+    !$acc update device(um, u0, up, vm, v0, vp, wm, w0, wp, &
+    !$acc&              thlm, thl0, thlp, qtm, qt0, qtp, &
+    !$acc&              e12m, e120, e12p, svm, sv0, svp, &
+    !$acc&              rhobf, rhobh, ql0, tmp0, ql0h, thv0h, &
+    !$acc&              thl0h, qt0h, presf, presh, exnf, exnh, &
+    !$acc&              thvh, thvf, rhof, qt0av, ql0av, thl0av, &
+    !$acc&              u0av, v0av, sv0av, ug, vg, dpdxl, dpdyl, &
+    !$acc&              wfls, whls, thlpcar, dthldxls, dthldyls, &
+    !$acc&              dthldtls, dqtdxls, dqtdyls, dqtdtls, &
+    !$acc&              dudxls, dudyls, dudtls, dvdxls, dvdyls, &
+    !$acc&              dvdtls, dthvdz, qvsl, qvsi, esl, qsat)
     !$acc&              dzf, dzh, zh, zf, delta, deltai, &
     !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
     !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
     !$acc&              dqtdz, dthldz, svflux, svs, horv, &
-    !$acc&              tsc, &
-    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac, &
-    !$acc&              thlpcar, thlprad, &
-    !$acc&              presf, presh, exnf, exnh, &
-    !$acc&              rhof, &
+    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz &
+    !$acc&              anis_fac, tsc, thlpcar, thlprad, presf, & 
+    !$acc&              presh, exnf, exnh, rhof, &
     !$acc&              qvsl, qvsi, esl, qsat, &
     !$acc&              esatmtab, esatitab, esatltab)
 
@@ -104,31 +93,26 @@ contains
 
     if (host_is_updated) return
 
-    !$acc update self(um, vm, wm, thlm, e12m, qtm, &
-    !$acc&              u0, v0, w0, thl0, thl0h, qt0h, e120, qt0, &
-    !$acc&              up, vp, wp, thlp, e12p, qtp, &
-    !$acc&              svm, sv0, svp, &
-    !$acc&              rhobf, rhobh, &
-    !$acc&              ql0, ql0h, tmp0, thv0h, dthvdz, &
-    !$acc&              whls, ug, vg, &
-    !$acc&              thvf, thvh, &
-    !$acc&              qt0av, ql0av, thl0av, u0av, v0av, sv0av, &
-    !$acc&              dpdxl, dpdyl, &
-    !$acc&              dthldxls, dthldyls, dthldtls, &
-    !$acc&              dqtdxls, dqtdyls, dqtdtls, &
-    !$acc&              dudxls, dudyls, dudtls, &
-    !$acc&              dvdxls, dvdyls, dvdtls, &
-    !$acc&              dzf, dzh, zh, zf, delta, deltai, &
-    !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
-    !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
-    !$acc&              dqtdz, dthldz, svflux, svs, horv, &
-    !$acc&              tsc, &
-    !$acc&              ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz, anis_fac, &
-    !$acc&              thlpcar, thlprad, &
-    !$acc&              presf, presh, exnf, exnh, &
-    !$acc&              rhof, &
-    !$acc&              qvsl, qvsi, esl, qsat, &
-    !$acc&              esatmtab, esatitab, esatltab)
+    !$acc update self(um, u0, up, vm, v0, vp, wm, w0, wp, &
+    !$acc&            thlm, thl0, thlp, qtm, qt0, qtp, &
+    !$acc&            e12m, e120, e12p, svm, sv0, svp, &
+    !$acc&            rhobf, rhobh, ql0, tmp0, ql0h, thv0h, &
+    !$acc&            thl0h, qt0h, presf, presh, exnf, exnh, &
+    !$acc&            thvh, thvf, rhof, qt0av, ql0av, thl0av, &
+    !$acc&            u0av, v0av, sv0av, ug, vg, dpdxl, dpdyl, &
+    !$acc&            wfls, whls, thlpcar, dthldxls, dthldyls, &
+    !$acc&            dthldtls, dqtdxls, dqtdyls, dqtdtls, &
+    !$acc&            dudxls, dudyls, dudtls, dvdxls, dvdyls, &
+    !$acc&            dvdtls, dthvdz, qvsl, qvsi, esl, qsat)
+    !$acc&            dzf, dzh, zh, zf, delta, deltai, &
+    !$acc&            z0m, z0h, obl, tskin, qskin, Cm, Cs, &
+    !$acc&            ustar, dudz, dvdz, thlflux, qtflux, &
+    !$acc&            dqtdz, dthldz, svflux, svs, horv, &
+    !$acc&            ekm, ekh, zlt, sbdiss, sbshr, sbbuo, csz &
+    !$acc&            anis_fac, tsc, thlpcar, thlprad, presf, & 
+    !$acc&            presh, exnf, exnh, rhof, &
+    !$acc&            qvsl, qvsi, esl, qsat, &
+    !$acc&            esatmtab, esatitab, esatltab)
 
     host_is_updated = .true.
 
