@@ -601,9 +601,6 @@ contains
     real    upcu, vpcv
     real    qls
 
-    !$acc update self(u0, v0, w0, um, vm, wm, qtm, thlm, thl0, qt0, qt0h, &
-    !$acc&            ql0, ql0h, thl0h, thv0h, sv0, svm, e12m, exnf, exnh, &
-    !$acc&            ustar, thlflux, qtflux, svflux)
   !-----------------------------------------------------------------------
   !     1.    INITIALISE LOCAL CONSTANTS
   !     --    --------------------------
