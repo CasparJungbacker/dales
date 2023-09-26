@@ -65,6 +65,7 @@ end subroutine inittstep
 !> Deallocate arrays
 subroutine exittstep
   implicit none
+  !$acc exit data delete(courtotl, courtot)
   deallocate(courtotl)
   deallocate(courtot)
 end subroutine exittstep  

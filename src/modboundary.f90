@@ -89,7 +89,8 @@ contains
 !> Cleans up after the run
   subroutine exitboundary
   implicit none
-    deallocate(tsc)
+  !$acc exit data delete(tsc)
+  deallocate(tsc)
   end subroutine exitboundary
 
 !> Sets lateral periodic boundary conditions for the scalars

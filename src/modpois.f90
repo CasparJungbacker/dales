@@ -80,10 +80,9 @@ contains
     allocate(pup(2-ih:i1+ih,2-jh:j1+jh,kmax))
     allocate(pvp(2-ih:i1+ih,2-jh:j1+jh,kmax))
     allocate(pwp(2-ih:i1+ih,2-jh:j1+jh,k1))
-    !$acc enter data create(pup, pvp, pwp)
 
     allocate(a(kmax), b(kmax), c(kmax))
-    !$acc enter data create(a, b, c)
+    !$acc enter data create(pup, pvp, pwp, a, b, c)
 
   end subroutine initpois
 
@@ -104,6 +103,7 @@ contains
       call fftwexit(p,Fp,d,xyrt)
     else if (solver_id == 200) then
       call cufftexit(p, Fp, d, xyrt)
+      !$acc exit data delete(pup, pvp, pwp, a, b, c)
     else
       ! HYPRE based solver
       call fft2dexit(p,Fp,d,xyrt)

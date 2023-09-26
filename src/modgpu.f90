@@ -125,5 +125,16 @@ contains
     !$acc enter data copyin(workspace)
   
   end subroutine allocate_workspace
+
+  !> @brief Deallocate GPU workspaces
+  subroutine deallocate_workspace
+    implicit none
+
+    integer, intent(in) :: n
+
+    !$acc exit data delete(workspace)
+    deallocate(workspace)
+
+  end subroutine deallocate_workspace
 #endif
 end module modgpu

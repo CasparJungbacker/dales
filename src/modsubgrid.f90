@@ -187,6 +187,8 @@ contains
 
   subroutine exitsubgrid
     implicit none
+    !$acc exit data delete(ekm, ekh, zlt, csz, anis_fac, &
+    !$acc&                 sbdiss, sbshr, sbbuo)
     deallocate(ekm,ekh,zlt,sbdiss,sbbuo,sbshr,csz,anis_fac)
   end subroutine exitsubgrid
 
