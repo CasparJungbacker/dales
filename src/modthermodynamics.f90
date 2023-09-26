@@ -188,7 +188,7 @@ contains
 
             dthv = del_thv_dry
 
-            !if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
+            if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
 
                temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
                qs   = qt0(i,j,k) - ql0(i,j,k)
@@ -206,7 +206,7 @@ contains
                if (chi < chi_sat) then  !mixed parcel is saturated
                  dthv = del_thv_sat
               end if
-            !end if
+            end if
 
             dthvdz(i,j,k) = dthv/(dzh(k+1)+dzh(k))
           end do
@@ -332,10 +332,10 @@ contains
 
    call fromztop
 
-   !$acc serial default(present) async(1)
+   !$acc kernels default(present) async(1)
    exnf = (presf/pref0)**(rd/cp)
    th0av = thl0av + (rlv/cp)*ql0av/exnf
-   !$acc end serial
+   !$acc end kernels
 
 !    2.2 Use new updated value of theta for determination of pressure
 
@@ -353,7 +353,7 @@ contains
    exnf(1) = (presf(1)/pref0)**(rd/cp)
    !$acc end serial
 
-   !$acc parallel loop default(present) async(1)
+   !$acc parallel loop default(present) async(2)
    do k=2,k1
      exnf(k) = (presf(k)/pref0)**(rd/cp)
      exnh(k) = (presh(k)/pref0)**(rd/cp)
@@ -366,11 +366,13 @@ contains
 
 !    3.2 determine rho
 
-   !$acc parallel loop default(present) async(1)
+   !$acc parallel loop default(present) async(2)
    do k=2,k1
      thvf(k) = th0av(k)*exnf(k)*(1.+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
      rhof(k) = presf(k)/(rd*thvf(k))
    end do
+
+   !$acc wait
 
    return
   end subroutine diagfld
