@@ -163,38 +163,6 @@ module modgenstat
   real, allocatable :: wthvtmnlast(:)
 
     ! Local fields
-  real,allocatable, dimension(:) :: &
-      qlhavl , & ! slab averaged ql_0 at half level &
-      u2avl    , &
-      v2avl    , &
-      w2avl    , &
-      w3avl    , &
-      w2subavl , &
-      qt2avl   , &
-      thl2avl  , &
-      thv2avl  , &
-      ql2avl   , &
-      th2avl
-  real,allocatable, dimension(:,:) :: &
-      wsvsubl,&   ! slab averaged sub w-sv(n)  flux &
-      wsvresl,&   ! slab averaged res w-sv(n)  flux &
-      sv2avl,&
-      sv2av
-
-  real,allocatable, dimension(:) :: wqlsubl
-  real,allocatable, dimension(:) :: wqlresl
-
-  real,allocatable, dimension(:):: wthlsubl
-  real,allocatable, dimension(:):: wthlresl
-
-  real,allocatable, dimension(:):: wqtsubl
-  real,allocatable, dimension(:):: wqtresl
-
-  real,allocatable, dimension(:):: wthvsubl
-  real,allocatable, dimension(:) ::wthvresl
-
-  real,allocatable, dimension(:):: cfracavl ! cloudfraction    at full level
-
 
   real,allocatable, dimension(:):: qlptavl   ! slab averaged turbulence tendency of q_liq
   real,allocatable, dimension(:):: uwsubl
@@ -212,11 +180,10 @@ module modgenstat
             thv2av  , &
             th2av   , &
             ql2av
+  real, allocatable, dimension(:,:) :: sv2av
   real(field_r),allocatable, dimension(:,:,:)::  thv0
   real(field_r),allocatable, dimension(:)::   thvmav
   real(field_r),allocatable, dimension(:,:,:):: sv0h
-  real, allocatable, dimension(:) :: test
-  real, allocatable, dimension(:,:,:) :: test3d
 
 contains
 
@@ -324,44 +291,6 @@ contains
     allocate(qlmnlast(k1))
     allocate(wthvtmnlast(k1))
 
-    allocate( &
-        qlhavl (k1), & ! slab averaged ql_0 at half level &
-        wsvsubl(k1,nsv),&   ! slab averaged sub w-sv(n)  flux &
-        wsvresl(k1,nsv),&   ! slab averaged res w-sv(n)  flux &
-        u2avl    (k1), &
-        v2avl    (k1), &
-        w2avl    (k1), &
-        w3avl    (k1), &
-        w2subavl (k1), &
-        qt2avl   (k1), &
-        thl2avl  (k1), &
-        thv2avl  (k1), &
-        th2avl   (k1))
-    allocate( &
-        ql2avl   (k1), &
-        sv2avl   (k1,nsv))
-
-
-    allocate( wqlsubl    (k1))
-    allocate( wqlresl    (k1))
-
-    allocate( wthlsubl    (k1))
-    allocate( wthlresl    (k1))
-
-    allocate( wqtsubl    (k1))
-    allocate( wqtresl    (k1))
-
-    allocate( wthvsubl    (k1))
-    allocate( wthvresl    (k1))
-
-    allocate( cfracavl(k1))  ! slab averaged cloud fraction
-
-
-    allocate( qlptavl(k1))   ! slab averaged turbulence tendency of q_liq
-    allocate( uwsubl(k1))
-    allocate( vwsubl(k1))
-    allocate( uwresl(k1))
-    allocate( vwresl(k1))
     allocate( qlhav(k1))
     allocate( u2av    (k1), &
               v2av    (k1), &
@@ -610,48 +539,48 @@ contains
   !     ---    ------------------------------
   !     --------------------------------------------------------
     call timer_tic("Resetting arrays")
-    qlhavl      = 0.0
-    cfracavl    = 0.0
-    u2avl     = 0.0
-    v2avl     = 0.0
-    w2avl     = 0.0
-    w3avl     = 0.0
-    w2subavl  = 0.0
-    qt2avl    = 0.0
-    thl2avl   = 0.0
-    thv2avl   = 0.0
-    th2avl    = 0.0
-    ql2avl    = 0.0
+    qlhav      = 0.0
+    cfracav    = 0.0
+    u2av     = 0.0
+    v2av     = 0.0
+    w2av     = 0.0
+    w3av     = 0.0
+    w2subav  = 0.0
+    qt2av   = 0.0
+    thl2av   = 0.0
+    thv2av   = 0.0
+    th2av    = 0.0
+    ql2av    = 0.0
     thvmav    = 0.0
-    wqtsubl     = 0.0
-    wqtresl     = 0.0
-    wqlsubl     = 0.0
-    wqlresl     = 0.0
+    wqtsub     = 0.0
+    wqtres     = 0.0
+    wqlsub     = 0.0
+    wqlres     = 0.0
     umav = 0.0
     vmav = 0.0
     thlmav = 0.0
     thmav  = 0.0
     qtmav  = 0.0
     qlmav  = 0.0
-    wthlsubl     = 0.0
-    wthlresl     = 0.0
-    wthvsubl     = 0.0
-    wthvresl     = 0.0
-    sv2avl  = 0.
-    uwresl  = 0.
-    vwresl  = 0.
-    uwsubl  = 0.
-    vwsubl  = 0.
+    wthlsub     = 0.0
+    wthlres     = 0.0
+    wthvsub     = 0.0
+    wthvres     = 0.0
+    sv2av  = 0.
+    uwres  = 0.
+    vwres  = 0.
+    uwsub  = 0.
+    vwsub  = 0.
     svmav = 0.
-    qlptavl     = 0.0
+    qlptav     = 0.0
     wqltot      = 0.0
     wqttot      = 0.0
     wthvtot      = 0.0
     wthltot      = 0.0
     uwtot   = 0.
     vwtot   = 0.
-    wsvsubl = 0.
-    wsvresl = 0.
+    wsvsub = 0.
+    wsvres = 0.
     sv2av   = 0.0
     cfracav= 0.0
     cszav = 0.
@@ -667,11 +596,11 @@ contains
     enddo
 
     do k=1,k1
-      cfracavl(k)    = cfracavl(k)+count(ql0(2:i1,2:j1,k)>0)
+      cfracav(k)    = cfracav(k)+count(ql0(2:i1,2:j1,k)>0)
     end do
 
     call timer_tic("Communication")
-    call D_MPI_ALLREDUCE(cfracavl,cfracav,k1,MPI_SUM,comm3d,mpierr)
+    call D_MPI_ALLREDUCE(cfracav,k1,MPI_SUM,comm3d,mpierr)
     call timer_toc("Communication")
 
     cfracav = cfracav / ijtot
@@ -726,23 +655,23 @@ contains
 
     do j = 2, j1
       do i = 2, i1
-        qlhavl(1) = qlhavl(1) + ql0h(i,j,1)
-        wthlsubl(1) = wthlsubl(1) + thlflux(i,j)
-        wqtsubl(1) = wqtsubl(1) + qtflux (i,j)
-        wqlsubl(1) = 0
-        wthvsubl(1) = wthvsubl(1) + ( c1*thlflux(i,j)+c2*thls*qtflux(i,j) ) !hj: thv0 replaced by thls
+        qlhav(1) = qlhav(1) + ql0h(i,j,1)
+        wthlsub(1) = wthlsub(1) + thlflux(i,j)
+        wqtsub(1) = wqtsub(1) + qtflux (i,j)
+        wqlsub(1) = 0
+        wthvsub(1) = wthvsub(1) + ( c1*thlflux(i,j)+c2*thls*qtflux(i,j) ) !hj: thv0 replaced by thls
 
         !Momentum flux
         upcu = um(i, j, 1) + cu
         upcu = sign(1., upcu) * max(abs(upcu), eps1)
 
-        uwsubl(1) = uwsubl(1) - (0.5 * (ustar(i,j) + ustar(i-1,j)))**2 &
+        uwsub(1) = uwsub(1) - (0.5 * (ustar(i,j) + ustar(i-1,j)))**2 &
                     * upcu / sqrt(upcu**2 + ((vm(i,j,1) + vm(i-1,j,1) + vm(i,j+1,1) + vm(i-1,j+1,1)) / 4. + cv)**2)
 
         vpcv = vm(i, j, 1) + cv
         vpcv = sign(1., vpcv) * max(abs(vpcv), eps1)
 
-        vwsubl(1) = vwsubl(1) - (0.5 * (ustar(i,j) + ustar(i,j-1)))**2 &
+        vwsub(1) = vwsub(1) - (0.5 * (ustar(i,j) + ustar(i,j-1)))**2 &
                     * vpcv / sqrt(vpcv**2 + ((um(i,j,1) + um(i+1,j,1) + um(i,j-1,1) + um(i+1,j-1,1)) / 4. + cu)**2)
       end do
     end do
@@ -763,7 +692,7 @@ contains
     !     ------------------------------------------------------
     !     calculate ql and thv at time t0 at full and half level
     !      ----------------------------------------------------
-          qlhavl(k) = qlhavl(k)  + ql0h(i,j,k)
+          qlhav(k) = qlhav(k)  + ql0h(i,j,k)
     !       -----------------------------------------------------------
     !       calculate prefactors for subgrid wthv and wql fluxes
     !        at half levels
@@ -820,44 +749,44 @@ contains
 
 
           if (ql0h(i,j,k)>0) then
-            wqlsubl(k) = wqlsubl(k) + wqls
+            wqlsub(k) = wqlsub(k) + wqls
           end if
 
-          wqlresl(k) = wqlresl(k) + wqlr
+          wqlres(k) = wqlres(k) + wqlr
 
-          wthlsubl(k) = wthlsubl(k) + wthls
-          wthlresl(k) = wthlresl(k) + wthlr
+          wthlsub(k) = wthlsub(k) + wthls
+          wthlres(k) = wthlres(k) + wthlr
 
-          wthvsubl(k) = wthvsubl(k) + wthvs
-          wthvresl(k) = wthvresl(k) + wthvr
+          wthvsub(k) = wthvsub(k) + wthvs
+          wthvres(k) = wthvres(k) + wthvr
 
-          wqtsubl(k) = wqtsubl(k) + wqts
-          wqtresl(k) = wqtresl(k) + wqtr
+          wqtsub(k) = wqtsub(k) + wqts
+          wqtres(k) = wqtres(k) + wqtr
 
-          uwresl(k) = uwresl(k) + uwr
-          vwresl(k) = vwresl(k) + vwr
-          uwsubl(k) = uwsubl(k) + uws
-          vwsubl(k) = vwsubl(k) + vws
+          uwres(k) = uwres(k) + uwr
+          vwres(k) = vwres(k) + vwr
+          uwsub(k) = uwsub(k) + uws
+          vwsub(k) = vwsub(k) + vws
         end do
       end do
     end do
     call timer_toc("Fluxes")
   !     -------------------
     call timer_tic("Moments")
-    call calc_moment(u2avl, um, 2, 1, kmax, 2, i1, 2, j1, umav, cu)
-    call calc_moment(v2avl, vm, 2, 1, kmax, 2, i1, 2, j1, vmav, cv)
-    call calc_moment(w2avl, wm, 2, 1, kmax, 2, i1, 2, j1)
-    call calc_moment(w3avl, wm, 3, 1, kmax, 2, i1, 2, j1)
-    call calc_moment(w2subavl, e12m, 2, 1, kmax, 2, i1, 2, j1)
-    call calc_moment(qt2avl, qtm, 2, 1, kmax, 2, i1, 2, j1, qtmav)
-    call calc_moment(thl2avl, thlm, 2, 1, kmax, 2, i1, 2, j1, thlmav)
-    call calc_moment(thv2avl, thv0, 2, 1, kmax, 2, i1, 2, j1, thvmav)
-    call calc_moment(th2avl, thlm, 2, 1, kmax, 2, i1, 2, j1, thmav)
-    call calc_moment(ql2avl, ql0, 2, 1, kmax, 2, i1, 2, j1, qlmav)
+    call calc_moment(u2av, um, 2, 1, kmax, 2, i1, 2, j1, umav, cu)
+    call calc_moment(v2av, vm, 2, 1, kmax, 2, i1, 2, j1, vmav, cv)
+    call calc_moment(w2av, wm, 2, 1, kmax, 2, i1, 2, j1)
+    call calc_moment(w3av, wm, 3, 1, kmax, 2, i1, 2, j1)
+    call calc_moment(w2subav, e12m, 2, 1, kmax, 2, i1, 2, j1)
+    call calc_moment(qt2av, qtm, 2, 1, kmax, 2, i1, 2, j1, qtmav)
+    call calc_moment(thl2av, thlm, 2, 1, kmax, 2, i1, 2, j1, thlmav)
+    call calc_moment(thv2av, thv0, 2, 1, kmax, 2, i1, 2, j1, thvmav)
+    call calc_moment(th2av, thlm, 2, 1, kmax, 2, i1, 2, j1, thmav)
+    call calc_moment(ql2av, ql0, 2, 1, kmax, 2, i1, 2, j1, qlmav)
 
     if (nsv > 0) then
       do n = 1, nsv
-        call calc_moment(sv2avl(:, n), svm(:, :, :, n), 2, 1, kmax, 2, i1, 2, j1, svmav(:, n))
+        call calc_moment(sv2av(:, n), svm(:, :, :, n), 2, 1, kmax, 2, i1, 2, j1, svmav(:, n))
       end do
 
       do n = 1, nsv
@@ -877,14 +806,14 @@ contains
         do k = 2, kmax
           do j = 2, j1
             do i = 2, i1
-              wsvresl(k,n) = wsvresl(k,n) + w0(i,j,k)*sv0h(i,j,k)
+              wsvres(k,n) = wsvres(k,n) + w0(i,j,k)*sv0h(i,j,k)
             end do
           end do
         end do
 
         do j = 2, j1
           do i = 2, i1
-            wsvsubl(1,n) = wsvsubl(1,n) + svflux(i,j,n)
+            wsvsub(1,n) = wsvsub(1,n) + svflux(i,j,n)
           end do
         end do
 
@@ -892,7 +821,7 @@ contains
           do j = 2, j1
             do i= 2, i1
               ekhalf = (ekh(i,j,k)*dzf(k-1)+ekh(i,j,k-1)*dzf(k))/(2*dzh(k))
-              wsvsubl(k,n)= wsvsubl(k,n)-ekhalf*(sv0(i,j,k,n)-sv0(i,j,k-1,n)) / dzh(k)
+              wsvsub(k,n)= wsvsub(k,n)-ekhalf*(sv0(i,j,k,n)-sv0(i,j,k-1,n)) / dzh(k)
             end do
           end do
         end do
@@ -914,52 +843,29 @@ contains
     call timer_tic("Communication, big")
 
   ! MPI communication
-    call D_MPI_ALLREDUCE(qlhavl, qlhav, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wqlsubl, wqlsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wqlresl, wqlres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wthlsubl, wthlsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wthlresl, wthlres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wqtsubl, wqtsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wqtresl, wqtres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wthvsubl, wthvsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(wthvresl, wthvres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(uwsubl, uwsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(vwsubl, vwsub, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(uwresl, uwres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(vwresl, vwres, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(u2avl, u2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(v2avl, v2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(w2avl, w2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(w3avl, w3av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(w2subavl, w2subav, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(qt2avl, qt2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(thl2avl, thl2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(thv2avl, thv2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(th2avl, th2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(ql2avl, ql2av, k1,     &
-                      MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(qlhav, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wqlsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wqlres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wthlsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wthlres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wqtsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wqtres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wthvsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(wthvres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(uwsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(vwsub, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(uwres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(vwres, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(u2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(v2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(w2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(w3av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(w2subav, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(qt2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(thl2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(thv2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(th2av, k1, MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(ql2av, k1, MPI_SUM, comm3d,mpierr)
 !     call D_MPI_ALLREDUCE(qs2avl, qs2av, k1,     &
 !                       MPI_SUM, comm3d,mpierr)
 !     call D_MPI_ALLREDUCE(qsavl, qsav, k1,     &
@@ -972,18 +878,14 @@ contains
 !                       MPI_SUM, comm3d,mpierr)
 !     call D_MPI_ALLREDUCE(r3avl, r3av, k1,     &
 !                       MPI_SUM, comm3d,mpierr)
-    call D_MPI_ALLREDUCE(qlptavl, qlptav, k1,     &
-                      MPI_SUM, comm3d,mpierr)
+    call D_MPI_ALLREDUCE(qlptav, k1, MPI_SUM, comm3d,mpierr)
 
     if (nsv > 0) then
-    do n=1,nsv
-  call D_MPI_ALLREDUCE(sv2avl(:,n),sv2av(:,n),k1, &
-                        MPI_SUM, comm3d,mpierr)
-  call D_MPI_ALLREDUCE(wsvsubl(:,n),wsvsub(:,n), k1,     &
-      MPI_SUM, comm3d,mpierr)
-  call D_MPI_ALLREDUCE(wsvresl(:,n),wsvres(:,n), k1,     &
-      MPI_SUM, comm3d,mpierr)
-    end do
+      do n=1,nsv
+        call D_MPI_ALLREDUCE(sv2av(:,n),k1, MPI_SUM, comm3d,mpierr)
+        call D_MPI_ALLREDUCE(wsvsub(:,n), k1, MPI_SUM, comm3d,mpierr)
+        call D_MPI_ALLREDUCE(wsvres(:,n), k1, MPI_SUM, comm3d,mpierr)
+      end do
     end if
 
     call timer_toc("Communication, big")
@@ -1661,45 +1563,6 @@ contains
 
     deallocate(qlmnlast)
     deallocate(wthvtmnlast)
-
-    deallocate( &
-        qlhavl , & ! slab averaged ql_0 at half level &
-        wsvsubl,&   ! slab averaged sub w-sv(n)  flux &
-        wsvresl,&   ! slab averaged res w-sv(n)  flux &
-        u2avl    , &
-        v2avl    , &
-        w2avl    , &
-        w3avl    , &
-        w2subavl , &
-        qt2avl   , &
-        thl2avl  , &
-        thv2avl  , &
-        th2avl   )
-    deallocate( &
-        ql2avl   , &
-        sv2avl   )
-
-
-    deallocate( wqlsubl    )
-    deallocate( wqlresl    )
-
-    deallocate( wthlsubl    )
-    deallocate( wthlresl    )
-
-    deallocate( wqtsubl    )
-    deallocate( wqtresl    )
-
-    deallocate( wthvsubl    )
-    deallocate( wthvresl    )
-
-    deallocate( cfracavl )
-
-
-    deallocate( qlptavl)   ! slab averaged turbulence tendency of q_liq
-    deallocate( uwsubl)
-    deallocate( vwsubl)
-    deallocate( uwresl)
-    deallocate( vwresl)
 
     deallocate( qlhav)
     deallocate( u2av    , &
