@@ -487,7 +487,6 @@ contains
   subroutine genstat
 
     use modglobal, only : rk3step,timee,dt_lim
-    use modtimer, only: timer_tic, timer_toc
     implicit none
     if (.not. lstat) return
     if (rk3step/=3) return
@@ -498,15 +497,11 @@ contains
     end if
     if (timee>=tnext) then
       tnext = tnext+idtav
-      call timer_tic("Do genstat")
       call do_genstat
-      call timer_toc("Do genstat")
     end if
     if (timee>=tnextwrite) then
       tnextwrite = tnextwrite+itimeav
-      call timer_tic("Do writestat")
       call writestat
-      call timer_toc("Do writestat")
     end if
     dt_lim = minval((/dt_lim,tnext-timee,tnextwrite-timee/))
   end subroutine genstat
@@ -547,7 +542,6 @@ contains
   !     3.0    RESET ARRAYS FOR SLAB AVERAGES
   !     ---    ------------------------------
   !     --------------------------------------------------------
-    call timer_tic("Resetting arrays")
     !$acc kernels default(present)
     qlhav = 0.0
     u2av = 0.0
@@ -594,7 +588,6 @@ contains
     cfracav= 0.0
     cszav = 0.0
     !$acc end kernels
-    call timer_toc("Resetting arrays")
 
     qlhav_s = 0.0
     wthlsub_s = 0.0
@@ -627,14 +620,11 @@ contains
       cfracav(k)    = cfracav(k)+count(ql0(2:i1,2:j1,k)>0)
     end do
 
-    call timer_tic("Communication")
     !$acc host_data use_device(cfracav)
     call D_MPI_ALLREDUCE(cfracav,k1,MPI_SUM,comm3d,mpierr)
     !$acc end host_data
-    call timer_toc("Communication")
 
 
-    call timer_tic("Slabsum")
     !$acc host_data use_device(umav, um, vmav, vm, thlmav, thlm, qtmav, qtm, &
     !$acc&                     qlmav, ql0, thvmav, thv0)
     call slabsum(umav  ,1,k1,um  ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
@@ -644,7 +634,6 @@ contains
     call slabsum(qlmav ,1,k1,ql0 ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     call slabsum(thvmav,1,k1,thv0,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
     !$acc end host_data
-    call timer_toc("Slabsum")
 
     if (nsv > 0) then
       do n=1,nsv
@@ -672,7 +661,6 @@ contains
   !     -------------------------------------------------------------
   !        4.1 special treatment for lowest level
   !     -------------------------------------------------
-    call timer_tic("Fluxes")
 
     !$acc update self(exnh(1))
 
@@ -852,9 +840,7 @@ contains
       uwsub(k) = uwsub_s
       vwsub(k) = vwsub_s
     end do
-    call timer_toc("Fluxes")
   !     -------------------
-    call timer_tic("Moments")
     call calc_moment(u2av, um, 2, 1, kmax, 2, i1, 2, j1, umav, cu)
     call calc_moment(v2av, vm, 2, 1, kmax, 2, i1, 2, j1, vmav, cv)
     call calc_moment(w2av, wm, 2, 1, kmax, 2, i1, 2, j1)
@@ -924,7 +910,6 @@ contains
         end do
       end do
     end if
-    call timer_toc("Moments")
   !     -------------------------------
   !     5   CALCULATE MOMENTUM FLUXES
   !     -------------------------------
@@ -937,7 +922,6 @@ contains
   !     5.2 higher levels by vert. integr. of the mom. tendencies
   !     ---------------------------------------------------------
   !         DEPRECATED
-    call timer_tic("Communication, big")
 
   ! MPI communication
     !$acc host_data use_device(qlhav, wqlsub, wqlres, wthlsub, wthlres, wthvsub, &
@@ -990,7 +974,6 @@ contains
     end if
     !$acc end host_data
 
-    call timer_toc("Communication, big")
   !     -----------------------------------------------
   !     6   NORMALIZATION OF THE FIELDS AND FLUXES
   !     -----------------------------------------------
