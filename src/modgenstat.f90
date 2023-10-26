@@ -725,7 +725,6 @@ contains
     wthvsub(1) = wthvsub_s
     uwsub(1) = uwsub_s
     vwsub(1) = vwsub_s
-    write(*,*) qlhav(1)
     !$acc end kernels
 
   !      --------------------------
