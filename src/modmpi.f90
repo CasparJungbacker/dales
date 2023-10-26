@@ -819,20 +819,18 @@ contains
     integer :: ib, ie, jb, je, kb, ke, ibs, ies, jbs, jes, kbs, kes
     real(real32), device :: aver(ks:kf)
     real(real32), device :: var(ib:ie, jb:je, kb:ke)
-    real(real32) :: averl(ks:kf)
-    real(real32) :: avers(ks:kf)
     integer :: k
 
-    if (nprocs == 1) then
-      ! Single processor, no need for MPI calls  
+    !$acc kernels default(present)
+    do k = kbs, kes
+      aver(k) = aver(k) + sum(var(ibs:ies, jbs:jes, k))
+    end do
+    !$acc end kernels
 
-      !$acc kernels default(present)
-      do k = kbs, kes
-        aver(k) = aver(k) + sum(var(ibs:ies, jbs:jes, k))
-      end do
-      !$acc end kernels
-    else
-      stop "The program should have stopped already"
+    if (nprocs > 1) then
+      !$acc host_data use_device(aver)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL4, MPI_SUM, comm3d, mpierr)
+      !$acc end host_data
     end if
   end subroutine slabsum_real32_gpu
 
@@ -847,16 +845,16 @@ contains
     real(real64) :: avers(ks:kf)
     integer :: k
 
-    if (nprocs == 1) then
-      ! Single processor, no need for MPI calls  
+    !$acc kernels default(present)
+    do k = kbs, kes
+      aver(k) = aver(k) + sum(var(ibs:ies, jbs:jes, k))
+    end do
+    !$acc end kernels
 
-      !$acc kernels default(present)
-      do k = kbs, kes
-        aver(k) = aver(k) + sum(var(ibs:ies, jbs:jes, k))
-      end do
-      !$acc end kernels
-    else
-      stop "The program should have stopped already"
+    if (nprocs > 1) then
+      !$acc host_data use_device(aver)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
+      !$acc end host_data
     end if
   end subroutine slabsum_real64_gpu
 #endif
