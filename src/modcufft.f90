@@ -18,6 +18,8 @@ module modcufft
     real(pois_r), allocatable, target :: p_nohalo(:)
     real(pois_r), pointer :: px(:,:,:), py(:,:,:)
 
+    integer :: konx, kony, iony, jonx
+
     integer :: planx, planxi, plany, planyi !< Plan handles
 
     integer(int_ptr_kind()) :: worksize, max_worksize !< Size of the required workspace
@@ -36,28 +38,52 @@ module modcufft
       real(pois_r), allocatable :: d(:,:,:)
       integer, intent(out) :: ps, pe, qs, qe
 
-      integer :: itot12, jtot12
+      integer(kind=8) :: sz
+      integer :: nphix, nphiy
       integer :: fftsize, inembed, onembed, idist, odist, istride, ostride
       integer :: CUFFT_FWD_TYPE, CUFFT_BWD_TYPE
-      
-      ! Setup pressure array
-      allocate(p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax))
-      !$acc enter data create(p_halo)
-      p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax)
-      Fp(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax)
+
+      ! Dimensions of the transposes
+      ! For explanation of the variables, see modfftw.f90/fftwinit
+
+      konx = kmax / nprocx
+      if (mod(kmax, nprocx) > 0) then
+        konx = konx + 1
+      end if
+
+      kony = kmax / nprocy
+      if (mod(kmax, nprocy) > 0) then
+        kony = kony + 1
+      end if
+
+      iony = itot / nprocy
+      if (mod(itot, nprocy) > 0) then
+        iony = iony + 1
+      end if
+
+      jonx = jtot / nprocx
+      if (mod(jtot, nprocx) > 0) then
+        jonx = jonx + 1
+      end if
 
       ! Number of complex coefficients
-      itot12 = itot/2 + 1
-      jtot12 = jtot/2 + 1
+      nphix = itot/2 + 1
+      nphiy = itot/2 + 1
+      
+      sz = max(imax * jmax * konx * nprocx, & ! z-aligned
+               iony * jmax * konx * nprocy, & ! x-aligned
+               iony * jonx * konx * nprocx)   ! y-aligned 
 
-      ! Allocate workspace
-      ! Keep in mind that cuFFT does real to complex transforms, where one complex number
-      ! consists of two real numbers
-      allocate(p_nohalo(kmax*(itot12*2)*(jtot12*2)))
-      !$acc enter data create(p_nohalo)
+      ! Allocate memory for the pressure
+      allocate(p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax))
+      allocate(p_nohalo(kmax*(nphix*2)*(nphiy*2)))
 
-      px(1:itot12*2,1:jtot,1:kmax) => p_nohalo(1:kmax*jtot*(itot12*2))
-      py(1:jtot12*2,1:itot,1:kmax) => p_nohalo(1:kmax*itot*(jtot12*2))
+      !$acc enter data create(p_halo, p_nohalo)
+
+      p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
+      Fp(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
+      px(1:nphix*2,1:jmax,1:konx) => p_nohalo(1:konx*jmax*(nphix*2)) ! x-aligned
+      py(1:nphiy*2,1:iony,1:konx) => p_nohalo(1:konx*iony*(nphiy*2)) ! y-aligned
 
       ! Precision
 #if POIS_PRECISION==32
@@ -70,10 +96,10 @@ module modcufft
 
       ! x-direction
       fftsize = itot
-      inembed = itot12
-      onembed = itot12
-      idist = itot12*2
-      odist = itot12
+      inembed = itot
+      onembed = nphiy
+      idist = nphix*2
+      odist = nphix
       istride = 1
       ostride = 1
 
@@ -89,7 +115,7 @@ module modcufft
         ostride, &
         odist, &
         CUFFT_FWD_TYPE, &
-        jtot*kmax &
+        jmax*konx &
       )
       call check_exitcode(istat)
 
@@ -105,7 +131,7 @@ module modcufft
         istride, &
         idist, &
         CUFFT_BWD_TYPE, &
-        jtot*kmax &
+        jmax*konx &
       )
 
       call check_exitcode(istat)
@@ -114,9 +140,9 @@ module modcufft
 
       fftsize = jtot
       inembed = jtot
-      onembed = jtot12
-      idist = jtot12*2
-      odist = jtot12
+      onembed = nphiy
+      idist = nphiy*2
+      odist = nphiy
       istride = 1
       ostride = 1
 
@@ -132,7 +158,7 @@ module modcufft
         ostride, &
         odist, &
         CUFFT_FWD_TYPE, &
-        itot*kmax &
+        iony*konx&
       )
 
       call check_exitcode(istat)
@@ -149,7 +175,7 @@ module modcufft
         istride, &
         idist, &
         CUFFT_BWD_TYPE, &
-        itot*kmax &
+        iony*konx&
       )
 
       call check_exitcode(istat)
@@ -169,7 +195,7 @@ module modcufft
       ! max_worksize is in bytes, so convert it to number of elements by dividing by the size of a real number
       worksize = max_worksize / (storage_size(1._pois_r) / 8)
 
-      worksize = max(worksize, ((itot12*2)*(jtot12*2)*kmax))
+      worksize = max(worksize, ((nphix*2)*(nphiy*2)*kmax))
 
       call allocate_workspace(int(worksize))
 
