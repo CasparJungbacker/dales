@@ -167,6 +167,8 @@ save
 #if defined(_OPENACC)
     procedure :: D_MPI_ALLTOALL_REAL32_R1_GPU
     procedure :: D_MPI_ALLTOALL_REAL64_R1_GPU
+    procedure :: D_MPI_ALLTOALL_REAL32_R1_IP_GPU
+    procedure :: D_MPI_ALLTOALL_REAL64_R1_IP_GPU
 #endif
   end interface
   interface D_MPI_REDUCE
