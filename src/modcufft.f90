@@ -575,22 +575,12 @@ module modcufft
       integer :: i, j, k, n, ii
 
       if (nprocs == 1) then
-        !$acc parallel loop collapse(3) default(present)
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
               ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
-              workspace_0(ii) = py(j,i,k)
-            end do
-          end do
-        end do
-
-        !$acc parallel loop collapse(3) default(present)
-        do k = 1, kmax
-          do j = 1, jtot
-            do i = 1, itot
-              ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
-              Fp(i+1,j+1,k) = workspace_0(ii)
+              Fp(i+1,j+1,k) = py(j,i,k)
             end do
           end do
         end do
