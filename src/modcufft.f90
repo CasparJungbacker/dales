@@ -669,10 +669,11 @@ module modcufft
                             commrow, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)        
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do n = 0, nprocx-1
           do j = 1, jonx
             do i = 1, iony
+              !$acc loop
               do k = n*konx+1, (n+1)*konx
                 ii = k + (i-1)*konx + (j-1)*konx*iony + n*iony*jonx*konx - n*konx
                 if (k <= kmax) Fp(i,j,k) = workspace_1(ii)
