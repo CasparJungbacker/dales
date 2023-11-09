@@ -461,6 +461,39 @@ module modcufft
             end do
           end do
         end do
+      else
+        !$acc parallel loop collapse(3) default(present) private(ii)
+        do n = 0, nprocx-1
+          do k = 1, konx
+            do j = 1, jmax
+              !$acc loop
+              do i = n*imax+1, (n+1)*imax
+                ii = i + (j-1)*imax + (k-1)*imax*jmax + n*imax*jmax*konx - n*imax
+                workspace_0(ii) = p(i,j,k)
+              end do
+            end do
+          end do
+        end do
+
+        !$acc host_data use_device(workspace_0, workspace_1)
+        call D_MPI_ALLTOALL(workspace_0, imax*jmax*konx, &
+                            workspace_1, imax*jmax*konx, &
+                            commrow, mpierr)
+        !$acc end host_data
+
+        !$acc parallel loop default(present) private(ii)
+        do n = 0, nprocx-1
+          !$acc loop
+          do k = n*konx+1, (n+1)*konx
+            !$acc loop
+            do j = 2, j1
+              do i = 2, i1
+                ii = (i-1) + (j-2)*imax + (k-1)*imax*jmax
+                if (k <= kmax) p(i,j,k) = workspace_1(ii)
+              end do
+            end do
+          end do
+        end do
       end if
 
     end subroutine transpose_a1inv
@@ -501,7 +534,7 @@ module modcufft
             do j = 1, jmax
               !$acc loop
               do i = n*iony+1, (n+1)*iony
-                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*jmax
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*iony
                 if (i < itot) workspace_0(ii) = px(i,j,k)
               end do
             end do
@@ -514,14 +547,14 @@ module modcufft
                             commcol, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(2) default(present) private(ii)
+        ! TODO: In the fftw version, i and k are swapped. Is this more efficient some way?
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
-            !$acc loop
-            do j = n*jmax+1, (n+1)*jmax
+            do i = 1, iony
               !$acc loop
-              do i = 1, iony
-                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*jmax
+              do j = n*jmax+1, (n+1)*jmax
+                ii = j + (i-1)*jmax + (k-1)*iony*jmax + n*iony*jmax*konx - n*jmax
                 py(j,i,k) = workspace_1(ii)
               end do
             end do
@@ -542,7 +575,7 @@ module modcufft
       integer :: i, j, k, n, ii
 
       if (nprocs == 1) then
-        !$acc parallel loop collapse(3) default(present)
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
@@ -552,12 +585,44 @@ module modcufft
           end do
         end do
 
-        !$acc parallel loop collapse(3) default(present)
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
               ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
               px(i,j,k) = workspace_0(ii)
+            end do
+          end do
+        end do
+      else
+        !$acc parallel loop collapse(3) default(present) private(ii)
+        do n = 0, nprocy-1
+          do k = 1, konx
+            do i = 1, iony
+              !$acc loop
+              do j = n*jmax+1, (n+1)*jmax
+                ii = j + (i-1)*jmax + (k-1)*jmax*iony + n*jmax*iony*konx - n*jmax
+                workspace_0(ii) = py(j,i,k)
+              end do
+            end do
+          end do
+        end do
+
+        !$acc host_data use_device(workspace_0, workspace_1)
+        call D_MPI_ALLTOALL(workspace_0, iony*jmax*konx, &
+                            workspace_1, iony*jmax*konx, &
+                            commcol, mpierr)
+        !$acc end host_data
+
+        !$acc parallel loop collapse(3) default(present) private(ii)
+        do n = 0, nprocy-1
+          do k = 1, konx
+            do j = 1, jmax
+              !$acc loop
+              do i = n*iony+1, (n+1)*iony
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*iony
+                if (i <= itot) px(i,j,k) = workspace_1(ii)
+              end do
             end do
           end do
         end do
@@ -585,26 +650,31 @@ module modcufft
           end do
         end do
       else
+        !$acc parallel loop collapse(3) default(present) private(ii)
         do n = 0, nprocx-1
           do k = 1, konx
-            do j = n*jonx+1, (n+1)*jonx
-              do i = 1, iony
-                ii = i + (j-1)*iony + (k-1)*iony*jonx + n*jonx*iony*konx - n*jtot ! Don't know if this is right
+            do i = 1, iony
+              !$acc loop
+              do j = n*jonx+1, (n+1)*jonx
+                ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
                 if (j <= jtot) workspace_0(ii) = py(j,i,k)
               end do
             end do
           end do
         end do
 
+        !$acc host_data use_device(workspace_0, workspace_1)
         call D_MPI_ALLTOALL(workspace_0, iony*jonx*konx, &
                             workspace_1, iony*jonx*konx, &
-                            commcol, mpierr)
+                            commrow, mpierr)
+        !$acc end host_data
 
+        !$acc parallel loop collapse(3) default(present) private(ii)        
         do n = 0, nprocx-1
-          do k = n*konx+1, (n+1)*konx
-            do j = 1, jonx
-              do i = 1, iony
-                ii = i + (j-1)*iony + (k-1)*iony*jonx
+          do j = 1, jonx
+            do i = 1, iony
+              do k = n*konx+1, (n+1)*konx
+                ii = k + (i-1)*konx + (j-1)*konx*iony + n*iony*jonx*konx - n*konx
                 if (k <= kmax) Fp(i,j,k) = workspace_1(ii)
               end do
             end do
@@ -630,6 +700,38 @@ module modcufft
           do j=1,jtot
             do i=1,itot
               py(j,i,k) = Fp(i+1,j+1,k)
+            end do
+          end do
+        end do
+      else
+        !$acc parallel loop collapse(3) default(present) private(ii)
+        do n =0, nprocx-1
+          do j = 1, jonx
+            do i = 1, iony
+              !$acc loop
+              do k = n*konx+1, (n+1)*konx
+                ii = k + (i-1)*konx + (j-1)*konx*iony + n*iony*jonx*konx - n*konx
+                if (k <= kmax) workspace_0(ii) = Fp(i,j,k)
+              end do
+            end do
+          end do
+        end do
+
+        !$acc host_data use_device(workspace_0, workspace_1)
+        call D_MPI_ALLTOALL(workspace_0, iony*jonx*konx, &
+                            workspace_1, iony*jonx*konx, &
+                            commrow, mpierr)
+        !$acc end host_data
+
+        !$acc parallel loop collapse(3) default(present) private(ii)
+        do n = 0, nprocx-1
+          do k = 1, konx
+            do i = 1, iony
+              !$acc loop
+              do j = n*jonx+1, (n+1)*jonx
+                ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
+                if (j <= jtot) py(j,i,k) = workspace_1(ii)
+              end do
             end do
           end do
         end do
