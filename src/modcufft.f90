@@ -83,7 +83,7 @@ module modcufft
       p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
       Fp(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
       px(1:nphix*2,1:jmax,1:konx) => p_nohalo(1:konx*jmax*(nphix*2)) ! x-aligned
-      py(1:nphiy*2,1:iony,1:konx) => p_nohalo(1:konx*iony*(nphiy*2)) ! y-aligned
+      py(1:nphiy*2,1:konx,1:iony) => p_nohalo(1:konx*iony*(nphiy*2)) ! y-aligned
 
       ! Precision
 #if POIS_PRECISION==32
@@ -337,7 +337,7 @@ module modcufft
       istat = cufftExecD2Z(plany, py, py)
 #endif
       !$acc end host_data
-      call postprocess_f_fft(py, (/2*nphiy, iony, konx/), jtot)
+      call postprocess_f_fft(py, (/2*nphiy, konx, iony/), jtot)
 
       call transpose_a3(py, Fp)
     end subroutine cufftf
@@ -352,7 +352,7 @@ module modcufft
       integer :: i, j, k, ii
 
       call transpose_a3inv(py, Fp)
-      call preprocess_b_fft(py, (/2*nphiy, iony, konx/), jtot)
+      call preprocess_b_fft(py, (/2*nphiy, konx, iony/), jtot)
 
       !$acc host_data use_device(py)
 #if POIS_PRECISION==32
@@ -523,7 +523,7 @@ module modcufft
           do j = 1, jtot
            do i = 1, itot
               ii = i + (j-1)*(2*nphix) + (k-1)*(2*nphix)*(2*nphiy)
-              py(j,i,k) = workspace_0(ii)
+              py(j,k,i) = workspace_0(ii)
             end do
           end do
         end do
@@ -547,7 +547,6 @@ module modcufft
                             commcol, mpierr)
         !$acc end host_data
 
-        ! TODO: In the fftw version, i and k are swapped. Is this more efficient some way?
         !$acc parallel loop collapse(3) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
@@ -555,7 +554,7 @@ module modcufft
               !$acc loop
               do j = n*jmax+1, (n+1)*jmax
                 ii = j + (i-1)*jmax + (k-1)*iony*jmax + n*iony*jmax*konx - n*jmax
-                py(j,i,k) = workspace_1(ii)
+                py(j,k,i) = workspace_1(ii)
               end do
             end do
           end do
@@ -580,7 +579,7 @@ module modcufft
           do j = 1, jtot
             do i = 1, itot
               ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
-              workspace_0(ii) = py(j,i,k)
+              workspace_0(ii) = py(j,k,i)
             end do
           end do
         end do
@@ -602,7 +601,7 @@ module modcufft
               !$acc loop
               do j = n*jmax+1, (n+1)*jmax
                 ii = j + (i-1)*jmax + (k-1)*jmax*iony + n*jmax*iony*konx - n*jmax
-                workspace_0(ii) = py(j,i,k)
+                workspace_0(ii) = py(j,k,i)
               end do
             end do
           end do
@@ -645,7 +644,7 @@ module modcufft
           do j = 1, jtot
             do i = 1, itot
               ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
-              Fp(i+1,j+1,k) = py(j,i,k)
+              Fp(i+1,j+1,k) = py(j,k,i)
             end do
           end do
         end do
@@ -657,7 +656,7 @@ module modcufft
               !$acc loop
               do j = n*jonx+1, (n+1)*jonx
                 ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
-                if (j <= jtot) workspace_0(ii) = py(j,i,k)
+                if (j <= jtot) workspace_0(ii) = py(j,k,i)
               end do
             end do
           end do
@@ -700,7 +699,7 @@ module modcufft
         do k=1,kmax
           do j=1,jtot
             do i=1,itot
-              py(j,i,k) = Fp(i+1,j+1,k)
+              py(j,k,i) = Fp(i+1,j+1,k)
             end do
           end do
         end do
@@ -731,7 +730,7 @@ module modcufft
               !$acc loop
               do j = n*jonx+1, (n+1)*jonx
                 ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
-                if (j <= jtot) py(j,i,k) = workspace_1(ii)
+                if (j <= jtot) py(j,k,i) = workspace_1(ii)
               end do
             end do
           end do
