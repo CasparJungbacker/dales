@@ -512,7 +512,7 @@ module modcufft
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
-              ii = i + (j-1)*(2*nphix) + (k-1)*(2*nphix)*(2*nphiy)
+              ii = i + (j-1)*itot + (k-1)*itot*jtot
               workspace_0(ii) = px(i,j,k)
             end do
           end do
@@ -522,7 +522,7 @@ module modcufft
         do k = 1, kmax
           do j = 1, jtot
            do i = 1, itot
-              ii = i + (j-1)*(2*nphix) + (k-1)*(2*nphix)*(2*nphiy)
+              ii = i + (j-1)*itot + (k-1)*itot*jtot
               py(j,k,i) = workspace_0(ii)
             end do
           end do
@@ -578,7 +578,7 @@ module modcufft
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
-              ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
+              ii = j + (i-1)*jtot + (k-1)*itot*jtot
               workspace_0(ii) = py(j,k,i)
             end do
           end do
@@ -588,7 +588,7 @@ module modcufft
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
-              ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
+              ii = j + (i-1)*jtot + (k-1)*itot*jtot
               px(i,j,k) = workspace_0(ii)
             end do
           end do
@@ -639,11 +639,10 @@ module modcufft
       integer :: i, j, k, n, ii
 
       if (nprocs == 1) then
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(3) default(present)
         do k = 1, kmax
           do j = 1, jtot
             do i = 1, itot
-              ii = j + (i-1)*(2*nphiy) + (k-1)*(2*nphix)*(2*nphiy)
               Fp(i+1,j+1,k) = py(j,k,i)
             end do
           end do
