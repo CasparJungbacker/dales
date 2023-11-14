@@ -81,9 +81,15 @@ module modcufft
       !$acc enter data create(p_halo, p_nohalo)
 
       p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
-      Fp(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
       px(1:nphix*2,1:jmax,1:konx) => p_nohalo(1:konx*jmax*(nphix*2)) ! x-aligned
       py(1:nphiy*2,1:konx,1:iony) => p_nohalo(1:konx*iony*(nphiy*2)) ! y-aligned
+
+      if (nprocs == 1) then
+        Fp(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_halo(1:(imax+2*ih)*(jmax+2*jh)*kmax) ! z-aligned
+      else
+        Fp(1:iony,1:jonx,1:kmax) => p_halo(1:iony*jonx*kmax)
+      end if
+        
 
       ! Precision
 #if POIS_PRECISION==32
@@ -208,15 +214,23 @@ module modcufft
 
       call check_exitcode(istat)
 
-      allocate(xyrt(2-ih:i1+ih,2-jh:j1+jh))
-      allocate(d(2-ih:i1+ih,2-jh:j1+jh,kmax))
+      if (nprocs == 1) then
+        allocate(xyrt(2-ih:i1+ih,2-jh:j1+jh))
+        allocate(d(2-ih:i1+ih,2-jh:j1+jh,kmax))
+        ps = 2
+        pe = i1
+        qs = 2
+        qe = j1
+      else
+        allocate(xyrt(iony,jonx))
+        allocate(d(iony,jonx,kmax))
+        ps = 1
+        pe = iony
+        qs = 1
+        qe = jonx
+      end if
 
       call init_factors(xyrt)
-
-      ps = 2
-      pe = i1
-      qs = 2
-      qe = j1
 
       norm_fac = 1 / real((itot*jtot))
 
@@ -299,11 +313,19 @@ module modcufft
 
       xyrt = 0
 
-      do j=2,j1
-        do i=2,i1
-          xyrt(i,j) = (xrt(i-1) + yrt(j-1))
+      if (nprocs == 1) then
+        do j=2,j1
+          do i=2,i1
+            xyrt(i,j) = (xrt(i-1) + yrt(j-1))
+          end do
         end do
-      end do
+      else
+        do j = 1, jonx
+          do i = 1, iony
+            xyrt(i,j) = xrt(myidy*iony+i) + yrt(myidx*jonx+j)
+          end do
+        end do
+      end if
 
     end subroutine init_factors
 
