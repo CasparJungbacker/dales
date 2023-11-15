@@ -405,15 +405,15 @@ contains
   end subroutine exitmpi
 
   subroutine excjs_real32(a,sx,ex,sy,ey,sz,ez,ih,jh)
-  !@cuf use cutensorEx
   implicit none
-  integer sx, ex, sy, ey, sz, ez, ih, jh
-  real(real32) a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
-  type(MPI_STATUS)  :: status
+  integer :: sx, ex, sy, ey, sz, ez, ih, jh
+  real(real32) :: a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
+  type(MPI_STATUS) :: status
   integer :: xl, yl, zl
   type(MPI_REQUEST) :: reqn, reqs, reqe, reqw
   type(MPI_REQUEST) :: reqrn, reqrs, reqre, reqrw
-  integer nssize, ewsize
+  integer :: nssize, ewsize
+  integer :: i, j, k, ii
   real(real32),allocatable, dimension(:) :: sendn,recvn &
                                           , sends,recvs &
                                           , sende,recve &
@@ -433,12 +433,18 @@ contains
 
     !   Allocate send / receive buffers
     allocate(sendn(nssize),sends(nssize),recvn(nssize),recvs(nssize))
-    !$acc enter data create(sendn, sends, recvn, recvs)
+    !$acc enter data copyin(sendn, sends, recvn, recvs)
 
-    !$acc host_data use_device(sendn, sends, a)
-    sendn = reshape(a(:,ey-jh+1:ey,:),(/nssize/))
-    sends = reshape(a(:,sy:sy+jh-1,:),(/nssize/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, jh
+        do i = 1, xl
+          ii = i + (j-1)*xl + (k-1)*xl*jh
+          sends(ii) = a(i,ey-jh+j,k)
+          sendn(ii) = a(i,sy+j-1,k)
+        end do
+      end do
+    end do
 
     !   Send north/south
     !$acc host_data use_device(sendn, sends)
@@ -457,10 +463,16 @@ contains
     call MPI_WAIT(reqrn, status, mpierr)
 
     ! Write back buffers
-    !$acc host_data use_device(recvs, recvn, a)
-    a(:,sy-jh:sy-1,:) = reshape(recvs,(/xl,jh,zl/))
-    a(:,ey+1:ey+jh,:) = reshape(recvn,(/xl,jh,zl/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, jh
+        do i = 1, xl
+          ii = i + (j-1)*xl + (k-1)*xl*jh
+          a(i,ey+j,k) = recvn(ii)
+          a(i,sy-jh+(j-1),k) = recvs(ii)
+        end do
+      end do
+    end do
 
   else
 
@@ -476,12 +488,18 @@ contains
 
     !   Allocate send / receive buffers
     allocate(sende(ewsize),sendw(ewsize),recve(ewsize),recvw(ewsize))
-    !$acc enter data create(sende, sendw, recve, recvw)
+    !$acc enter data copyin(sende, sendw, recve, recvw)
 
-    !$acc host_data use_device(sende, sendw, a)
-    sende = reshape(a(ex-ih+1:ex,:,:),(/ewsize/))
-    sendw = reshape(a(sx:sx+ih-1,:,:),(/ewsize/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, yl
+        do i = 1, ih
+          ii = i + (j-1)*ih + (k-1)*ih*yl
+          sende(ii) = a(ex-ih+j,j,k)
+          sendw(ii) = a(sx+j-1,j,k)
+        end do
+      end do
+    end do
 
     !   Send east/west
     !$acc host_data use_device(sende, sendw)
@@ -500,10 +518,16 @@ contains
     call MPI_WAIT(reqre, status, mpierr)
 
     ! Write back buffers
-    !$acc kernels default(present)
-    a(sx-ih:sx-1,:,:) = reshape(recvw,(/ih,yl,zl/))
-    a(ex+1:ex+ih,:,:) = reshape(recve,(/ih,yl,zl/))
-    !$acc end kernels
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, yl
+        do i = 1, ih
+          ii = i + (j-1)*ih + (k-1)*ih*yl
+          a(sx-jh+(i-1),j,k) = recvw(ii)
+          a(ex+i,j,k) = recve(ii)
+        end do
+      end do
+    end do
 
   else
 
@@ -545,15 +569,15 @@ contains
   end subroutine excjs_real32
 
   subroutine excjs_real64(a,sx,ex,sy,ey,sz,ez,ih,jh)
-  !@cuf use cutensorEx
   implicit none
-  integer sx, ex, sy, ey, sz, ez, ih, jh
-  real(real64) a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
-  type(MPI_STATUS)  :: status
+  integer :: sx, ex, sy, ey, sz, ez, ih, jh
+  real(real64) :: a(sx-ih:ex+ih, sy-jh:ey+jh, sz:ez)
+  type(MPI_STATUS) :: status
   integer :: xl, yl, zl
   type(MPI_REQUEST) :: reqn, reqs, reqe, reqw
   type(MPI_REQUEST) :: reqrn, reqrs, reqre, reqrw
   integer nssize, ewsize
+  integer :: i, j, k, ii
   real(real64),allocatable, dimension(:) :: sendn,recvn &
                                           , sends,recvs &
                                           , sende,recve &
@@ -568,36 +592,53 @@ contains
   nssize = xl*jh*zl
   ewsize = ih*yl*zl
 
-
   if(nprocy .gt. 1)then
 
     !   Allocate send / receive buffers
+    ! TODO: allocate these once
     allocate(sendn(nssize),sends(nssize),recvn(nssize),recvs(nssize))
-    !$acc enter data create(sendn, sends, recvn, recvs)
+    !$acc enter data copyin(sendn, sends, recvn, recvs)
 
-    !$acc host_data use_device(sendn, sends, a)
-    sendn = reshape(a(:,ey-jh+1:ey,:),(/nssize/))
-    sends = reshape(a(:,sy:sy+jh-1,:),(/nssize/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, jh
+        do i = 1, xl
+          ii = i + (j-1)*xl + (k-1)*xl*jh
+          sends(ii) = a(i,ey-jh+j,k)
+          sendn(ii) = a(i,sy+j-1,k)
+        end do
+      end do
+    end do
 
     !   Send north/south
+    !$acc host_data use_device(sendn, sends)
     call D_MPI_ISEND(sendn, nssize, nbrnorth, 4, comm3d, reqn, mpierr)
     call D_MPI_ISEND(sends, nssize, nbrsouth, 5, comm3d, reqs, mpierr)
+    !$acc end host_data
 
     !   Receive south/north
+    !$acc host_data use_device(recvs, recvn)
     call D_MPI_IRECV(recvs, nssize, nbrsouth, 4, comm3d, reqrs, mpierr)
     call D_MPI_IRECV(recvn, nssize, nbrnorth, 5, comm3d, reqrn, mpierr)
+    !$acc end host_data
 
     ! Wait until data is received
     call MPI_WAIT(reqrs, status, mpierr)
     call MPI_WAIT(reqrn, status, mpierr)
 
-    ! Write back buffers
-    !$acc host_data use_device(recvs, recvn, a)
-    a(:,sy-jh:sy-1,:) = reshape(recvs,(/xl,jh,zl/))
-    a(:,ey+1:ey+jh,:) = reshape(recvn,(/xl,jh,zl/))
-    !$acc end host_data
 
+    ! Write back buffers
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, jh
+        do i = 1, xl
+          ii = i + (j-1)*xl + (k-1)*xl*jh
+          a(i,ey+j,k) = recvn(ii)
+          a(i,sy-jh+(j-1),k) = recvs(ii)
+        end do
+      end do
+    end do
+    
   else
 
     ! Single processor, make sure the field is periodic
@@ -612,30 +653,46 @@ contains
 
     !   Allocate send / receive buffers
     allocate(sende(ewsize),sendw(ewsize),recve(ewsize),recvw(ewsize))
-    !$acc enter data create (sende, sendw, recve, recvw)
+    !$acc enter data copyin(sende, sendw, recve, recvw)
 
-    !$acc host_data use_device(sende, sendw, a)
-    sende = reshape(a(ex-ih+1:ex,:,:),(/ewsize/))
-    sendw = reshape(a(sx:sx+ih-1,:,:),(/ewsize/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, yl
+        do i = 1, ih
+          ii = i + (j-1)*ih + (k-1)*ih*yl
+          sende(ii) = a(ex-ih+j,j,k)
+          sendw(ii) = a(sx+j-1,j,k)
+        end do
+      end do
+    end do
 
     !   Send east/west
+    !$acc host_data use_device(sende, sendw)
     call D_MPI_ISEND(sende, ewsize, nbreast, 6, comm3d, reqe, mpierr)
     call D_MPI_ISEND(sendw, ewsize, nbrwest, 7, comm3d, reqw, mpierr)
+    !$acc end host_data
 
     !   Receive west/east
+    !$acc host_data use_device(recvw, recve)
     call D_MPI_IRECV(recvw, ewsize, nbrwest, 6, comm3d, reqrw, mpierr)
     call D_MPI_IRECV(recve, ewsize, nbreast, 7, comm3d, reqre, mpierr)
+    !$acc end host_data
 
     ! Wait until data is received
     call MPI_WAIT(reqrw, status, mpierr)
     call MPI_WAIT(reqre, status, mpierr)
 
     ! Write back buffers
-    !$acc host_data use_device(recvw, recve, a)
-    a(sx-ih:sx-1,:,:) = reshape(recvw,(/ih,yl,zl/))
-    a(ex+1:ex+ih,:,:) = reshape(recve,(/ih,yl,zl/))
-    !$acc end host_data
+    !$acc parallel loop collapse(3) default(present) private(ii)
+    do k = 1, zl
+      do j = 1, yl
+        do i = 1, ih
+          ii = i + (j-1)*ih + (k-1)*ih*yl
+          a(sx-jh+(i-1),j,k) = recvw(ii)
+          a(ex+i,j,k) = recve(ii)
+        end do
+      end do
+    end do
 
   else
 
@@ -654,6 +711,7 @@ contains
     call MPI_WAIT(reqs, status, mpierr)
     if (mpierr /= MPI_SUCCESS) call abort
 
+    !$acc exit data delete(sendn, sends, recvn, recvs)
     deallocate (sendn, sends)
     deallocate (recvn, recvs)
 
@@ -668,6 +726,7 @@ contains
     if (mpierr /= MPI_SUCCESS) call abort
 
     ! Deallocate buffers
+    !$acc exit data delete(sende, sendw, recve, recvw)
     deallocate (sende, sendw)
     deallocate (recve, recvw)
 
