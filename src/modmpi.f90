@@ -660,8 +660,8 @@ contains
       do j = 1, yl
         do i = 1, ih
           ii = i + (j-1)*ih + (k-1)*ih*yl
-          sende(ii) = a(ex-ih+j,j,k)
-          sendw(ii) = a(sx+j-1,j,k)
+          sende(ii) = a(ex-ih+i,j,k)
+          sendw(ii) = a(sx+i-1,j,k)
         end do
       end do
     end do
@@ -688,7 +688,7 @@ contains
       do j = 1, yl
         do i = 1, ih
           ii = i + (j-1)*ih + (k-1)*ih*yl
-          a(sx-jh+(i-1),j,k) = recvw(ii)
+          a(sx-ih+(i-1),j,k) = recvw(ii)
           a(ex+i,j,k) = recve(ii)
         end do
       end do
