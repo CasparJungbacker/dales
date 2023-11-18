@@ -349,7 +349,6 @@ module modcufft
       !$acc end host_data
       
       call postprocess_f_fft(px, (/2*nphix, jmax, konx/), itot)
-      ! Transpose to y-contiguous
       call transpose_a2(px, py)
       
       !$acc host_data use_device(py)
@@ -362,6 +361,7 @@ module modcufft
       call postprocess_f_fft(py, (/2*nphiy, konx, iony/), jtot)
 
       call transpose_a3(py, Fp)
+
     end subroutine cufftf
 
     !< Backward transforms
@@ -403,7 +403,7 @@ module modcufft
       do k=1,kmax
         do j=2,j1
           do i=2,i1
-            Fp(i,j,k) = Fp(i,j,k) * norm_fac
+            p(i,j,k) = p(i,j,k) * norm_fac
           end do
         end do
       end do
@@ -429,15 +429,14 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop default(present) private(ii)
+        ! TODO: clean this one up
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
-          !$acc loop
-          do k = n*konx+1, (n+1)*konx
-            !$acc loop collapse(2)
+          do k = 1, konx
             do j = 2, j1
               do i = 2, i1
-                ii = (i-1) + (j-2)*imax + (k-1)*imax*jmax
-                workspace_0(ii) = p(i,j,k)
+                ii = (i-1) + (j-2)*imax + (k-1)*imax*jmax + n*imax*jmax*konx
+                if (k+n*konx <= kmax) workspace_0(ii) = p(i,j,k+n*konx) 
               end do
             end do
           end do
@@ -449,14 +448,13 @@ module modcufft
                             commrow, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
           do k = 1, konx
             do j = 1, jmax
-              !$acc loop
-              do i = n*imax + 1, (n+1)*imax
-                ii = i + (j-1)*imax + (k-1)*imax*jmax + n*imax*jmax*konx - n*imax
-                px(i,j,k) = workspace_1(ii)
+              do i = 1, imax
+                ii = i + (j-1)*imax + (k-1)*imax*jmax + n*imax*jmax*konx
+                px(i+n*imax,j,k) = workspace_1(ii)
               end do
             end do
           end do
@@ -484,14 +482,13 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
           do k = 1, konx
             do j = 1, jmax
-              !$acc loop
-              do i = n*imax+1, (n+1)*imax
-                ii = i + (j-1)*imax + (k-1)*imax*jmax + n*imax*jmax*konx - n*imax
-                workspace_0(ii) = p(i,j,k)
+              do i = 1, imax
+                ii = i + (j-1)*imax + (k-1)*imax*jmax + n*imax*jmax*konx
+                workspace_0(ii) = px(i+n*imax,j,k)
               end do
             end do
           end do
@@ -503,15 +500,13 @@ module modcufft
                             commrow, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
-          !$acc loop
-          do k = n*konx+1, (n+1)*konx
-            !$acc loop
+          do k = 1, konx
             do j = 2, j1
               do i = 2, i1
-                ii = (i-1) + (j-2)*imax + (k-1)*imax*jmax
-                if (k <= kmax) p(i,j,k) = workspace_1(ii)
+                ii = (i-1) + (j-2)*imax + (k-1)*imax*jmax + n*imax*jmax*konx
+                if (k+n*konx <= kmax) p(i,j,k+n*konx) = workspace_1(ii)
               end do
             end do
           end do
@@ -550,14 +545,13 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
             do j = 1, jmax
-              !$acc loop
-              do i = n*iony+1, (n+1)*iony
-                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*iony
-                if (i < itot) workspace_0(ii) = px(i,j,k)
+              do i = 1, iony
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx
+                if (i <= itot) workspace_0(ii) = px(i+n*iony,j,k)
               end do
             end do
           end do
@@ -569,14 +563,13 @@ module modcufft
                             commcol, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
             do i = 1, iony
-              !$acc loop
-              do j = n*jmax+1, (n+1)*jmax
-                ii = j + (i-1)*jmax + (k-1)*iony*jmax + n*iony*jmax*konx - n*jmax
-                py(j,k,i) = workspace_1(ii)
+              do j = 1, jmax
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx
+                py(j+n*jmax,k,i) = workspace_1(ii)
               end do
             end do
           end do
@@ -616,14 +609,13 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
             do i = 1, iony
-              !$acc loop
-              do j = n*jmax+1, (n+1)*jmax
-                ii = j + (i-1)*jmax + (k-1)*jmax*iony + n*jmax*iony*konx - n*jmax
-                workspace_0(ii) = py(j,k,i)
+              do j = 1, jmax
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx
+                workspace_0(ii) = py(j+n*jmax,k,i)
               end do
             end do
           end do
@@ -635,14 +627,13 @@ module modcufft
                             commcol, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocy-1
           do k = 1, konx
             do j = 1, jmax
-              !$acc loop
-              do i = n*iony+1, (n+1)*iony
-                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx - n*iony
-                if (i <= itot) px(i,j,k) = workspace_1(ii)
+              do i = 1, iony
+                ii = i + (j-1)*iony + (k-1)*iony*jmax + n*iony*jmax*konx
+                if (i+n*iony <= itot) px(i+n*iony,j,k) = workspace_1(ii)
               end do
             end do
           end do
@@ -670,14 +661,13 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
           do k = 1, konx
             do i = 1, iony
-              !$acc loop
-              do j = n*jonx+1, (n+1)*jonx
-                ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
-                if (j <= jtot) workspace_0(ii) = py(j,k,i)
+              do j = 1, jonx
+                ii = j + (i-1)*jonx + (k-1)*iony*jonx + n*iony*jonx*konx
+                if (j+n*jonx <= jtot) workspace_0(ii) = py(j+n*jonx,k,i)
               end do
             end do
           end do
@@ -689,14 +679,13 @@ module modcufft
                             commrow, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
-          do j = 1, jonx
-            do i = 1, iony
-              !$acc loop
-              do k = n*konx+1, (n+1)*konx
-                ii = k + (i-1)*konx + (j-1)*konx*iony + n*iony*jonx*konx - n*konx
-                if (k <= kmax) Fp(i,j,k) = workspace_1(ii)
+          do k = 1, konx
+            do j = 1, jonx
+              do i = 1, iony
+                ii = j + (i-1)*jonx + (k-1)*iony*jonx + n*iony*jonx*konx
+                if (k+n*konx <= kmax) Fp(i,j,k+n*konx) = workspace_1(ii)
               end do
             end do
           end do
@@ -725,14 +714,13 @@ module modcufft
           end do
         end do
       else
-        !$acc parallel loop collapse(3) default(present) private(ii)
-        do n =0, nprocx-1
-          do j = 1, jonx
-            do i = 1, iony
-              !$acc loop
-              do k = n*konx+1, (n+1)*konx
-                ii = k + (i-1)*konx + (j-1)*konx*iony + n*iony*jonx*konx - n*konx
-                if (k <= kmax) workspace_0(ii) = Fp(i,j,k)
+        !$acc parallel loop collapse(4) default(present) private(ii)
+        do n = 0, nprocx-1
+          do k = 1, konx
+            do j = 1, jonx
+              do i = 1, iony
+                ii = j + (i-1)*jonx + (k-1)*iony*jonx + n*iony*jonx*konx
+                if (k+n*konx <= kmax) workspace_0(ii) = Fp(i,j,k+n*konx)
               end do
             end do
           end do
@@ -744,14 +732,13 @@ module modcufft
                             commrow, mpierr)
         !$acc end host_data
 
-        !$acc parallel loop collapse(3) default(present) private(ii)
+        !$acc parallel loop collapse(4) default(present) private(ii)
         do n = 0, nprocx-1
           do k = 1, konx
             do i = 1, iony
-              !$acc loop
-              do j = n*jonx+1, (n+1)*jonx
-                ii = j + (i-1)*jonx + (k-1)*jonx*iony + n*jonx*iony*konx - n*jonx
-                if (j <= jtot) py(j,k,i) = workspace_1(ii)
+              do j = 1, jonx
+                ii = j + (i-1)*jonx + (k-1)*iony*jonx + n*iony*jonx*konx
+                if (j+n*jonx <= jtot) py(j+n*jonx,k,i) = workspace_1(ii)
               end do
             end do
           end do
