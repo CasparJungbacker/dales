@@ -495,8 +495,8 @@ contains
       do j = 1, yl
         do i = 1, ih
           ii = i + (j-1)*ih + (k-1)*ih*yl
-          sende(ii) = a(ex-ih+j,j,k)
-          sendw(ii) = a(sx+j-1,j,k)
+          sende(ii) = a(ex-ih+i,j,k)
+          sendw(ii) = a(sx+i-1,j,k)
         end do
       end do
     end do
@@ -920,11 +920,8 @@ contains
     end do
     !$acc end kernels
 
-    if (nprocs > 1) then
-      !$acc host_data use_device(aver)
-      call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL4, MPI_SUM, comm3d, mpierr)
-      !$acc end host_data
-    end if
+    call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL4, MPI_SUM, comm3d, mpierr)
+
   end subroutine slabsum_real32_gpu
 
   subroutine slabsum_real64_gpu(aver,ks,kf,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
@@ -944,11 +941,8 @@ contains
     end do
     !$acc end kernels
 
-    if (nprocs > 1) then
-      !$acc host_data use_device(aver)
-      call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
-      !$acc end host_data
-    end if
+    call MPI_ALLREDUCE(MPI_IN_PLACE, aver, kf-ks+1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
+
   end subroutine slabsum_real64_gpu
 #endif
   subroutine mpi_get_time(val)
