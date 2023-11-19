@@ -1,0 +1,34 @@
+name: DALES compilation CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install common dependencies
+        run: |
+          # Enable sources for netcdff-dev
+          sudo sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
+
+          sudo apt-get update
+          sudo apt-get install -y cmake libfftw3-dev libhypre-dev libnetcdf-dev
+
+
+      - name: Install NVHPC SDK
+        run: |
+          curl https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg
+          echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | sudo tee /etc/apt/sources.list.d/nvhpc.list
+          sudo apt-get update -y
+          sudo apt-get install -y nvhpc-23-11
+        
+      
