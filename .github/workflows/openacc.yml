@@ -21,8 +21,7 @@ jobs:
           sudo sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
 
           sudo apt-get update
-          sudo apt-get install -y cmake libfftw3-dev libhypre-dev libnetcdf-dev
-
+          sudo apt-get install -y cmake libnetcdf-dev environment-modules
 
       - name: Install NVHPC SDK
         run: |
@@ -30,5 +29,8 @@ jobs:
           echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | sudo tee /etc/apt/sources.list.d/nvhpc.list
           sudo apt-get update -y
           sudo apt-get install -y nvhpc-23-11
-        
-      
+
+      - name: Setup paths
+        run: |
+          source /etc/profile.d/modules.sh
+          module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.11
