@@ -42,6 +42,6 @@ jobs:
           source /etc/profile.d/modules.sh
           module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.11
           cd netcdf-fortran
-          NCDIR=/usr FC=${which mpif90} ./configure
+          NCDIR=/usr FC=$(which mpif90) ./configure
           sudo make -j 2
           sudo make install
