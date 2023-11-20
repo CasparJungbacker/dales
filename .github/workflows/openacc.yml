@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: Unidata/netcdf-fortran
-          ref: 4.6.1
+          ref: v4.6.1
           path: netcdf-fortran
 
       - name: Compile NetCDF-Fortran
