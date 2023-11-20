@@ -1,4 +1,4 @@
-name: DALES compilation CI
+name: DALES compilation CI (OpenACC)
 
 on:
   push:
