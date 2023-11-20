@@ -45,3 +45,12 @@ jobs:
           NCDIR=/usr FC=$(which nvfortran) ./configure --disable-shared
           sudo make -j 2
           sudo make install
+
+      - name: Compile DALES
+        run: |
+          source /etc/profile.d/modules.sh
+          module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.11
+          mkdir build
+          cd build
+          SYST=NV-OpenACC cmake -DCMAKE_BUILD_TYPE=DEBUG -DUSE_NVTX=True ..
+          sudo make -j 2
