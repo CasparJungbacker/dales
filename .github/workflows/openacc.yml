@@ -30,7 +30,18 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y nvhpc-23-11
 
-      - name: Setup paths
+      - name: Checkout NetCDF-Fortran
+        uses: actions/checkout@v2
+        with:
+          repository: Unidata/netcdf-fortran
+          ref: 4.6.1
+          path: netcdf-fortran
+
+      - name: Compile NetCDF-Fortran
         run: |
           source /etc/profile.d/modules.sh
           module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.11
+          cd netcdf-fortran
+          NCDIR=/usr FC=${which mpif90} ./configure
+          sudo make -j 2
+          sudo make install
