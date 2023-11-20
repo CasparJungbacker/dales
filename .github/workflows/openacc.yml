@@ -50,6 +50,7 @@ jobs:
         run: |
           source /etc/profile.d/modules.sh
           module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.11
+          sudo ln -s $(which nvfortran) /usr/bin/nvfortran
           mkdir build
           cd build
           SYST=NV-OpenACC cmake -DCMAKE_BUILD_TYPE=DEBUG -DUSE_NVTX=True ..
