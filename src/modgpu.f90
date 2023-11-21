@@ -146,5 +146,15 @@ contains
     end if
 
   end subroutine deallocate_workspace
+#else
+contains
+  ! Dummies because CI/CD complains
+  subroutine update_host
+    implicit none
+  end subroutine update_host
+
+  subroutine update_gpu
+    implicit none
+  end subroutine update_gpu
 #endif
 end module modgpu
