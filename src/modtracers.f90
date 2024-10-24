@@ -25,7 +25,7 @@
 module modtracers
 
   use modglobal,      only: nsv, i1, ih, j1, jh, k1, kmax, cexpnr
-  use modtracer_type, only: T_tracer
+  use modtracer_type, only: tracer_t
   use modprecision,   only: field_r
   use modfields,      only: svm, sv0, svp, sv0av, svprof
   use modstat_nc
@@ -39,7 +39,7 @@ module modtracers
 
   integer :: iname
 
-  type(T_tracer), allocatable, public, protected :: tracer_prop(:) !< List of tracers
+  type(tracer_t), allocatable, public, protected :: tracer_prop(:) !< List of tracers
   logical,                     protected         :: ltracers = .false.
   character(6),                protected         :: &
     tracernames(200) = (/ ('      ', iname=1, 200)/)            !< For compatibility
@@ -146,7 +146,7 @@ contains
     integer,       intent(out), optional :: isv
 
     integer                     :: s
-    type(T_tracer), allocatable :: tmp(:)
+    type(tracer_t), allocatable :: tmp(:)
 
     ! Check if the tracer already exists. If so, don't add a new one.
     if (nsv > 0) then
@@ -360,7 +360,7 @@ contains
   !! \param svprof 2D array (z,s) to place initial profiles in.
   subroutine tracer_profs_from_netcdf(filename, tracers, nsv, svprof)
     character(*),   intent(in)  :: filename
-    type(T_tracer), intent(in)  :: tracers(:)
+    type(tracer_t), intent(in)  :: tracers(:)
     real(field_r),  intent(out) :: svprof(:,:)
 
     integer :: ncid

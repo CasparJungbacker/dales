@@ -4,7 +4,7 @@ module modtracer_type
  
   implicit none
   
-  type T_tracer
+  type tracer_t
   ! Fixed tracer properties
       ! Tracer name
       character(len=16) :: tracname
@@ -31,13 +31,13 @@ module modtracer_type
 
   contains
     procedure :: print_properties => tracer_print_properties
-  end type T_tracer
+  end type tracer_t
 
 contains
 
   subroutine tracer_print_properties(self)
 
-    class(T_tracer), intent(in) :: self
+    class(tracer_t), intent(in) :: self
 
     write(*,*) "Tracer: ", self%tracname
     write(*,*) "  long name  : ", trim(self%traclong)
