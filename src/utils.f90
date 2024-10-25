@@ -1,6 +1,6 @@
 !> Module with various handy functions/subroutines
 module utils
-  use modglobal, only: myid
+  use modmpi, only: myid
 
   implicit none
 
