@@ -1,4 +1,27 @@
-!> \file modaeroso
+!  This file is part of DALES.
+!
+! DALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! DALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+!  Copyright 1993-2024 Delft University of Technology, Wageningen
+!  University, Utrecht University, KNMI, TNO
+!
+!> Definitions and functions for M7 aerosols microphysics.
+!!
+!! \author Marco de Bruine
+!! \author Caspar Jungbacker, TU Delft
+!!
+!! \see https://gmd.copernicus.org/articles/12/5177/2019/
 module modaerosol
   use modglobal,      only: ifnamopt, fname_options, checknamelisterror, &
                             cexpnr, i1, j1, k1
