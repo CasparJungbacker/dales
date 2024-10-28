@@ -26,6 +26,8 @@ module modtracer_type
       logical           :: lags=.false.
       ! Boolean if in cloud microphysics
       logical           :: lmicro=.false.
+      ! Boolean if in aerosol microphysics
+      logical           :: laero=.false.
       ! ! Static tracer properties:
       ! real :: diffusivity
 
@@ -49,6 +51,7 @@ contains
     write(*,*) "  ldep       : ", self%ldep
     write(*,*) "  lags       : ", self%lags
     write(*,*) "  lmicro     : ", self%lmicro
+    write(*,*) "  laero      : ", self%laero
 
   end subroutine tracer_print_properties
 
