@@ -39,18 +39,24 @@ module modtracers
 
   integer :: iname
 
-  type(tracer_t), allocatable, public, protected :: tracer_prop(:) !< List of tracers
+  type(tracer_t), allocatable, public, target, protected :: tracer_prop(:) !< List of tracers
   logical,                     protected         :: ltracers = .false.
   character(6),                protected         :: &
     tracernames(200) = (/ ('      ', iname=1, 200)/)            !< For compatibility
 
   logical :: file_exists
 
+  !> Get tracer by index or name.
+  interface get_tracer
+    module procedure :: get_tracer_by_idx
+    module procedure :: get_tracer_by_name
+  end interface get_tracer
   public :: inittracers
   public :: add_tracer
   public :: allocate_tracers
   public :: exittracers
   public :: tracer_profs_from_netcdf
+  public :: get_tracer
 
   ! Old stuff, to be removed at some point
   integer, parameter:: max_tracs  =  31 !<  Max. number of tracers that can be defined
@@ -379,4 +385,41 @@ contains
 
   end subroutine tracer_profs_from_netcdf
 
+  !> Get a tracer by ID in tracer_props
+  !!
+  !! \param idx Index of tracer.
+  function get_tracer_by_idx(idx) result(ptr)
+    integer, intent(in) :: idx
+
+    type(tracer_t), pointer :: ptr
+
+    if (idx < 1 .or. idx > nsv) then
+      call dales_error("Index is outside the range of tracer_prop")
+    end if
+
+    ptr => tracer_prop(idx)
+  end function get_tracer_by_idx
+
+  !> Get a tracer by name.
+  !!
+  !! \param name Name of tracer.
+  function get_tracer_by_name(name) result(ptr)
+    character(*), intent(in) :: name
+
+    integer :: itrac
+    logical :: found
+    type(tracer_t), pointer :: ptr
+
+    do itrac = 1, nsv
+      if (trim(name) == trim(tracer_prop(itrac) % tracname)) then
+        ptr => tracer_prop(itrac)
+        found = .true.
+        exit
+      end if
+    end do
+
+    if (.not. found) then
+      call dales_error("Tracer "//name//" not found in tracer_prop")
+    end if
+  end function
 end module modtracers
