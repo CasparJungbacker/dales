@@ -35,6 +35,10 @@ module modtracer_type
     procedure :: print_properties => tracer_print_properties
   end type tracer_t
 
+  type, public :: tracer_ptr_t
+    type(tracer_t), pointer :: ptr => null()
+  end type tracer_ptr_t
+
 contains
 
   subroutine tracer_print_properties(self)

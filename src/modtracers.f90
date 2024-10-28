@@ -3,6 +3,7 @@
 
 !>
 !!  \author Ruud Janssen, TNO
+!!  \author Caspar Jungbacker, TU Delft
 !  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
@@ -25,7 +26,7 @@
 module modtracers
 
   use modglobal,      only: nsv, i1, ih, j1, jh, k1, kmax, cexpnr
-  use modtracer_type, only: tracer_t
+  use modtracer_type
   use modprecision,   only: field_r
   use modfields,      only: svm, sv0, svp, sv0av, svprof
   use modstat_nc
@@ -51,6 +52,7 @@ module modtracers
     module procedure :: get_tracer_by_idx
     module procedure :: get_tracer_by_name
   end interface get_tracer
+
   public :: inittracers
   public :: add_tracer
   public :: allocate_tracers

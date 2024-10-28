@@ -82,6 +82,7 @@ contains
     use modsurfdata,       only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf
     use modsurface,        only : initsurface
     use moddatetime,       only : initdatetime
+    use modaerosol,        only : initaerosol
     use modemission,       only : initemission
     use modlsm,            only : initlsm, kmax_soil
     use moddrydeposition,  only : initdrydep
@@ -347,6 +348,7 @@ contains
     call initfields
     call inittracers
     call initmicrophysics
+    call initaerosol
     call allocate_tracers ! At this point, all tracers have to be defined
     call inittestbed    !reads initial profiles from scm_in.nc, to be used in readinitfiles
     call inittstep
@@ -1448,6 +1450,7 @@ contains
     use modmpi,            only : exitmpi
     use modboundary,       only : exitboundary
     use modmicrophysics,   only : exitmicrophysics
+    use modaerosol,        only : exitaerosol
     use modpois,           only : exitpois
     use modtimedep,        only : exittimedep
     use modradiation,      only : exitradiation
@@ -1474,6 +1477,7 @@ contains
     call exitradiation
     call exitpois
     call exitmicrophysics
+    call exitaerosol
     call exitemission
     if(lopenbc) then
       call exitopenboundary
