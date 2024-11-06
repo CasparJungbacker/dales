@@ -368,7 +368,7 @@ contains
         end do
       end do
 
-      call d4stream(i1,ih,j1,jh,k1,tskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swdca,swuca,lwdca,lwuca)
+      call d4stream(i1,ih,j1,jh,k1,tskin,albedo,real(Nc_0),rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swdca,swuca,lwdca,lwuca)
     end if
 
     !$acc host_data use_device(lwdcaav, lwdca, lwucaav, lwuca, swdcaav, swdca, swucaav, swuca)

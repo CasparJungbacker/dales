@@ -162,9 +162,9 @@ contains
 
       if (imicro==imicro_bulk) then
         rr_b(:,:,1) = 0.
-        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,real(Nc_0),rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu,rr=rr_b)
       else
-        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,Nc_0,rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
+        call d4stream(i1,ih,j1,jh,k1,tempskin,albedo,real(Nc_0),rhof_b,exnf_b*cp,temp_b,qv_b,ql_b,swd,swu,lwd,lwu)
       end if
       !Downward radiation fluxes are pointing downward in UCLALES, pointing upward in DALES
       lwd = -lwd
