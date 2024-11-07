@@ -61,9 +61,9 @@ save
 contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initsampling
-    use modmpi,    only : comm3d,mpierr,myid,mpi_logical,D_MPI_BCAST
+    use modmpi,    only : comm3d,mpierr,myid,D_MPI_BCAST
     use modglobal, only : ladaptive, dtmax,k1,ifnamopt,fname_options,kmax,   &
-                           dtav_glob,timeav_glob,btime,tres,cexpnr,ifoutput,lwarmstart,checknamelisterror
+                          btime,tres,cexpnr,ifoutput,lwarmstart,checknamelisterror
     use modstat_nc, only : lnetcdf,define_nc,ncinfo,open_nc,define_nc,ncinfo,nctiminfo,writestat_dims_nc
 !     use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav
     implicit none
@@ -137,8 +137,8 @@ contains
       longsamplname(isamptot) = 'Cloud Updraft '
     end if
 
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     if(isamptot < 2) return
 
@@ -216,7 +216,7 @@ contains
     endif
 
     if (lnetcdf) then
-      nsamples = itimeav/idtav
+      nsamples = int(itimeav / idtav)
      if (myid==0) then
         allocate(ncname(nvar,4,isamptot))
         call nctiminfo(tncname(1,:))
@@ -360,7 +360,7 @@ contains
     use modfields, only : u0,v0,w0,thl0,thl0h,qt0,qt0h,ql0,ql0h,thv0h,exnf,exnh,rhobf,rhobh,thvh, &
                           sv0,wp
     use modsubgriddata,only : ekh,ekm
-    use modmpi,    only : slabsum,mpi_integer,comm3d,mpierr,mpi_sum,D_MPI_ALLREDUCE
+    use modmpi,    only : slabsum,comm3d,mpierr,mpi_sum,D_MPI_ALLREDUCE
     use modpois,   only : p
     use modmicrodata, only : imicro, imicro_bulk, imicro_bin, imicro_sice,iqr
     implicit none

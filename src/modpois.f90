@@ -58,8 +58,7 @@ contains
     implicit none
 
     if (solver_id == 0) then
-      ! FFT based solver
-      call fft2dinit(p, Fp, d, xyrt, ps,pe,qs,qe)
+      call fft2dinit(p, Fp, d, xyrt, ps, pe, qs, qe)
     else if (solver_id == 100) then
       ! FFTW based solver
       call fftwinit(p, Fp, d, xyrt, ps,pe,qs,qe)
@@ -101,7 +100,6 @@ contains
     implicit none
 
     if (solver_id == 0) then
-      ! FFT based solver
       call fft2dexit(p,Fp,d,xyrt)
     else if (solver_id == 100) then
       ! FFTW based solver
@@ -300,7 +298,7 @@ contains
 !-----------------------------------------------------------------|
 
     use modfields, only : up, vp, wp
-    use modglobal, only : i1,j1,kmax,dx,dy,dzh,ih,jh,lopenbc,lboundary,i2,j2,k1,lperiodic
+    use modglobal, only : i1,j1,kmax,dx,dy,dzh,ih,jh,lopenbc,lboundary,i2,j2,lperiodic
     use modmpi,    only : excjs
     use modopenboundary, only : openboundary_excjs
     implicit none
@@ -388,7 +386,7 @@ contains
     use modfields, only : rhobf, rhobh
     implicit none
 
-    real(pois_r) :: z,ak,bk,bbk
+    real(pois_r) :: z,bbk
     integer :: i, j, k
 
     call timer_tic('modpois/solmpj', 1)

@@ -76,7 +76,7 @@ module modbudget
 contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initbudget
-    use modmpi,    only : myid,mpierr, comm3d, mpi_logical, D_MPI_BCAST
+    use modmpi,    only : myid,mpierr, comm3d, D_MPI_BCAST
     use modglobal, only : dtmax,k1,ifnamopt,fname_options, ifoutput,cexpnr,dtav_glob,timeav_glob,&
     ladaptive,dt_lim,btime,tres,lwarmstart,checknamelisterror
     use modstat_nc, only : lnetcdf,define_nc,ncinfo,writestat_dims_nc
@@ -102,12 +102,12 @@ contains
     call D_MPI_BCAST(timeav     ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(dtav       ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lbudget    ,1,0,comm3d,mpierr)
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
-    nsamples = itimeav/idtav
+    nsamples = int(itimeav / idtav)
     if(.not.(lbudget)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -150,7 +150,7 @@ contains
       itimeav = itimeav_prof
       tnext      = idtav+btime
       tnextwrite = itimeav+btime
-      nsamples = itimeav/idtav
+      nsamples = int(itimeav / idtav)
       if (myid==0) then
          ! 1) the subgrid budget quantities are for the e12 variable = sqrt(TKE)
          !    (the subgrid TKE itself is a proper TKE, not the root).
@@ -418,7 +418,7 @@ contains
                ( empo * ( (u0(i,jp,k)-u0(i,j,k))   *dyi &
                          +(v0(i,jp,k)-v0(i-1,jp,k))*dxi) &
                 -emmo * ( (u0(i,j,k)-u0(i,jm,k))   *dyi &
-			+(v0(i,j,k)-v0(i-1,j,k))  *dxi) ) * dyi * anis_fac(k) &
+                        +(v0(i,j,k)-v0(i-1,j,k))  *dxi) ) * dyi * anis_fac(k) &
                + &
                ( rhobh(kp)/rhobf(k) * emop * ( (u0(i,j,kp)-u0(i,j,k))   /dzh(kp) &
                          +(w0(i,j,kp)-w0(i-1,j,kp))*dxi) &
@@ -797,7 +797,7 @@ end subroutine do_genbudget
             ,'#',(timeav),'--- AVERAGING TIMESTEP --- ' &
             ,nhrs,':',nminut,':',nsecs &
             ,'   HRS:MIN:SEC AFTER INITIALIZATION '
-       write (ifoutput,'(A/2A/2A)'), &
+       write (ifoutput,'(A/2A/2A)') &
             '#-------------------------------------------------------------------', &
             '#LEV HEIGHT  |   TKE        SHEAR      BUOYANCY     TRANSP',&
             '     PRES_TRSP     DISS      BUDGET      STORAGE      RESID',&

@@ -19,7 +19,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fftw:    ["", "-DUSE_FFTW=T"]
         hypre:    ["", "-DUSE_HYPRE=T"]
         field_r: ["32","64"]
         pois_r:  ["32","64"]

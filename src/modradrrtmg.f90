@@ -9,8 +9,8 @@ module modradrrtmg
 contains
 
   subroutine radrrtmg
-    use modglobal,     only : cp,rlv,dzf,&
-                              imax,jmax,kmax,i1,j1,k1,&
+    use modglobal,     only : cp,dzf,&
+                              imax,kmax,i1,j1,k1,&
                               kind_rb,SHR_KIND_R4,boltz
     use modmpi,        only : myid
     use modfields,     only : initial_presh,initial_presf,rhof,exnf,thl0
@@ -424,8 +424,7 @@ contains
 ! ==============================================================================;
 
   subroutine readTraceProfs        ! original tracesini subroutine in rad_driver
-    use modglobal, only : kind_rb, kind_im, &
-                          grav
+    use modglobal, only : kind_rb, grav
     use modmpi, only    : myid
     use rrlw_ncpar, only: getAbsorberIndex
     use netcdf
@@ -638,11 +637,10 @@ contains
   ! JvdDussen, 24-6-2010                                                        !
   ! ============================================================================!
 
-      use modglobal, only: imax,jmax,kmax,i1,k1,grav,kind_rb,rlv,cp,Rd,pref0,tup,tdn
+      use modglobal, only: imax,jmax,kmax,i1,grav,kind_rb,rlv,cp,Rd,pref0,tup,tdn
       use modfields, only: thl0,ql0,qt0,exnf,rhof
       use modsurfdata, only: tskin,ps
       use modmicrodata, only : Nc_0,sig_g
-      use modmpi, only: myid
 
       implicit none
 
@@ -653,16 +651,15 @@ contains
                                            liquidRe (imax,krad1), &
                                            iceRe    (imax,krad1)
       integer :: i,k,ksounding,im
-      real (KIND=kind_rb) :: exners
+      real(KIND=kind_rb) :: exners
       real(KIND=kind_rb) :: layerMass(imax,krad1)
       !real(KIND=kind_rb),dimension(imax,kmax)     :: tabs         ! Absolute temperature
       real(KIND=kind_rb),dimension(imax,jmax)     :: sstxy        ! sea surface temperature
-      real   (SHR_KIND_R4), parameter :: pi = 3.14159265358979
-      real , parameter :: rho_liq = 1000.
+      real, parameter :: pi = 3.14159265358979
+      real, parameter :: rho_liq = 1000.
 
       real :: reff_factor
       real :: ilratio
-      real :: tempC  !temperature in celsius
       real :: IWC0 ,B_function !cstep needed for ice effective radius following Eqs. (14) and (35) from Wyser 1998
 
       IWC0 = 50e-3  !kg/m3, Wyser 1998 Eq. 14 (he gives 50 g/m3)
@@ -849,9 +846,8 @@ contains
 
   subroutine setupSW(sunUp)
 
-    use modglobal,   only : xday,xlat,xlon,imax,xtime,rtimee
+    use modglobal,   only : xday,xlat,xlon,xtime,rtimee
     use shr_orb_mod, only : shr_orb_decl
-    use modmpi,      only : myid
     use modsurfdata, only : albedoav
 
     implicit none

@@ -79,11 +79,11 @@ contains
   !! Read the namelist NAMTRACERS from the namoptions file, distribute
   !! the parameters to all processes and allocate the tracer (SV) arrays.
   subroutine inittracers
-    ! read namelist    
+    ! read namelist
     ! init tracer type
 
     use modglobal,        only : ifnamopt, fname_options, checknamelisterror
-    use modmpi,           only : myid, comm3d, mpierr, d_mpi_bcast
+    use modmpi,           only : myid, comm3d, d_mpi_bcast
 
     implicit none
 
@@ -197,7 +197,7 @@ contains
   !> Allocates all tracer fields
   subroutine allocate_tracers
 
-    integer :: s 
+    integer :: s
 
     do s = 1, nsv
       call tracer_prop(s) % print_properties()
@@ -293,7 +293,7 @@ contains
                                          tracname_long, defltvalue='dummy longname')), & ! Default is 'dummy '
         unit=trim(findval(tracernames(isv), tracname_short, &
                     tracer_unit, defltvalue='dummy unit')), & ! Default is 'dummy unit'
-        molar_mass=findval(tracernames(isv), tracname_short, & 
+        molar_mass=findval(tracernames(isv), tracname_short, &
                      molar_mass, defltvalue=-999._field_r), & ! Default is -999.
         lemis=findval(tracernames(isv), tracname_short, &
                 tracer_is_emitted, defltvalue=.false.), & ! Default is False
@@ -328,7 +328,7 @@ contains
     logical       :: lemis, lreact, ldep, lags, laero
 
     inquire(file=filename, exist=file_exists)
-    
+
     if (.not. file_exists) then
       write(6,*) "Warning: ", filename, " not found."
       return
@@ -375,7 +375,7 @@ contains
     real(field_r),  intent(out) :: svprof(:,:)
 
     integer :: ncid
-    integer :: ivar, isv, nsv
+    integer :: ivar, nsv
 
     if (.not. file_exists) return
 

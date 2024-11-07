@@ -72,8 +72,7 @@ save
 contains
 !> Initializing Crosssection. Read out the namelist, initializing the variables
   subroutine initcrosssection
-    use modmpi,   only :myid,mpierr,comm3d,mpi_logical,mpi_integer,cmyid,cmyidx,cmyidy,myidx,myidy &
-                       , D_MPI_BCAST
+    use modmpi,   only :myid,mpierr,comm3d,cmyid,cmyidx,cmyidy,myidx,myidy,D_MPI_BCAST
     use modglobal,only :imax,jmax,itot,jtot,ifnamopt,fname_options,dtmax,dtav_glob,ladaptive,j1,kmax,i1,dt_lim,cexpnr,&
                         tres,btime,checknamelisterror,output_prefix
     use modstat_nc,only : lnetcdf,open_nc, define_nc,ncinfo,nctiminfo,writestat_dims_nc
@@ -148,7 +147,7 @@ contains
     ! 2  <= crossortho <= i1
     ! belong to this processor
 
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)
@@ -604,7 +603,6 @@ contains
 !> Clean up when leaving the run
   subroutine exitcrosssection
     use modstat_nc, only : exitstat_nc,lnetcdf
-    use modmpi, only : myidx, myidy
     use modglobal, only : i1,j1
     implicit none
 

@@ -43,7 +43,6 @@ subroutine hadvecc_hybrid(pin,pout)
   logical,dimension(2:i1+1,2:j1+1,k1) :: lsmx,lsmy
   real,dimension(2:i1+1,2:j1+1,k1) :: pfacex,pfacey ! face values, defined at the same interfaces as u0,v0 respectively
   integer :: i,j,k
-  integer :: kp2,km3
   integer :: jp2,jm3
   integer :: ip2,im3
 

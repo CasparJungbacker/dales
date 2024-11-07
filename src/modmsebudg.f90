@@ -58,7 +58,7 @@ contains
     end if
     call D_MPI_BCAST(dtav      ,1, 0, comm3d,ierr)
     call D_MPI_BCAST(lmsebudg  ,1, 0, comm3d,ierr)
-    idtav = int(dtav/tres,longint)
+    idtav = int(dtav/tres, kind=kind(idtav))
     tnext      = idtav   +btime
 
     if(.not.(lmsebudg)) return

@@ -118,7 +118,7 @@ module modsimpleice
     use modglobal, only : i1,j1,k1,rdt,rk3step,timee,rlv,cp,tup,tdn
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof,tmp0,rhobf
     use modsimpleicestat, only : simpleicetend
-    use modmicrodata, only : nr, nrp, iqr, qrp, sed_qr, qr_spl, qtpmcr, thlpmcr, delt, &
+    use modmicrodata, only : nr, nrp, iqr, qrp, qtpmcr, thlpmcr, delt, &
                              qcmask, qcmin, qrmask, qrmin, qr, &
                              ilratio, rsgratio, sgratio, &
                              aag, aar, aas, bbg, bbr, bbs, ccg, ccr, ccs, &
@@ -338,7 +338,7 @@ module modsimpleice
     use modfields, only : ql0,exnf,rhof
     use modmicrodata, only : ddg, ddr, dds, aag, aar, aas, bbg, bbr, bbs, delt, &
                              lambdag, lambdar, lambdas, ccgz, ccrz, ccsz, &
-                             ceffgi, ceffgl, ceffri, ceffrl, ceffsi, ceffsl, betakessi, &
+                             ceffgi, ceffgl, ceffri, ceffrl, ceffsi, ceffsl, &
                              qrmask, qcmask, qr, qrp, qtpmcr, thlpmcr, &
                              ilratio, rsgratio, sgratio
     implicit none
@@ -384,10 +384,10 @@ module modsimpleice
     use modglobal, only : i1,j1,k1,rlv,cp,pi
     use modfields, only : qt0,ql0,exnf,rhof,tmp0,qvsl,qvsi,esl
     use modmicrodata, only : betag, betar, betas, ddg, ddr, dds, delt, &
-                             n0rg, n0rr, n0rs, aag, aar, aas, &
+                             n0rg, n0rr, n0rs, &
                              ccgz, ccrz, ccsz, lambdag, lambdar, lambdas, &
                              evapfactor, qrmask, qr, qrp, qtpmcr, thlpmcr, &
-                             qrmask, qcmask
+                             qrmask
     implicit none
 
     real :: ssl,ssi,ventr,vents,ventg,&
@@ -427,7 +427,7 @@ module modsimpleice
     use modfields, only : rhof,rhobf
     use modmicrodata, only : qr_spl, sed_qr, precep, qr, qrp, &
                              aag, aas, aar, bbg, bbs, bbr, ddg, dds, ddr, n0rg, n0rs, n0rr, &
-                             betag, betar, betas, qrmin, &
+                             qrmin, &
                              lambdag, lambdar, lambdas, &
                              ccgz, ccrz, ccsz, &
                              sgratio, rsgratio, &

@@ -60,12 +60,11 @@ contains
 
 !> Initialization routine, reads namelists and inits variables
 subroutine initbulkmicrostat3
-    use modmpi,    only  : myid, mpi_logical, comm3d, mpierr, D_MPI_BCAST
-    use modglobal, only  : ifnamopt, fname_options, cexpnr, ifoutput, &
-         dtav_glob, timeav_glob, ladaptive, k1, dtmax,btime,tres,lwarmstart,checknamelisterror,kmax
+    use modmpi,    only  : myid, comm3d, mpierr, D_MPI_BCAST
+    use modglobal, only  : ifnamopt, fname_options, cexpnr, &
+         dtav_glob, timeav_glob, ladaptive, dtmax,btime,tres,checknamelisterror,kmax
     use modstat_nc, only : lnetcdf,open_nc,define_nc,ncinfo,nctiminfo,writestat_dims_nc
-    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav,ncid_prof=>ncid
-    use modmicrodata,only: imicro, imicro_bulk, imicro_sice, imicro_bulk3 !#sb3
+    use modgenstat, only : idtav_prof=>idtav, itimeav_prof=>itimeav
     use modmicrodata3
 
     implicit none
@@ -88,12 +87,12 @@ subroutine initbulkmicrostat3
     call D_MPI_BCAST(lmicrostat,1,0,comm3d,mpierr)
     call D_MPI_BCAST(dtav      ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(timeav    ,1,0,comm3d,mpierr)
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   + btime
     tnextwrite = itimeav + btime
-    nsamples   = itimeav / idtav
+    nsamples = int(itimeav / idtav)
 
     if (.not. lmicrostat) return
     if (abs(timeav/dtav - nsamples) > 1e-4) then
@@ -114,7 +113,7 @@ subroutine initbulkmicrostat3
       itimeav    = itimeav_prof
       tnext      = idtav   + btime
       tnextwrite = itimeav + btime
-      nsamples   = itimeav / idtav
+      nsamples = int(itimeav / idtav)
       if (myid==0) then
 
         ! statisitcs output
@@ -376,16 +375,15 @@ subroutine initbulkmicrostat3
 !>  * write to a netcdf file using writestat_nc
   subroutine writebulkmicrostat3
     use modmpi,     only : myid, MPI_SUM
-    use modglobal,  only : rtimee, ifoutput, cexpnr, k1,kmax, rlv, zf, ijtot
-    use modfields,  only : presf,rhof
+    use modglobal,  only : rtimee, kmax, ijtot
     use modstat_nc, only : lnetcdf, writestat_nc
-    use modgenstat, only : ncid_prof=>ncid,nrec_prof=>nrec
+    use modgenstat, only : nrec_prof=>nrec
     use modmicrodata3
     use modmpi,    only  : comm3d, mpierr, D_MPI_REDUCE
 
     implicit none
     integer  :: nsecs, nhrs, nminut
-    integer  :: k,cnt
+    integer  :: cnt
 
     nsecs  = nint(rtimee)
     nhrs   = int (nsecs/3600)

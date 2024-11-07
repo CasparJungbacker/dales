@@ -73,7 +73,7 @@ contains
     use modlsm,      only : lags
     implicit none
 
-    integer :: ierr, ii
+    integer :: ierr
 
     namelist/NAMLSMCROSSSECTION/ &
     lcross, dtav, crossheight, crossplane
@@ -101,7 +101,7 @@ contains
     call D_MPI_BCAST(crossheight,1,0,comm3d,mpierr)
     call D_MPI_BCAST(crossplane ,1,0,comm3d,mpierr)
 
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)

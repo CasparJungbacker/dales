@@ -150,12 +150,16 @@ save
 
       logical :: lmoist   = .true.  !<   switch to calculate moisture fields
       logical :: lnoclouds = .false. !<   switch to enable/disable thl calculations
-      logical :: lfast_thermo = .false. !<   switch to enable faster icethermo scheme
+      logical :: lfast_thermo = .true. !<   switch to enable faster icethermo scheme
       logical :: lsgbucorr= .false.  !<   switch to enable subgrid buoyancy flux
       logical :: lconstexner = .false.  !<  switch to use the initial pressure profile in the exner function
 
       ! Poisson solver: modpois / modhypre
-      integer :: solver_id = 0       ! Identifier for nummerical solver:    0    1   2     3       4
+#ifdef USE_FFTW
+      integer :: solver_id = 100     ! Identifier for nummerical solver:    0    1   2     3       4
+#else
+      integer :: solver_id = 0
+#endif
                                      !                                     FFT  SMG PFMG BiCGSTAB GMRES
       integer :: maxiter = 10000     ! Number of iterations                 .    X   X     X       X
       real(real64):: tolerance = 1E-8! Convergence threshold                .    X   X     X       X
@@ -275,7 +279,7 @@ contains
     integer :: advarr(4)
     real phi, colat, silat, omega, omega_gs
     real :: ilratio
-    integer :: k, n, m, ierr
+    integer :: k, m, ierr
     integer :: ncid, height_id
     character(80) chmess
 
@@ -399,7 +403,7 @@ contains
     if (lstart_netcdf) then
       ierr = nf90_open('init.'//cexpnr//'.nc', NF90_NOWRITE, ncid)
       if (ierr /= nf90_noerr) call abort
-      ierr = nf90_inq_varid(ncid, 'zt', height_id)
+      ierr = nf90_inq_varid(ncid, 'zh', height_id)
       if (ierr /= nf90_noerr) call abort
       ierr = nf90_get_var(ncid, height_id, zf, start=(/ 1 /), count=(/ kmax /))
       if (ierr /= nf90_noerr) call abort

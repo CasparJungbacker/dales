@@ -827,6 +827,10 @@ module modcufft
       pe=0
       qs=0
       qe=0
+      p => NULL()
+      Fp => NULL()
+      xyrt = 0 ! to suppress warning about unused argument.
+      d = 0    ! These are not allocated, so would be bad to actually do
     end subroutine cufftinit
 
     subroutine cufftexit(p, Fp, d, xyrt)
@@ -835,18 +839,26 @@ module modcufft
       real(pois_r), allocatable :: d(:,:,:)
       real(pois_r), allocatable :: xyrt(:,:)
       call error_and_exit()
+      p => NULL()
+      Fp => NULL()
+      xyrt = 0 ! to suppress warning about unused argument.
+      d = 0    ! These are not allocated, so would be bad to actually do
     end subroutine cufftexit
 
     subroutine cufftf(p, Fp)
       real(pois_r), pointer :: p(:,:,:)
       real(pois_r), pointer :: Fp(:,:,:)
       call error_and_exit()
+      p = 0 ! to suppress warning about unused argument.
+      Fp = 0
     end subroutine cufftf
 
     subroutine cufftb(p, Fp)
       real(pois_r), pointer :: p(:,:,:)
       real(pois_r), pointer :: Fp(:,:,:)
       call error_and_exit()
+      p = 0 ! to suppress warning about unused argument.
+      Fp = 0
     end subroutine cufftb
 
     subroutine error_and_exit

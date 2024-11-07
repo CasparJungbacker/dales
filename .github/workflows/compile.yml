@@ -22,7 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         toolchain: ["gnu", "intel"]
-        fftw:    ["", "-DUSE_FFTW=T"]
         hypre:   ["", "-DUSE_HYPRE=T"]
         
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -55,9 +54,7 @@ jobs:
 
           sudo apt install -y intel-oneapi-mpi-devel intel-oneapi-compiler-fortran
 
-          # localpc_ifort uses mpif90, which breaks, therefore we use CARTESIUS,
-          # which utilizes mpiifort which works
-          echo "SYST=CARTESIUS" >> $GITHUB_ENV 
+          echo "SYST=localpc_ifx" >> $GITHUB_ENV 
 
       - name: Checkout NetCdf-Fortran for Intel
         if: matrix.toolchain == 'intel'

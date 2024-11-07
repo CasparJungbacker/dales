@@ -107,8 +107,8 @@ subroutine initsamptend
     if(isamptot < 1) return
     if(.not.(lnetcdf)) return !only in netcdf at the moment
 
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
 
@@ -812,9 +812,8 @@ subroutine initsamptend
 
   subroutine decomposedadvtend
     ! Terms/variables needed to scale-decompose the advection terms, for each selected budget
-    use modglobal, only : i1,imax,j1,jmax,kmax,k1,ih,jh,dzhi,dzf,dzh,&
-                          ijtot,nsv
-    use modfields, only : w0,thl0,thl0h,ql0,exnf,qt0,qt0h,u0,v0,sv0
+    use modglobal, only : i1,imax,j1,jmax,k1,dzhi,dzf,dzh
+    use modfields, only : w0,thl0,thl0h,qt0,qt0h,u0,v0,sv0
     use modmicrodata, only : iqr,inr
     use modsubgriddata, only : ekh
     use modsurfdata,only: thlflux,qtflux,svflux
@@ -1022,7 +1021,7 @@ subroutine initsamptend
     use modmpi,    only : slabsum
     use modglobal, only : i1,j1,kmax,k1,ih,jh,&
                           cp,rv,rlv,rd,&
-                          ijtot,nsv
+                          ijtot
     use modfields, only : w0,thl0,ql0,exnf,qt0,u0,v0,sv0
     use modmicrodata, only : iqr,inr
     implicit none
@@ -1140,9 +1139,8 @@ subroutine initsamptend
 
 !> Write the statistics to file
   subroutine writesamptend
-    use modglobal, only : kmax,k1,rtimee
-    use modmpi,    only : mpi_integer,myid,comm3d,mpierr,mpi_sum &
-                        , D_MPI_ALLREDUCE
+    use modglobal, only : k1
+    use modmpi,    only : myid,comm3d,mpierr,mpi_sum,D_MPI_ALLREDUCE
     use modstat_nc, only: lnetcdf
     implicit none
     integer :: field,k

@@ -121,7 +121,7 @@ contains
 
   subroutine subgridnamelist
     use modglobal, only : ifnamopt,fname_options,checknamelisterror
-    use modmpi,    only : myid, comm3d, mpierr, mpi_logical, D_MPI_BCAST
+    use modmpi,    only : myid, comm3d, mpierr, D_MPI_BCAST
 
     implicit none
 
@@ -160,12 +160,12 @@ contains
  ! Diffusion subroutines
 ! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
 
-    use modglobal, only : nsv, lmoist, deltai, delta, dzf, dzh, lopenbc, lboundary, lperiodic
-    use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp,u0,v0,w0,rhobh,rhobf,e120,dthvdz, thvf
-    use modsurfdata,only : thlflux,qtflux,svflux,ustar,dudz,dvdz
+    use modglobal, only : nsv, lmoist, lopenbc, lboundary, lperiodic
+    use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp
+    use modsurfdata,only : thlflux,qtflux,svflux
 
     implicit none
-    integer :: n,sx=2,sy=2
+    integer :: sx=2,sy=2
     
     call timer_tic('modsubgrid/subgrid', 0)
 
@@ -238,7 +238,7 @@ contains
 !-----------------------------------------------------------------|
 
   use modglobal,   only : i1,j1,kmax,k1,ih,jh,i2,j2,delta,ekmin,grav,zf,fkar,deltai, &
-                          dxi,dyi,dzf,dzfi,dzhi,dzh,lopenbc,lboundary,lperiodic
+                          dxi,dyi,dzf,dzfi,dzhi,lopenbc,lboundary,lperiodic
   use modfields,   only : dthvdz,e120,u0,v0,w0,thvf
   use modsurfdata, only : dudz,dvdz,z0m
   use modmpi,      only : excjs
@@ -678,7 +678,7 @@ contains
   end subroutine sources
 
   subroutine diffc (a_in,a_out,flux)
-    use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx2i,dzf,dy2i,dzh,dzhi,dzfi
+    use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx2i,dzf,dy2i,dzhi,dzfi
     use modfields, only : rhobf,rhobh
     implicit none
 
@@ -731,7 +731,7 @@ contains
   end subroutine diffc
 
   subroutine diffcsv (a_in,a_out,flux)
-    use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx2i,dzf,dy2i,dzh,nsv,dzfi,dzhi
+    use modglobal, only : i1,ih,i2,j1,jh,j2,k1,kmax,dx2i,dzf,dy2i,nsv,dzfi,dzhi
     use modfields, only : rhobf,rhobh
     implicit none
 

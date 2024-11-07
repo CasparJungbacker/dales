@@ -43,7 +43,7 @@ module moddatetime
   subroutine initdatetime
     ! Using the namelist, construct datetime relevant variables
 
-    use modmpi,    only : myid, comm3d, mpi_logical, D_MPI_BCAST
+    use modmpi,    only : myid, comm3d, D_MPI_BCAST
     use modglobal, only : ifnamopt, fname_options, xtime
    
     implicit none

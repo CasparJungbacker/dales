@@ -86,7 +86,7 @@ save
 contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initradstat
-    use modmpi,    only : myid,mpierr, comm3d, mpi_logical,D_MPI_BCAST
+    use modmpi,    only : myid,mpierr, comm3d, D_MPI_BCAST
     use modglobal, only : dtmax, k1, ifnamopt,fname_options, ifoutput,&
                           cexpnr,dtav_glob,timeav_glob,ladaptive,dt_lim,btime,tres,lwarmstart,checknamelisterror
     use modstat_nc, only : lnetcdf,define_nc,ncinfo
@@ -112,12 +112,12 @@ contains
     call D_MPI_BCAST(dtav        ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lstat       ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lradclearair,1,0,comm3d,mpierr)
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
-    nsamples = itimeav/idtav
+    nsamples = int(itimeav / idtav)
 
 
     if(.not.(lstat)) return
@@ -189,7 +189,7 @@ contains
       itimeav = itimeav_prof
       tnext      = idtav+btime
       tnextwrite = itimeav+btime
-      nsamples = itimeav/idtav
+      nsamples = int(itimeav / idtav)
 
       if (myid==0) then
         call ncinfo(ncname( 1,:),'thltend','Total radiative tendency','K/s','tt')

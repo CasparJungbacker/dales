@@ -800,7 +800,7 @@ contains
   end subroutine
 
   subroutine inithypre_grid
-    use modmpi, only : myid, myidx, myidy, nprocx, nprocy
+    use modmpi, only : myid, myidx, myidy
     use modglobal, only : imax, jmax, kmax, dzf, dzh, dx, dy, itot, jtot, lopenbc,lperiodic,lboundary
 
     use modfields, only : rhobf, rhobh
@@ -1219,7 +1219,7 @@ contains
   end subroutine
 
   subroutine set_zero_guess()
-    use modglobal, only : i1, j1, ih, jh, imax, jmax, kmax
+    use modglobal, only : imax, jmax, kmax
 
     implicit none
     real values(imax,jmax)
@@ -1240,7 +1240,7 @@ contains
 
   subroutine solve_hypre(solver, p, converged)
     use modmpi, only : myid, myidx, myidy
-    use modglobal, only : i1, j1, ih, jh, imax, jmax, kmax, rk3step
+    use modglobal, only : i1, j1, ih, jh, imax, jmax, kmax
     implicit none
 
     real(pois_r), intent(inout) :: p(2-ih:i1+ih,2-jh:j1+jh,kmax)
@@ -1250,7 +1250,6 @@ contains
 
     real(real64) final_res_norm
     integer i,j,k, num_iterations, stat
-    real totalsum
 
     !-----------------------------------------------------------------------
     !     1. Set up the rhs

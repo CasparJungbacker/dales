@@ -502,7 +502,7 @@ contains
 
   subroutine setupColumnProfiles(ibatch)
 
-    use modglobal,   only: imax, jmax, kmax, i1, j1, grav, kind_rb, rlv, cp, rd, pref0, tup, tdn
+    use modglobal,   only: imax, jmax, kmax, i1, grav, kind_rb, rlv, cp, rd, pref0, tup, tdn
     use modfields,   only: thl0, qt0, ql0, exnf, rhof
     use modsurfdata, only: tskin, ps
     use modmicrodata, only : Nc_0,sig_g
@@ -512,7 +512,7 @@ contains
     integer, intent(in) :: ibatch
     integer :: jstart, jend
     integer :: i, j, k, icol
-    real(SHR_KIND_R4), parameter :: pi = 3.14159265358979
+    real, parameter :: pi = 3.14159265358979
     real, parameter :: rho_liq = 1000., IWC0=50e-3 ! both in kg/m3
 
     real(kind=kind_rb) :: exners, reff_factor, ilratio, layerMass, qci, qcl, B_function
@@ -608,7 +608,7 @@ contains
 
   subroutine getFluxProfiles(ibatch)
 
-    use modglobal,   only: i1, j1, k1, imax, jmax, kmax, cp, dzf
+    use modglobal,   only: i1, k1, imax, jmax, kmax, cp, dzf
     use modfields,   only: exnf, rhof
 
     implicit none
@@ -687,7 +687,7 @@ contains
 
   subroutine setupSW(sunUp)
 
-    use modglobal,   only : xday,xlat,xlon,imax,xtime,rtimee
+    use modglobal,   only : xday,xlat,xlon,xtime,rtimee
     use shr_orb_mod, only : shr_orb_decl
     use modsurfdata, only : albedoav
 

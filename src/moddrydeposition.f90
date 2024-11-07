@@ -38,8 +38,8 @@ module moddrydeposition
   real, allocatable :: depfield(:,:,:) !< deposition flux (i,j,sv) [ug * m / (g * s)]
   logical, dimension(100) :: ldeptracers = .false. !< List of switches determining which of the tracers to deposit
   integer  :: ndeptracers = 0  !< Number of tracers that deposits
-  integer  :: iname 
-  real :: nh3_avg = -1, so2_avg = -1	!GT added to not have the variables needed for the calculations of ccomp hardcoded
+  integer  :: iname
+  real :: nh3_avg = -1, so2_avg = -1    !GT added to not have the variables needed for the calculations of ccomp hardcoded
 
   private :: Rc, Rb, vd
 
@@ -59,7 +59,7 @@ module moddrydeposition
 
 ! Unfortunately, there is no other way to get the parameters from DEPAC (lai_par, laitype)
 #include "depac_lu.inc"
- 
+
 contains
 
 !> Initialize deposition calculation.
@@ -67,12 +67,12 @@ contains
 !! Read the namelist NAMDEPOSITION from the namoptions file, distribute
 !! the parameters to all processes and allocate the deposition flux field.
 subroutine initdrydep
-  ! read namelist    
+  ! read namelist
   ! read LU parameters from file
   ! init drydep fields
 
   use modglobal, only : i2, j2, nsv, ifnamopt, fname_options, &
-                        checknamelisterror, imax, jmax
+                        checknamelisterror
   use modmpi,    only : myid, comm3d, d_mpi_bcast
 
   implicit none
@@ -85,8 +85,8 @@ subroutine initdrydep
   ! ---------------------------------------------------------------------!
 
   ! --- Read & broadcast namelist DEPOSITION -----------------------------------
-  namelist/NAMDEPOSITION/ ldrydep, nh3_avg, so2_avg	!GT added nh3_avg and so2_avg
-      
+  namelist/NAMDEPOSITION/ ldrydep, nh3_avg, so2_avg     !GT added nh3_avg and so2_avg
+
 
   if (myid == 0) then
     open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -97,9 +97,9 @@ subroutine initdrydep
   endif
 
   call d_mpi_bcast(ldrydep,              1, 0, comm3d, ierr)
-  call d_mpi_bcast(nh3_avg,		 1, 0, comm3d, ierr)	!GT added
-  call d_mpi_bcast(so2_avg,		 1, 0, comm3d, ierr)	!GT added
-  
+  call d_mpi_bcast(nh3_avg,              1, 0, comm3d, ierr)    !GT added
+  call d_mpi_bcast(so2_avg,              1, 0, comm3d, ierr)    !GT added
+
   do isv = 1,nsv
     if (.not. tracer_prop(isv)%ldep) cycle
     ndeptracers = ndeptracers + 1
@@ -109,7 +109,7 @@ subroutine initdrydep
   ! --- Local pre-calculations and settings
   if (ldrydep .and. ndeptracers == 0 .and. myid == 0) then
     write (*,*) "initdrydep: WARNING .. drydeposition switched on, but no tracers to deposit. &
-      Continuing without deposition model"
+      &Continuing without deposition model"
   end if
   if (.not. (ldrydep) .or. .not. (llsm) .or. ndeptracers == 0)  return
 
@@ -122,7 +122,7 @@ subroutine initdrydep
   Rc = 0.0
   vd = 0.0
   Ccomp = 0.0
-  
+
 
 end subroutine initdrydep
 
@@ -142,12 +142,12 @@ subroutine drydep  ! called in program.f90
   !   write (*, *) "drydep: Skipping deposition calculation, since no tracers selected (ndeptracers = 0)"
   ! end if
   if (.not. llsm .or. .not. ldrydep .or. ndeptracers == 0) return  ! Dry deposition cannot be run if LSM not activated
-  
+
   call calc_depfield
 
   ! tracer tendency due to deposition. The calculated deposition flux `depfield` is
   ! negative. Only tracers that will deposit (ldeptracers(isv) == .true.) have an entry in depfield to
-  ! limit memory usage. 
+  ! limit memory usage.
   idt = 1  ! deposition tracers have their own index
   do isv = 1, nsv
     if (.not. tracer_prop(isv)%ldep) cycle
@@ -159,12 +159,12 @@ subroutine drydep  ! called in program.f90
     idt = idt + 1
   end do
 
-end subroutine drydep    
+end subroutine drydep
 
 !> Wrapper function around call to DEPAC to calculate total canopy resistance
 !!
 !! Rc is calculated with the DEPAC model (v3.21 with minor changes by TNO) using the
-!! classical approach without compensation points. 
+!! classical approach without compensation points.
 !!
 !! The DEPAC specific calculations are performed by `DryDepos_Gas_DEPAC`.
 !!
@@ -172,20 +172,20 @@ end subroutine drydep
 !!
 !! @see M.C. van Zanten et al., "Description of the DEPAC module", RIVM report nr. 680180001/2010
 !! @see DryDepos_Gas_DEPAC
-subroutine depac_call(ilu, species, species_idx)		!GT added variable of species_idx for trac_id to allow looping in the calculations of ccomp
+subroutine depac_call(ilu, species, species_idx)                !GT added variable of species_idx for trac_id to allow looping in the calculations of ccomp
   use modlsm, only : tile
   use modglobal, only : i1, j1, xday, xlat, xlon, xtime, rtimee
-  use modfields, only : thl0, exnf, presf, qt0, qsat, sv0             !GT added sv0
+  use modfields, only : thl0, exnf, qt0, qsat, sv0             !GT added sv0
   use le_drydepos_gas_depac, only : DryDepos_Gas_DEPAC
   use modraddata, only : zenith, swd
   use utils, only : to_upper
   implicit none
 
-  integer, intent(in) :: ilu, species_idx		!GT added species_idx
+  integer, intent(in) :: ilu, species_idx               !GT added species_idx
   character(*), intent(in) :: species
   character(len=6) :: depac_species
-  integer :: i, j, nwet = 0, status, depac_ilu, isv      !GT added isv as an integer
-  real :: T, RH, sinphi, lai, sai                            !GT removed ccomp_tot as a real variable
+  integer :: i, j, nwet = 0, status, depac_ilu          !GT added isv as an integer
+  real :: T, RH, sinphi, lai, sai                       !GT removed ccomp_tot as a real variable
 
   ! Temporary values, until something better is available
   ! for now, assuming low NH3/SO2 ratios
@@ -193,15 +193,15 @@ subroutine depac_call(ilu, species, species_idx)		!GT added variable of species_
 
   ! TEMPORARY HACK, Assume NOx=NO2, since DEPAC needs NO/NO2
   if (trim(species) == 'nox') then
-    depac_species = 'NO2' 
-  else 
+    depac_species = 'NO2'
+  else
     depac_species = to_upper(trim(species))
   end if
 
   depac_ilu = get_depac_luindex(tile(ilu)%lushort)
 
   ! Currently used conventions:
-  ! - To calculate RH, qt0 and qsat are used. There may be a better way, in fact, I believe qt is the total 
+  ! - To calculate RH, qt0 and qsat are used. There may be a better way, in fact, I believe qt is the total
   !   specific humidity, which includes liquid moisture. Should ql be subtracted?
   ! - Latitude fed to DEPAC is the latitude of the lower left corner of the domain
   ! - As temperature, the temperature in the lowest layer is used. It is disputable whether this is correct, might need
@@ -213,7 +213,7 @@ subroutine depac_call(ilu, species, species_idx)		!GT added variable of species_
   !   species, `react` for reactivity (not used for non-VBS species) and `status` for registering errors,
   !   but these are already handled in the depac routine.
   call calc_lai_sai(tile(ilu)%lushort, xday, xlat, tile(ilu)%SAI_a(2, 2), &
-                    tile(ilu)%SAI_b(2, 2), lai, sai)  ! running the LAI & SAI here save imax x jmax - 
+                    tile(ilu)%SAI_b(2, 2), lai, sai)  ! running the LAI & SAI here save imax x jmax -
   sinphi = zenith(xtime*3600 + rtimee, xday, xlat, xlon)
   call flush(6)
   do i = 2, i1
@@ -225,7 +225,7 @@ subroutine depac_call(ilu, species, species_idx)		!GT added variable of species_
       call DryDepos_Gas_DEPAC(depac_species, int(xday), xlat, T, &
                               tile(ilu)%ustar(i, j), -swd(i, j, 1), sinphi, RH, lai, sai, nwet, &
                               depac_ilu, iratns, Rc(i, j), Ccomp(i, j), 0.0, 0.0, status, tsea=tile(ilu)%tskin(i, j), c_ave_prev_nh3=nh3_avg, &
-        		      c_ave_prev_so2=so2_avg, catm=sv0(i,j,1,species_idx))         !GT added everything behind tsea, variables needed to calculate comp. if values are set to 0 no comp is calculated
+                              c_ave_prev_so2=so2_avg, catm=sv0(i,j,1,species_idx))         !GT added everything behind tsea, variables needed to calculate comp. if values are set to 0 no comp is calculated
       ! check for missing Rc values, i.e. -9999, and return huge resistance, so virtually no deposition takes place
       if (missing_real(Rc(i, j), -9999.)) then
         Rc(i,j) = 1.e5
@@ -236,7 +236,7 @@ subroutine depac_call(ilu, species, species_idx)		!GT added variable of species_
       endif
     end do
   end do
-  
+
 
   !! DEBUG feedback
   ! write (6, '("DEPAC: Land use class= ",a)') tile(ilu)%lushort
@@ -276,7 +276,7 @@ end subroutine exitdrydep
 !> Calculate the deposition flux for species other than water.
 !!
 !! This is the core of the module. The deposition flux is
-!! calculated from the aerodynamic resistance, the quasilaminar layer resistance 
+!! calculated from the aerodynamic resistance, the quasilaminar layer resistance
 !! and the canopy resistance.
 subroutine calc_depfield
   use modglobal, only : i1, j1, fkar
@@ -284,7 +284,7 @@ subroutine calc_depfield
   use modlsm, only : tile, nlu
   ! Necessary to retrieve/calculate all parameters necessary for the DEPAC routine
   implicit none
- 
+
   integer :: ilu, isv, idt, i, j ! Indices for land use type (ilu), scalar variable (isv) and deposited tracer (idt)
   real :: Sc, ScPrfac
   real, parameter :: Pr_air = 0.71  !< Prandtl number of air at atmospheric conditions (+/- 1.5%)
@@ -332,7 +332,7 @@ end subroutine calc_depfield
 !! @return The value corresponding to the key
 pure real function findval(key, keys, values, defltvalue)
   implicit none
-  character(*), intent(in) :: key 
+  character(*), intent(in) :: key
   character(*), intent(in) :: keys(:)
   real, intent(in) :: values(:)
   real, intent(in), optional :: defltvalue
@@ -346,9 +346,9 @@ pure real function findval(key, keys, values, defltvalue)
     findval = values(idx(1))
   else
     if (present(defltvalue)) then
-      findval = defltvalue 
+      findval = defltvalue
     else
-      findval = 0.0 
+      findval = 0.0
     end if
   end if
 end function findval
@@ -403,7 +403,7 @@ subroutine calc_lai_sai(luclass, doy, latitude, SAI_a, SAI_b, lai, sai)
   else
     lai = 0.0
   end if
-  
+
   ! Calculating SAI
   if (luclass == 'ara') then
     if (doy < sgs) then
@@ -452,7 +452,7 @@ end subroutine SGS_MGS_EGS
 !! Once both DALES and DEPAC incorporate an LSM model that is not hard linked to data, this function is no longer needed.
 !!
 !! @param[in] luclass The LU class acronym from the tile (`lushort`)
-!! @returns The corresponding index in DEPAC arrays defined in `depac_lu.inc`  
+!! @returns The corresponding index in DEPAC arrays defined in `depac_lu.inc`
 pure integer function get_depac_luindex(luclass)
   implicit none
   character(len=3), intent(in) :: luclass

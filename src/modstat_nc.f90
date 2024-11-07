@@ -72,7 +72,7 @@ contains
 
   subroutine initstat_nc
     use modglobal, only : ifnamopt,fname_options,checknamelisterror
-    use modmpi,    only : mpierr,mpi_logical,comm3d,myid,D_MPI_BCAST
+    use modmpi,    only : mpierr,comm3d,myid,D_MPI_BCAST
     implicit none
 
     integer             :: ierr
@@ -365,7 +365,7 @@ contains
     ! optional arguments ncoarse (coarsegraining in the horizontal directions)
     !                    klow    (lower bound for z. Upper bound is taken from the size of the dimension)
     !                    proc    (if present and length on horizontal cooridinates is 1 include processor starting edges and center)
-    use modglobal, only : dx,dy,zf,zh,jmax,imax,kmax
+    use modglobal, only : dx,dy,zf,zh,jmax,imax
     use modsurfdata, only : zsoilc,isurf
     use modlsm, only : z_soil
     use modmpi, only : myidx,myidy

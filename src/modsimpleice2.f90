@@ -166,7 +166,7 @@ module modsimpleice2
     implicit none
 
     integer:: i,j,k
-    real:: qrsmall, qrsum,qrtest
+    real:: qrsmall, qrsum
     real :: qll,qli,ddisp,lwc,autl,tc,times,auti,aut ! autoconvert
     real :: qrr,qrs,qrg, gaccrl,gaccsl,gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc  !accrete
     real :: ssl,ssi,ventr,vents,ventg,thfun,evapdepr,evapdeps,evapdepg,devap  !evapdep

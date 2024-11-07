@@ -740,7 +740,7 @@ contains
 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine fftwinit_factors(xyrt)
-    use modglobal, only : i1,j1,kmax,imax,jmax,itot,jtot,dxi,dyi,pi,ih,jh,lperiodic
+    use modglobal, only : i1,j1,itot,jtot,dxi,dyi,pi,lperiodic
     use modmpi, only    : myidx, myidy
 
     implicit none

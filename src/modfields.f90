@@ -134,7 +134,7 @@ contains
 !> Allocate and initialize the prognostic variables
 subroutine initfields
 
-    use modglobal, only : i1,ih,j1,jh,k1,nsv
+    use modglobal, only : i1,ih,j1,jh,k1
     ! Allocation of prognostic variables
     implicit none
 

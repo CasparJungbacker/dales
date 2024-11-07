@@ -57,7 +57,7 @@ type(randomNumberSequence) :: noise
 contains
   subroutine initsynturb
     use netcdf
-    use modglobal, only : dx,dy,imax,jmax,i1,j1,zf,lambdas,lambdas_x,lambdas_y,lambdas_z,kmax,k1,cexpnr,lmoist
+    use modglobal, only : dx,dy,imax,jmax,i1,j1,lambdas,lambdas_x,lambdas_y,lambdas_z,kmax,k1,cexpnr,lmoist
     use modmpi, only : myidx, myidy
     implicit none
     integer :: i,j,ib
@@ -151,15 +151,15 @@ contains
         if (STATUS .ne. nf90_noerr) call handle_err(STATUS)
         STATUS = NF90_GET_VAR (NCID, VARID, wturbin, start=(/myidy*jmax+1,1,1/), &
           & count=(/jmax,k1,ntturb/))
-	if(iturb==isepsim_all) then
-	  allocate(thlturbin(jmax,kmax,ntturb))
+        if(iturb==isepsim_all) then
+          allocate(thlturbin(jmax,kmax,ntturb))
           ! Read thl
           STATUS = NF90_INQ_VARID(NCID,'thlturbwest', VARID)
           if (STATUS .ne. nf90_noerr) call handle_err(STATUS)
           STATUS = NF90_GET_VAR (NCID, VARID, thlturbin, start=(/myidy*jmax+1,1,1/), &
             & count=(/jmax,kmax,ntturb/))
-	  if(lmoist) then
-	    allocate(qtturbin(jmax,kmax,ntturb))
+          if(lmoist) then
+            allocate(qtturbin(jmax,kmax,ntturb))
             ! qt
             STATUS = NF90_INQ_VARID(NCID,'wturbwest', VARID)
             if (STATUS .ne. nf90_noerr) call handle_err(STATUS)
@@ -225,8 +225,8 @@ contains
       elseif(iturb == isepsim_mom .and. lboundary(1)) then
         deallocate(uturbin,vturbin,wturbin)
       elseif(iturb == isepsim_all .and. lboundary(1)) then
-	deallocate(uturbin,vturbin,wturbin,thlturbin)
-	if(lmoist) deallocate(qtturbin)
+        deallocate(uturbin,vturbin,wturbin,thlturbin)
+        if(lmoist) deallocate(qtturbin)
       endif
     endif
   end subroutine exitsynturb
@@ -325,7 +325,6 @@ contains
 
   subroutine sepsim()
     use modglobal, only : rtimee,lmoist
-    use modmpi, only : myid
     implicit none
     integer :: ib
     do ib = 1,5
@@ -342,10 +341,10 @@ contains
         boundary(ib)%uturb = uturbin(:,:,itimestep)
         boundary(ib)%vturb = vturbin(:,:,itimestep)
         boundary(ib)%wturb = wturbin(:,:,itimestep)
-	if(iturb==11) then
-	  boundary(ib)%thlturb = thlturbin(:,:,itimestep)
-	  if(lmoist) boundary(ib)%qtturb = qtturbin(:,:,itimestep)
-	endif
+        if(iturb==11) then
+          boundary(ib)%thlturb = thlturbin(:,:,itimestep)
+          if(lmoist) boundary(ib)%qtturb = qtturbin(:,:,itimestep)
+        endif
       case(2)
         ! Do nothing (needs to be added)
       case(3)
@@ -404,7 +403,6 @@ contains
 
   subroutine calc_pert(ib,x,y,z,nx,ny,nz,uturb,iuturb)
     use modglobal, only : rtimee,dxturb,dyturb
-    use modmpi, only : myidx,myidy
     implicit none
     real(field_r), dimension(:), intent(in) :: x,y,z
     integer, intent(in) :: nx,ny,nz,iuturb,ib
@@ -412,7 +410,7 @@ contains
     integer,target :: i,j,k,ipatch,jpatch,kpatch
     integer :: ii
     integer, pointer :: pi1, pi2,pi1patch,pi2patch
-    real, dimension(3) :: xx,ci
+    real, dimension(3) :: ci
     real, dimension(3,3) :: eigvec
     real :: t,utemp,vtemp,wtemp,d
     t = rtimee
@@ -460,7 +458,6 @@ contains
 
   subroutine calc_pert2(ib,x,y,z,nx,ny,nz,uturb,iuturb,thlturb,qtturb)
     use modglobal, only : rtimee,tboundary,ntboundary
-    use modmpi, only : myidx,myidy
     implicit none
     real(field_r), dimension(:), intent(in) :: x,y,z
     integer, intent(in) :: nx,ny,nz,iuturb,ib
@@ -468,7 +465,7 @@ contains
     integer,target :: i,j,k,ipatch,jpatch,kpatch
     integer :: ii,itp,itm
     integer, pointer :: pi1, pi2,pi1patch,pi2patch
-    real, dimension(3) :: xx,ci
+    real, dimension(3) :: ci
     real, dimension(3,3) :: eigvec
     real :: wthl,wqt,w2,thl2,qt2,utemp,vtemp,wtemp,wturbf,thltemp,qttemp
     real :: t,fp,fm,rho,d,dthl,dqt

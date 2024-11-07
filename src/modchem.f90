@@ -233,8 +233,7 @@ contains
 !-----------------------------------------------------------------------------------------
 SUBROUTINE initchem
   use modglobal,   only : i1,j1,nsv, ifnamopt, fname_options, ifoutput, cexpnr,timeav_glob,btime,tres,lwarmstart,checknamelisterror
-  use modmpi,      only : myid, mpi_logical, mpi_integer,  comm3d, mpierr &
-                        , D_MPI_BCAST
+  use modmpi,      only : myid, comm3d, mpierr, D_MPI_BCAST
   use modsurfdata, only : lCHon ! TODO: duplicate of lchem: remove?
 
   implicit none
@@ -254,7 +253,7 @@ SUBROUTINE initchem
   q_ref    = 5.e-3
   lchmovie = .false.
   dtchmovie= 60
-  idtchmovie = dtchmovie/tres
+  idtchmovie = int(dtchmovie/tres, kind=kind(idtchmovie))
   tnor     = 0
   nchsp    = 0
   lcloudKconst  = .false.
@@ -287,7 +286,7 @@ SUBROUTINE initchem
   lCHon = lchem
 
   if (.not. (lchem)) return
-  itimeav = floor(timeav_glob/tres)
+  itimeav = int(timeav_glob/tres, kind=kind(itimeav))
   tnextwrite = itimeav+btime
   switch = .false.
 
@@ -373,13 +372,13 @@ subroutine inputchem
 !c  the scheme to solve the chemical production and loss terms
 !c
 !c***********************************************************************
- use modglobal, only : i1,j1,k1,kmax,cexpnr, ifoutput, nsv
+ use modglobal, only : i1,j1,k1,kmax,cexpnr, ifoutput
  use modmpi,    only : myid
  use utils,     only : to_lower
 
  implicit none
 
-  integer i,j,k,l,react, isv
+  integer i,j,k,l,react
   integer*2 number
   integer react_nr
   real reactconst,coefficient, fact(7)

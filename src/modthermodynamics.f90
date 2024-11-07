@@ -87,7 +87,7 @@ contains
   subroutine thermodynamics
     use modglobal, only : lmoist,timee,k1,i1,j1,ih,jh,rd,rv,ijtot,cp,rlv,lnoclouds,lfast_thermo
     use modfields, only : thl0, qt0, ql0, presf, exnf, thvh, thv0h, qt0av, ql0av, thvf, rhof
-    use modmpi, only : slabsum, myid
+    use modmpi, only : slabsum
     implicit none
     integer:: i, j, k
 
@@ -314,8 +314,7 @@ contains
   subroutine diagfld
   use modglobal, only : i1,ih,j1,jh,k1,nsv,zh,zf,cu,cv,ijtot,grav,rlv,cp,rd,rv,pref0,timee,lconstexner
   use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
-                        presf,presh,exnf,exnh,rhof,thvf, &
-                        initial_presf,initial_presh
+                        presf,presh,exnf,exnh,rhof,thvf
   use modsurfdata,only : thls,ps
   use modmpi,    only : slabsum
   implicit none
@@ -544,7 +543,7 @@ contains
                       (rv*cp*Tnr**2))
             end do
             nitert =max(nitert,niter)
-            niter = 0.0
+            niter = 0
 
             ql(i,j,k) = dim(qt(i,j,k)-qsatur,0.)
 
@@ -619,7 +618,6 @@ contains
 
   ! return esat for ice-liquid mix using table
   pure function esat_tab(T) result(es)
-    use modglobal, only : rd,rv
     use modglobal, only : esatmtab
 
     implicit none
@@ -831,7 +829,7 @@ contains
     implicit none
     integer :: i, j, k
     real(field_r) :: Tl, qsat_, qt, ql, b, T
-    real(field_r) :: Tl_min, Tl_max, PrDiff_min
+    real(field_r) :: Tl_min, PrDiff_min
     real(field_r) :: esi1, tlo, thi
     integer       :: tlonr
 
@@ -992,7 +990,7 @@ contains
     implicit none
     integer :: i, j, k
     real(field_r) :: Tl, qsat, qt, ql, b
-    real(field_r) :: Tl_min, Tl_max, PrDiff_min
+    real(field_r) :: Tl_min, PrDiff_min
 
     call timer_tic('modthermodynamics/icethermoh_fast', 1)
 

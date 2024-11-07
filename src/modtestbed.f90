@@ -56,8 +56,7 @@ SAVE
 
 contains
   subroutine inittestbed
-    use modmpi,   only :myid,mpierr,comm3d,mpi_logical,mpi_integer &
-                       , D_MPI_BCAST
+    use modmpi,   only :myid,mpierr,comm3d,D_MPI_BCAST
     use modglobal,only :ifnamopt,fname_options,k1,&
                         grav,rd,cp,pref0,rlv,zf,checknamelisterror
     use modsurfdata,only : ksoilmax

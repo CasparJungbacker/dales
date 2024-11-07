@@ -63,13 +63,13 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal, only : i1,j1,kmax,dzh,dzf,grav, lpressgrad
+  use modglobal, only : kmax,dzh,dzf,grav, lpressgrad
   use modfields, only : sv0,up,vp,wp,thv0h,dpdxl,dpdyl,thvh
   use moduser,   only : force_user
   use modmicrodata, only : imicro, imicro_bulk, imicro_bin, imicro_sice, imicro_sice2, iqr
   implicit none
 
-  integer i, j, k
+  integer k
 
   call timer_tic('modforces/forces', 0)
 

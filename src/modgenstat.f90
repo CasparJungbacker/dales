@@ -192,7 +192,7 @@ module modgenstat
 contains
 
   subroutine initgenstat
-    use modmpi, only : myid,mpierr, comm3d, mpi_logical, D_MPI_BCAST
+    use modmpi, only : myid,mpierr, comm3d, D_MPI_BCAST
     use modglobal, only : i1, ih, j1, jh, kmax, k1, nsv, ifnamopt, fname_options, ifoutput, &
                           cexpnr, dtav_glob, timeav_glob, dt_lim, btime, tres, &
                           lwarmstart, checknamelisterror
@@ -205,7 +205,6 @@ contains
 
     integer n, ierr
     character(40) :: name
-    character(3) :: csvname
 
     namelist/NAMGENSTAT/ &
     dtav,timeav,lstat
@@ -538,23 +537,23 @@ contains
 
   subroutine do_genstat
 
-    use modfields, only : u0,v0,w0,thl0,qt0,qt0h,e120, &
+    use modfields, only : u0,v0,w0,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0,exnf,exnh,tmp0,presf, &
                           um, vm, wm, svm, qtm, thlm, e12m  
     use modsurfdata,only: thls,qts,ustar,thlflux,qtflux,svflux
     use modsubgriddata,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp,dzhi, &
                           ijtot,cu,cv,iadv_sv,iadv_kappa,eps1,dxi,dyi,tup,tdn,lopenbc
-    use modmpi,    only : comm3d,mpi_sum,mpierr,slabsum,D_MPI_ALLREDUCE,myid
+    use modmpi,    only : comm3d,mpi_sum,mpierr,slabsum,D_MPI_ALLREDUCE
     use advec_kappa, only : halflev_kappa
-    use modmicrodata, only: tuprsg, tdnrsg, imicro, imicro_sice, imicro_sice2, iqr
+    use modmicrodata, only: tuprsg, tdnrsg, iqr
     use modthermodynamics, only: qsat_tab
     implicit none
 
     real :: cthl,cqt,den
 
-    integer :: i, j, k, n, km
-    real :: tsurf, qsat_, c1, c2
+    integer :: i, j, k, n
+    real :: tsurf, c1, c2
     real :: qs0h, t0h, ekhalf, euhalf, evhalf
     real :: wthls, wthlr, wqts, wqtr, wqls, wqlr, wthvs, wthvr
     real :: uws,vws,uwr,vwr

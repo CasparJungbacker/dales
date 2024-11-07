@@ -106,7 +106,7 @@ contains
     call D_MPI_BCAST(ncklimit    ,1,0,comm3d,mpierr)
 
     if(.not.(lheterostats)) return
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext = idtav+btime
     dt_lim = min(dt_lim,tnext)
 

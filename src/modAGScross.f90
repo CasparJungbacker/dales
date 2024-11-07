@@ -51,7 +51,7 @@ save
 contains
 !> Initializing AGScross. Read out the namelist, initializing the variables
   subroutine initAGScross
-    use modmpi,   only :myid,mpierr,comm3d,mpi_logical,cmyid, D_MPI_BCAST
+    use modmpi,   only :myid,mpierr,comm3d,cmyid, D_MPI_BCAST
     use modglobal,only :imax,jmax,ifnamopt,fname_options,dtmax, dtav_glob,ladaptive,dt_lim,cexpnr,tres,btime,checknamelisterror,&
                         output_prefix
     use modstat_nc,only : open_nc, define_nc,ncinfo,writestat_dims_nc,nctiminfo
@@ -78,7 +78,7 @@ contains
     call D_MPI_BCAST(dtav     ,1 ,0,comm3d,mpierr)
     call D_MPI_BCAST(lAGScross,1 ,0,comm3d,mpierr)
 
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext   = idtav+btime
     if(.not.(lAGScross)) return
     dt_lim = min(dt_lim,tnext)
