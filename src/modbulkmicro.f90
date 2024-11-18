@@ -59,8 +59,9 @@ module modbulkmicro
 
 !> Initializes and allocates the arrays
   subroutine initbulkmicro
+    use modaerosol, only: laerosol
     use modglobal, only : i1,j1,k1,ih,jh
-    use modmicrodata, only : lacz_gamma, Nr, Nrp, qr, qrp, thlpmcr, &
+    use modmicrodata, only : lacz_gamma, Nc, Nc_0, Nr, Nrp, qr, qrp, thlpmcr, &
                              qtpmcr, Dvr, xr, mur, &
                              lbdr, iqr, inr, &
                              precep, qrmask, qcmask
@@ -76,6 +77,7 @@ module modbulkmicro
 
                                         ! Fields accessed by:
     allocate(Nr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
+            ,Nc       (2:i1,2:j1,k1)  &
             ,qr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
             ,Nrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
             ,qrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
@@ -90,11 +92,15 @@ module modbulkmicro
             ,qrmask   (2:i1,2:j1,k1)  & !
             ,qcmask   (2:i1,2:j1,k1)  )
 
+    if (.not. laerosol) then
+      Nc(:,:,:) = Nc_0
+    end if
+
     gamma25=lacz_gamma(2.5)
     gamma3=2.
     gamma35=lacz_gamma(3.5)
 
-    !$acc enter data copyin(Nr, qr, Nrp, qrp, Dvr, precep, &
+    !$acc enter data copyin(Nc, Nr, qr, Nrp, qrp, Dvr, precep, &
     !$acc&                  thlpmcr, qtpmcr, xr, mur, lbdr, qrmask, qcmask)
 
   end subroutine initbulkmicro
@@ -340,7 +346,7 @@ module modbulkmicro
   subroutine sedimentation_cloud
     use modglobal, only : i1,j1,rlv,cp,dzf,pi
     use modfields, only : rhof,exnf,ql0
-    use modmicrodata, only : csed,c_St,rhow,sig_g,Nc_0, &
+    use modmicrodata, only : csed,c_St,rhow,sig_g,Nc, &
                              qtpmcr,thlpmcr,qcmask
     implicit none
     integer :: i, j, k
@@ -357,7 +363,7 @@ module modbulkmicro
       do j = 2, j1
         do i = 2, i1
           if (qcmask(i,j,k)) then
-            sedc = csed*Nc_0**(-2./3.)*(ql0(i,j,k)*rhof(k))**(5./3.)
+            sedc = csed*Nc(i,j,k)**(-2./3.)*(ql0(i,j,k)*rhof(k))**(5./3.)
 
             !$acc atomic update
             qtpmcr(i,j,k)  = qtpmcr (i,j,k) - sedc /(dzf(k)*rhof(k))

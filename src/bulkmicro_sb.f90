@@ -65,7 +65,7 @@ module bulkmicro_sb
 contains
 
   subroutine do_bulkmicro_sb
-    use modmicrodata,     only: qr, Nr, iqr, iNr, thlpmcr, qtpmcr, qcbase, &
+    use modmicrodata,     only: qr, Nc, Nr, iqr, iNr, thlpmcr, qtpmcr, qcbase, &
                                 qcroof, qrbase, qrroof, qcmask, qrmask, qrp, Nrp, &
                                 Dvr, xr, lbdr, mur, delt, l_lognormal, l_mur_cst, &
                                 mur_cst, precep
@@ -75,7 +75,7 @@ contains
 
     call calculate_rain_parameters(Nr, qr, rhof, l_mur_cst, mur_cst, qrbase, qrroof, qrmask, xr, Dvr, mur, lbdr)
     call bulkmicrotend
-    call autoconversion(ql0, qr, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, qtpmcr, qrp, Nrp)
+    call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, qtpmcr, qrp, Nrp)
     call bulkmicrotend
     call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp)
     call bulkmicrotend
@@ -186,8 +186,11 @@ contains
   !! \param Nrp Tendency of rain drop number concentration.
   subroutine autoconversion(ql0, qr, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
                             qtpmcr, qrp, Nrp)
+  subroutine autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
+                            qtpmcr, qrp, Nrp, laerosol, m_inc, m_inr)
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
+    real(field_r), intent(in)    :: Nc(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
 
@@ -221,7 +224,7 @@ contains
            if (qcmask(i,j,k)) then
               nuc = 1.58_field_r * (rhof(k) * ql0(i,j,k) * 1000.0_field_r) &
                     + 0.72_field_r - 1.0_field_r !G09a
-              xc = rhof(k) * ql0(i,j,k) / Nc_0 ! No eps0 necessary
+              xc = rhof(k) * ql0(i,j,k) / Nc(i,j,k) ! No eps0 necessary
               au = k_au * (nuc + 2) * (nuc + 4) / (nuc + 1)**2 &
                         * (ql0(i,j,k) * xc)**2 * 1.225_field_r ! *rho**2/rho/rho (= 1)
 
