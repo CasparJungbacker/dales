@@ -24,8 +24,9 @@
 !! \see https://gmd.copernicus.org/articles/12/5177/2019/
 module modaerosol
   use modglobal,      only: ifnamopt, fname_options, checknamelisterror, &
-                            cexpnr, i1, j1, k1
-  use modmpi,         only: myid
+                            cexpnr, i1, j1, k1, ih, jh, pi, nsv
+  use modmath,        only: erfcinv, inv_sqrt_two
+  use modmpi,         only: myid, D_MPI_BCAST, commwrld, mpierr
   use modprecision,   only: field_r
   use modtracer_type, only: tracer_t, tracer_ptr_t
   use modtracers,     only: add_tracer, allocate_tracers, tracer_prop, &
@@ -37,9 +38,11 @@ module modaerosol
   implicit none
 
   private
+   
+  save
 
   ! Parameters
-  integer,       parameter :: maxmodes = 9
+  integer, public,      parameter :: maxmodes = 9
   character(3),  parameter :: modenames(9) = (/ 'nus', 'ais', 'acs', 'cos', &
                                                 'aii', 'aci', 'coi', 'inr', &
                                                 'inc' /)
@@ -55,7 +58,7 @@ module modaerosol
   real(field_r), parameter :: sigma_g(maxmodes) = (/ 1.59, 1.59, 1.59, 2.00, &
                                                      1.59, 1.59, 2.00, -999., &
                                                      -999. /)
-  integer,       parameter :: iNUS = 1, iAIS = 2, iACS = 3, iCOS = 4, &
+  integer,       public, parameter :: iNUS = 1, iAIS = 2, iACS = 3, iCOS = 4, &
                               iAII = 5, iACI = 6, iCOI = 7, iINR = 8, &
                               iINC = 9
 
@@ -68,8 +71,6 @@ module modaerosol
     real(field_r) :: kappa      !< Hygroscopicity.
     integer       :: nmodes = 0 !< Number of modes this aerosol participates in.
 
-    type(tracer_ptr_t), allocatable :: tracers(:) !< List of tracers for mass
-                                                  !! concentrations.
     character(3),       allocatable :: modes(:)   !< List of modes this aerosol
                                                   !! participates in.
    contains
@@ -77,12 +78,12 @@ module modaerosol
   end type aerosol_t
 
   !> Pointer to an aerosol
-  type aerosol_ptr_t
-    type(aerosol_t), pointer :: ptr => null()
-  end type aerosol_ptr_t
+  !type aerosol_ptr_t
+  !  type(aerosol_t), pointer :: ptr => null()
+  !end type aerosol_ptr_t
 
   !> M7 mode type
-  type mode_t
+  type, public :: mode_t
     ! General properties
     character(3)       :: name          !< Short name of the mode.
     character(64)      :: long_name     !< Full name of the mode.
@@ -91,7 +92,9 @@ module modaerosol
     logical            :: lactivation   !< Aerosols can be activated.
     type(tracer_ptr_t) :: N             !< Tracer for number concentration.
 
-    type(aerosol_ptr_t), allocatable :: aerosols(:) !< List of aerosols.
+    type(tracer_ptr_t), allocatable :: species(:) !< List of tracers for species
+    real(field_r),      allocatable :: rho(:)     !< Densities
+    real(field_r),      allocatable :: kappa(:)   !< Hygroscopicities
 
     ! Fields
     real(field_r), allocatable :: conc(:,:,:,:) !< Mass/number concentrations.
@@ -100,17 +103,21 @@ module modaerosol
     procedure, pass(self) :: construct => mode_construct     !< Constructor.
     procedure, pass(self) :: add_aerosol => mode_add_aerosol !< Add an aerosol to the mode.
     procedure, pass(self) :: allocate => mode_allocate       !< Allocate workspace.
+    procedure, pass(self) :: copy_in => mode_copy_in
+    procedure, pass(self) :: copy_out => mode_copy_out
   end type mode_t
 
   ! Variables
-  logical      :: laerosol = .false. !< Switch for enabling/disabling interactive aerosols.
-  type(mode_t) :: modes(maxmodes)    !< List of modes.
+  logical, public, protected :: laerosol = .false. !< Switch for enabling/disabling interactive aerosols.
+  type(mode_t), public :: modes(maxmodes)    !< List of modes.
 
-  type(aerosol_t), allocatable :: aerosols(:)
+  type(aerosol_t), public, allocatable :: aerosols(:)
+  integer, public, protected :: naero_trac = 0
 
   ! Procedures
   public :: initaerosol
   public :: exitaerosol
+  public :: activation
 
 contains
   !> Read input files and setup aerosols and M7 modes.
@@ -133,6 +140,8 @@ contains
       call checknamelisterror(ierr, ifnamopt, 'NAMAEROSOL')
       close(ifnamopt)
     end if
+
+    call D_MPI_BCAST(laerosol, 1, 0, commwrld, mpierr)
 
     if (.not. laerosol) return
 
@@ -205,9 +214,13 @@ contains
       write(6,*) "Mode: ", modes(imod) % name, " ("//trim(modes(imod) % long_name)//")"
       write(6,'(13A)',advance='no') "    Species: "
       do iaer = 1, modes(imod) % nspecies
-        write(6,'(4A)',advance='no') modes(imod) % aerosols(iaer) % ptr % name, " "
+        write(6,'(4A)',advance='no') modes(imod) % species(iaer) % ptr % tracname, " "
       end do
       write(6,*)
+    end do
+
+    do imod = 1, maxmodes
+      naero_trac = naero_trac + modes(imod) % nspecies + 1
     end do
 
     deallocate(varids)
@@ -216,6 +229,7 @@ contains
 
   !> Deallocates memory
   subroutine exitaerosol
+     if (.not. laerosol) return
     deallocate(aerosols)
   end subroutine exitaerosol
 
@@ -240,6 +254,10 @@ contains
     else
       self % lactivation = .true.
     end if
+
+    call add_tracer(trim(name)//"_n", laero=.true.)
+
+    self % N % ptr => get_tracer(trim(name) // "_n")
   
   end subroutine mode_construct
 
@@ -252,26 +270,34 @@ contains
     type(aerosol_t), target, intent(in)    :: aerosol
 
     integer :: itrac
-    type(aerosol_ptr_t), allocatable :: tmp(:)
+    type(tracer_ptr_t), allocatable :: tmp_spec(:)
+    real(field_r),      allocatable :: tmp_rho(:)
+    real(field_r),      allocatable :: tmp_kappa(:)
 
     self % nspecies = self % nspecies + 1
 
-    if (.not. allocated(self % aerosols)) then
-      allocate(self % aerosols(1))
+    if (.not. allocated(self % species)) then
+      allocate(self % species(1), self % rho(1), self % kappa(1))
     else ! Expand the list of aerosols
-      allocate(tmp(self % nspecies))
-      tmp(1:self % nspecies - 1) = self % aerosols(1:self % nspecies - 1)
-      call move_alloc(tmp, self % aerosols)
+      allocate(tmp_spec(self % nspecies), tmp_rho(self % nspecies), &
+               tmp_kappa(self % nspecies))
+
+      tmp_spec(1:self % nspecies - 1) = self % species(1:self % nspecies - 1)
+      tmp_rho(1:self % nspecies - 1) = self % rho(1:self % nspecies - 1)
+      tmp_kappa(1:self % nspecies - 1) = self % kappa(1:self % nspecies - 1)
+
+      call move_alloc(tmp_spec, self % species)
+      call move_alloc(tmp_rho, self % rho)
+      call move_alloc(tmp_kappa, self % kappa)
     end if
 
-    self % aerosols(self % nspecies) % ptr => aerosol
+    self % species(self % nspecies) % ptr => &
+          get_tracer(trim(aerosol % name) // "_" // trim(self % name))
 
-    ! Check if we have a number concentration setup
-    if (.not. associated(self % N % ptr)) then
-      call add_tracer("N_"//self % name, long_name="number concentration, "// &
-                      trim(self % long_name)//" mode", laero=.true., isv=itrac)
-      self % N % ptr => get_tracer(itrac)
-    end if                      
+    ! For efficiency
+    self % rho(self % nspecies) = aerosol % rho
+    self % kappa(self % nspecies) = aerosol % kappa
+
   end subroutine mode_add_aerosol
 
   !> Allocate memory for mass/number concentrations and tendencies.
@@ -280,9 +306,85 @@ contains
 
     if (self % nspecies < 1) return
 
-    allocate(self % conc(2:i1,2:j1,k1,self % nspecies), &
-             self % tend(2:i1,2:j1,k1,self % nspecies))
+    allocate(self % conc(2:i1,2:j1,k1,self % nspecies + 1), &
+             self % tend(2:i1,2:j1,k1,self % nspecies + 1))
+
   end subroutine mode_allocate
+
+  !> Copies aerosol fields to work space.
+  !!
+  !! \param sv Tracer fields.
+  subroutine mode_copy_in(self, sv)
+    class(mode_t), intent(inout) :: self    
+    real(field_r), intent(in)    :: sv(2-ih:i1+ih,2-jh:j1+jh,1:k1,1:nsv)
+
+    integer :: iaer, sv_idx
+    integer :: i, j, k
+
+    if (self % nspecies < 1) return
+
+    ! First, the number concentration
+    sv_idx = self % N % ptr % trac_idx
+    do k = 1, k1
+      do j = 2, j1
+        do i = 2, i1
+          self % conc(i,j,k,1) = sv(i,j,k,sv_idx)
+        end do
+      end do
+    end do
+
+    ! And the mass concentrations
+    do iaer = 1, self % nspecies
+      sv_idx = self % species(iaer) % ptr % trac_idx
+      do k = 1, k1
+        do j = 2, j1
+          do i = 2, i1
+            self % conc(i,j,k,iaer+1) = sv(i,j,k,sv_idx)
+          end do
+        end do
+      end do
+    end do
+
+  end subroutine mode_copy_in
+
+  !> Copies computed tendencies to svp fields.
+  !!
+  !! \param svp Tracer tendency fields.
+  subroutine mode_copy_out(self, svp, svm, delt)
+    class(mode_t), intent(in)    :: self
+    real(field_r), intent(inout) :: svp(2-ih:i1+ih,2-jh:j1+jh,1:k1,1:nsv)
+    real(field_r), intent(in)    :: svm(2-ih:i1+ih,2-jh:j1+jh,1:k1,1:nsv)
+    real(field_r), intent(in)    :: delt
+
+    integer :: iaer, sv_idx
+    integer :: i, j, k
+    
+    if (self % nspecies < 1) return
+
+    sv_idx = self % N % ptr % trac_idx
+    print *, self % name, "  ", sv_idx
+    do k = 1, k1
+      do j = 2, j1
+        do i = 2, i1
+          svp(i,j,k,sv_idx) = svp(i,j,k,sv_idx) + self % tend(i,j,k,1)
+          svp(i,j,k,sv_idx) = max(svp(i,j,k,sv_idx), -svm(i,j,k,sv_idx)/delt)
+        end do
+      end do
+    end do
+
+    do iaer = 1, self % nspecies
+      sv_idx = self % species(iaer) % ptr % trac_idx
+      do k = 1, k1
+        do j = 2, j1
+          do i = 2, i1
+            svp(i,j,k,sv_idx) = svp(i,j,k,sv_idx) + self % tend(i,j,k,iaer+1)
+            svp(i,j,k,sv_idx) = max(svp(i,j,k,sv_idx), -svm(i,j,k,sv_idx)/delt)
+          end do
+        end do
+      end do
+    end do
+
+  end subroutine mode_copy_out
 
   !> \brief Construct an aerosol
   !! 
@@ -312,13 +414,128 @@ contains
     call goSplitString_s(modes, nmodes, modes_sep, ierr, ',')
 
     self % nmodes = nmodes
-    allocate(self % modes(nmodes), self % tracers(nmodes))
+    allocate(self % modes(nmodes))
 
     do imod = 1, nmodes
       self % modes(imod) = modes_sep(imod)
-      ! Look for the tracers
-      self % tracers(imod) % ptr => get_tracer(trim(self % name)//"_"// &
-                                               trim(self % modes(imod)))
     end do
   end subroutine aerosol_construct
+
+  subroutine activation
+    use modfields,    only: w0
+    use modmicrodata, only: delt
+    call activation_pn15(modes(iAIS), modes(iACS), modes(iCOS), modes(iINC), w0, delt)
+  end subroutine activation
+
+  subroutine activation_pn15(m_ais, m_acs, m_cos, m_inc, w, delt)
+    type(mode_t),  intent(inout) :: m_ais
+    type(mode_t),  intent(inout) :: m_acs
+    type(mode_t),  intent(inout) :: m_cos
+    type(mode_t),  intent(inout) :: m_inc
+    real(field_r), intent(in)    :: w(2-ih:i1+ih,2-jh:j1+jh,1:k1)
+    real(field_r), intent(in)    :: delt
+
+    integer :: i, j, k, s
+    integer :: imod, iaer
+
+    real(field_r), parameter :: r_crit = 35E-9
+
+    real(field_r) :: &
+      mode_total_mass, &
+      mode_mean_rho, &
+      mode_median_diameter, &
+      f_activated, &
+      N_activated, &
+      dNcdt
+    real(field_r) :: fn, fm, tend_n, tend_m
+
+    associate(qa_ais => m_ais % conc(:,:,:,2:), N_ais => m_ais % conc(:,:,:,1), &
+              qap_ais => m_ais % tend(:,:,:,2:), Np_ais => m_ais % tend(:,:,:,1), & 
+              qa_acs => m_acs % conc(:,:,:,2:),  N_acs => m_acs % conc(:,:,:,1), &
+              qap_acs => m_acs % tend(:,:,:,2:), Np_acs => m_acs % tend(:,:,:,1), &
+              qa_cos => m_cos % conc(:,:,:,2:), N_cos => m_cos % conc(:,:,:,1), &
+              qap_cos => m_cos % tend(:,:,:,2:), Np_cos => m_cos % tend(:,:,:,1), &
+              qa_inc => m_inc % conc(:,:,:,2:), Nc => m_inc % conc(:,:,:,1), &
+              qap_inc => m_inc % tend(:,:,:,2:), Ncp => m_inc % conc(:,:,:,1))
+
+    do k = 1, k1
+      do j = 2, j1
+        do i = 2, i1
+          ! Determine the fraction of AIS aerosol with r > 35 nm
+          mode_total_mass = sum(qa_ais(i,j,k,:))
+          mode_mean_rho = sum(qa_ais(i,j,k,:) / m_ais % rho(:))
+
+          mode_median_diameter = ((6 * mode_total_mass) / (pi * N_ais(i,j,k) * mode_mean_rho * 1E9))**(1.0_field_r/3) &
+                                * exp((-3 * log(m_ais % sigma_g)**2) / 2)
+          f_activated = 1 - 0.5_field_r * erfc(-log(2 * r_crit / mode_median_diameter) * inv_sqrt_two) * log(m_ais % sigma_g)
+          N_activated = 1E-6 * (f_activated * N_ais(i,j,k) + N_acs(i,j,k) + N_cos(i,j,k))
+          dNcdt = 1E6 / delt * (0.1 * (w(i,j,k) * 100 * N_activated / (w(i,j,k) * 100 + 0.023_field_r * N_activated)))**1.27_field_r &
+                  - 1E-6 * Nc(i,j,k)
+          dNcdt = max(dNcdt, 0.0_field_r)
+
+          ! COS mode
+          fn = dNcdt * delt / N_cos(i,j,k)
+          fm = 1 - 0.5_field_r * erfc(erfcinv(2 * fn) - 3 * log(m_cos % sigma_g) * inv_sqrt_two) ! Overflow for fn -> 1?
+          fn = merge(1.0_field_r, fn, fn > 1.0_field_r)
+          fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
+
+          tend_n = fn * N_cos(i,j,k) / delt
+          tend_n = max(0.0_field_r, tend_n) ! Make sure that we don't have negative activation
+          Np_cos(i,j,k) = Np_cos(i,j,k) - tend_n
+          Ncp(i,j,k) = Ncp(i,j,k) + tend_n
+          
+          do s = 1, m_cos % nspecies
+            tend_m = fm * qa_cos(i,j,k,s) / delt
+            tend_m = max(0.0_field_r, tend_m)
+            qap_cos(i,j,k,s) = qap_cos(i,j,k,s) - tend_m
+            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+          end do
+
+          dNcdt = merge(dNcdt - N_cos(i,j,k) / delt, 0.0_field_r, dNcdt * delt > N_cos(i,j,k))
+
+          ! ACS mode
+          fn = dNcdt * delt / N_acs(i,j,k)
+          fm = 1 - 0.5_field_r * erfc(erfcinv(2 * fn) - 3 * log(m_acs % sigma_g) * inv_sqrt_two)
+          fn = merge(1.0_field_r, fn, fn > 1.0_field_r)
+          fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
+
+          tend_n = fn * N_acs(i,j,k) / delt
+          tend_n = max(0.0_field_r, tend_n)
+          Np_acs(i,j,k) = Np_acs(i,j,k) - tend_n
+          Ncp(i,j,k) = Ncp(i,j,k) + tend_n
+          
+          do s = 1, m_acs % nspecies
+            tend_m = fm * qa_acs(i,j,k,s) / delt
+            tend_m = max(0.0_field_r, tend_m)
+            qap_acs(i,j,k,s) = qap_acs(i,j,k,s) - tend_m
+            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+          end do
+
+          dNcdt = merge(dNcdt - N_acs(i,j,k) / delt, 0.0_field_r, dNcdt * delt > N_acs(i,j,k))
+
+          ! AIS mode
+          fn = dNcdt * delt / N_ais(i,j,k)
+          fm = 1 - 0.5_field_r * erfc(erfcinv(2 * fn) - 3 * log(m_ais % sigma_g) * inv_sqrt_two)
+          fn = merge(1.0_field_r, fn, fn > 1.0_field_r)
+          fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
+
+          tend_n = fn * N_ais(i,j,k) / delt
+          tend_n = max(0.0_field_r, tend_n)
+          Np_ais(i,j,k) = Np_ais(i,j,k) - tend_n
+          Ncp(i,j,k) = Ncp(i,j,k) + tend_n
+          
+          do s = 1, m_ais % nspecies
+            tend_m = fm * qa_ais(i,j,k,s) / delt
+            tend_m = max(0.0_field_r, tend_m)
+            qap_ais(i,j,k,s) = qap_ais(i,j,k,s) - tend_m
+            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+          end do
+        end do
+      end do
+    end do
+
+    end associate
+            
+  end subroutine activation_pn15
+
 end module modaerosol

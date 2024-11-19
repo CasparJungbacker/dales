@@ -126,6 +126,7 @@ module modbulkmicro
 
 !> Calculates the microphysical source term.
   subroutine bulkmicro
+    use modaerosol, only: laerosol, activation, modes, maxmodes 
     use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -137,7 +138,7 @@ module modbulkmicro
     use bulkmicro_sb, only: do_bulkmicro_sb
     use bulkmicro_kk, only: do_bulkmicro_kk
     implicit none
-    integer :: i, j, k
+    integer :: i, j, k, imod
     real :: qrtest,nr_cor,qr_cor
     real :: qrsum_neg, qrsum, Nrsum_neg, Nrsum
 
@@ -283,8 +284,17 @@ module modbulkmicro
     endif
 #endif
 
+    if (laerosol) then
+      do imod = 1, maxmodes
+        call modes(imod) % copy_in(sv0)
+      end do
+    end if
+
     ! if there is nothing to do, we can return at this point
     ! if (min(qrbase,qcbase).gt.max(qrroof,qcroof)) return
+    if (laerosol) then
+      call activation 
+    end if
 
     if (l_sedc) then
       call sedimentation_cloud
@@ -333,6 +343,12 @@ module modbulkmicro
         enddo
       enddo
     enddo
+
+    if (laerosol) then
+      do imod = 1, maxmodes
+        call modes(imod) % copy_out(svp, svm, delt)
+      end do
+    end if
   end subroutine bulkmicro
 
   !> Sedimentation of cloud water ((Bretherton et al,GRL 2007))
