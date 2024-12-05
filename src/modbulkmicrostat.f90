@@ -38,7 +38,7 @@ private
 PUBLIC  :: initbulkmicrostat, bulkmicrostat, exitbulkmicrostat, bulkmicrotend
 save
 !NetCDF variables
-  integer,parameter :: nvar = 23
+  integer,parameter :: nvar = 24
   character(80),dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
   real          :: dtav, timeav
@@ -69,6 +69,8 @@ save
                raincountmn  , &
                Nrrainav  , &
                Nrrainmn  , &
+               Ncav, &
+               Ncmn, &
                qrav    , &
                qrmn    , &
                Dvrav  , &
@@ -152,6 +154,8 @@ subroutine initbulkmicrostat
              raincountmn  (k1)    , &
              Nrrainav  (k1)    , &
              Nrrainmn  (k1)    , &
+             Ncav  (k1)    , &
+             Ncmn  (k1)    , &
              qrav    (k1)    , &
              qrmn    (k1)    , &
              Dvrav    (k1)    , &
@@ -165,6 +169,7 @@ subroutine initbulkmicrostat
     cloudcountmn  = 0.0
     raincountmn  = 0.0
     Nrrainmn  = 0.0
+    Ncmn = 0.0
     qrmn    = 0.0
     Dvrmn    = 0.0
 
@@ -223,6 +228,7 @@ subroutine initbulkmicrostat
         call ncinfo(ncname(21,:),'qtpsed','Sedimentation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(22,:),'qtpevap','Evaporation total water content tendency','kg/kg/s','tt')
         call ncinfo(ncname(23,:),'qtptot','Total total water content tendency','kg/kg/s','tt')
+        call ncinfo(ncname(24,:),'nctot','CCN','kg/kg','tt')
         call define_nc( ncid_prof, NVar, ncname)
       end if
 
@@ -265,8 +271,9 @@ subroutine initbulkmicrostat
 !------------------------------------------------------------------------------!
 !> Performs the calculations for rainrate etc.
   subroutine dobulkmicrostat
+    use modaerosol,     only: laerosol, modes, iINC
     use modglobal,    only  : i1, j1, k1, ijtot
-    use modmicrodata,  only  : qr,precep,Dvr,Nr,epscloud,epsqr,epsprec,imicro,imicro_bulk
+    use modmicrodata,  only  : qr,precep,Dvr,Nr,epscloud,epsqr,epsprec,imicro,imicro_bulk, Nc
     use modfields,  only  : ql0
     use modmpiinterface
     use modgpumpiinterface
@@ -277,9 +284,9 @@ subroutine initbulkmicrostat
 #endif
     implicit none
 
-    integer :: i, j, k
+    integer :: i, j, k, nc_idx
     real :: c_count, r_count, p_count, p_sum_cl
-    real :: Nr_sum, p_sum, qr_sum, Dvr_sum_cl
+    real :: Nr_sum, p_sum, qr_sum, Dvr_sum_cl, Nc_sum
 
     !$acc parallel loop gang default(present) private(c_count, r_count, p_count, p_sum_cl,&
     !$acc&                                            Nr_sum, p_sum, qr_sum, Dvr_sum_cl)
@@ -292,6 +299,7 @@ subroutine initbulkmicrostat
       p_sum = 0.0
       qr_sum = 0.0
       Dvr_sum_cl = 0.0
+      Nc_sum = 0.0
       !$acc loop collapse(2) reduction(+:c_count, r_count, p_count, p_sum_cl,&
       !$acc&                             Nr_sum, p_sum, qr_sum, Dvr_sum_cl)
       do j = 2, j1
@@ -307,6 +315,11 @@ subroutine initbulkmicrostat
             p_sum_cl = p_sum_cl + precep(i,j,k)
           endif
           Nr_sum = Nr_sum + Nr(i,j,k)
+          if (laerosol) then
+            Nc_sum = Nc_sum + modes(iINC) % conc(i,j,k,1)
+          else
+            Nc_sum = Nc_sum + Nc(i,j,k)
+          end if
           p_sum = p_sum + precep(i,j,k)
           qr_sum = qr_sum + qr(i,j,k)
           if (imicro==imicro_bulk .and. qr(i,j,k) > epsqr) then
@@ -319,6 +332,7 @@ subroutine initbulkmicrostat
       preccountav (k) = p_count
       prec_prcav  (k) = p_sum_cl
       Nrrainav    (k) = Nr_sum
+      Ncav        (k) = Nc_sum
       precav      (k) = p_sum
       qrav        (k) = qr_sum
       if (imicro==imicro_bulk) then
@@ -334,6 +348,7 @@ subroutine initbulkmicrostat
     call MPI_ALLREDUCE(MPI_IN_PLACE, Nrrainav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE, precav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE, qrav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE, Ncav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
 
     !$acc kernels default(present)
     cloudcountmn(:) = cloudcountmn(:) +  cloudcountav(:) / ijtot
@@ -344,6 +359,7 @@ subroutine initbulkmicrostat
     Nrrainmn(:)     = Nrrainmn(:)     +  Nrrainav(:)     / ijtot
     precmn(:)       = precmn(:)       +  precav(:)       / ijtot
     qrmn(:)         = qrmn(:)         +  qrav(:)         / ijtot
+    Ncav(:) = Ncmn(:) + Ncav(:) / ijtot
     !$acc end kernels
 
   end subroutine dobulkmicrostat
@@ -437,6 +453,7 @@ subroutine initbulkmicrostat
     Nrrainmn(:)     = Nrrainmn(:)     / nsamples
     precmn(:)       = precmn(:)       / nsamples
     qrmn(:)         = qrmn(:)         / nsamples
+    Ncmn(:) = Ncmn(:) / nsamples
 
     where (raincountmn > 0.)
       Dvrmn = Dvrmn / raincountmn
@@ -597,6 +614,7 @@ subroutine initbulkmicrostat
         do k=1,k1
         vars(k,23) =sum(qtpmn  (k,2:nrfields))
         enddo
+        vars(:,24) = Ncmn(:)
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
 
@@ -614,6 +632,7 @@ subroutine initbulkmicrostat
     Npmn(:,:)         = 0.0
     qlpmn(:,:)        = 0.0
     qtpmn(:,:)        = 0.0
+    Ncmn(:) = 0.0
     !$acc end kernels
 
   end subroutine writebulkmicrostat

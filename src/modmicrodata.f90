@@ -50,7 +50,7 @@
 
   logical :: l_lognormal = .false.    !<  log param of rain terminal velocities for rain sedim
 
-  integer :: inr, iqr
+  integer :: inr, iqr, inc
 
   real(field_r), parameter ::  D0_kk = 50e-6     & !<  diameter sep. cloud and prec. in KK00 scheme
                      ,qcmin = 1.0e-7     & !<  Cloud specific mixing ratio treshold for calculations
@@ -123,7 +123,6 @@
          ,c_tvsb = 600.      !<  coeff in terminal velocity param
 
   real(field_r),allocatable, dimension(:,:,:) :: qc,  & !<  cloud droplets specific mixing ratio [kg_w/kg_a]
-                                                 Nc,  & !<  cloud droplets number conc.  [#/m^3]
                                                  nuc, & !<  width parameter of cloud DSD
                                                  rhoz   !< slab averaged density in 3 dimensions
 
@@ -158,9 +157,11 @@
   real, parameter ::  D_eq = 1.1E-3,  & !<  Parameters for break-up
             k_br = 1000       !<
 
-   real(field_r),allocatable,dimension(:,:,:) :: Nr,qr,thlpmcr,qtpmcr
+   real(field_r),allocatable,dimension(:,:,:) :: thlpmcr,qtpmcr
    real(field_r),allocatable,dimension(:,:,:) :: Nrp,qrp
    real(field_r),allocatable,dimension(:,:,:) :: precep !< precipitation (m/s)
+
+   real(field_r), pointer :: Nc(:,:,:), Nr(:,:,:), qr(:,:,:)
 
   real(field_r) :: delt
 

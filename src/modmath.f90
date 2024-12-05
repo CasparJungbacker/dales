@@ -1,5 +1,6 @@
 !> Useful mathematical functions
 module modmath
+  use iso_fortran_env, only: real32, real64
   use modprecision, only: field_r
 
   implicit none
@@ -28,6 +29,15 @@ contains
     elemental function erfinv_r4(x) result(p)
       real(4), intent(in) :: x
       real(4) :: w, p
+
+      ! Safeguard for x close to 0 or 1
+      if ( abs( x ) <= 1E-6 ) then
+        p = huge(1.0_real32)
+        return
+      else if ( abs( abs( x ) - 1.0_real32 )  <= 1E-6 ) then
+        p = - huge(1.0_real32)
+        return
+      end if
 
       w = - log((1.0 - x) * (1.0 + x))
 
@@ -61,6 +71,15 @@ contains
     elemental function erfinv_r8(x) result(p)
       real(8), intent(in) :: x
       real(8) :: w, p
+
+      ! Safeguard for x close to 0 or 1
+      if ( abs( x ) <= 1E-15 ) then
+        p = huge(1.0_real64)
+        return
+      else if ( abs( abs( x ) - 1.0_real64 )  <= 1E-15 ) then
+        p = - huge(1.0_real64)
+        return
+      end if
 
       w = -log( ( 1.0 - x ) * ( 1.0 + x ) )
 
@@ -141,6 +160,7 @@ contains
 
 
     elemental function erfcinv_r8(x) result(r)
+      use iso_fortran_env, only: real64
       real(8), intent(in) :: x
       real(8) :: r
       r = erfinv_r8(1 - x)
