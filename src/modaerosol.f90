@@ -528,10 +528,12 @@ contains
           mode_total_mass = 0
           mode_mean_rho = 0
 
-          do s = 1, m_ais % nspecies - 1
+          do s = 1, m_ais % nspecies
             mode_total_mass = mode_total_mass + qa_ais(i,j,k,s)
             mode_mean_rho = mode_mean_rho + qa_ais(i,j,k,s) / m_ais % rho(s)
           end do
+
+          mode_mean_rho = mode_total_mass / (mode_mean_rho + eps0)
 
           mode_median_diameter = ((6 * mode_total_mass) / (pi * N_ais(i,j,k) * mode_mean_rho * 1E9 + eps0))**(1.0_field_r/3) &
                                 * exp((-3 * m_ais % log_sigma_g**2) / 2)
@@ -643,7 +645,6 @@ contains
       do k = 1, k1
         do j = 1, j1-1
           do i = 1, i1-1 
-          if (qcmask(i+1,j+1,k)) then
             ! Mode mean properties
             mode_mean_mass = 0
             mode_mean_rho = 0
@@ -701,7 +702,6 @@ contains
                 modes(iINR) % tend(i+1,j+1,k,target_idx) + tend_m
             end do
           end if
-          end if
           end do
         end do
       end do
@@ -709,7 +709,7 @@ contains
       do k = 1, k1
         do j = 1, j1-1
           do i = 1, i1-1 
-          if (qrmask(i+1,j+1,k) .and. sed_qr(i+1,j+1,k)*3600 > 0.01_field_r) then
+!          if (sed_qr(i+1,j+1,k)*3600 > 0.01_field_r) then
             ! Mode mean properties
             mode_mean_mass = 0
             mode_mean_rho = 0
@@ -729,7 +729,7 @@ contains
                      (4 * pi * Nc(i+1,j+1,k) * rhow + eps0)), &
               5.001 &
             )
-            rain_rate = min(max(sed_qr(i+1,j+1,k) * 3600, 0.01001), 99.999)
+            rainrate = min(max(sed_qr(i+1,j+1,k) * 3600, 0.01001), 99.999)
 
             ! Compute mean aerosol radius in this mode
             mean_aerosol_radius = 0.5 * (6 * mode_mean_mass / &
@@ -738,6 +738,7 @@ contains
 
             mean_aerosol_radius = min(0.9999E3_field_r, mean_aerosol_radius * 1E6)
             mean_aerosol_radius = max(mean_aerosol_radius, 1.001E-3_field_r)
+
 
             ! Compute how much aerosol is washed out (number and mass)
             f_scav_blc_m = LT2_get_col(blc_tab_m, 1, &
@@ -764,7 +765,7 @@ contains
               modes(iINC) % tend(i+1,j+1,k,target_idx) = &
                 modes(iINC) % tend(i+1,j+1,k,target_idx) + tend_m
             end do
-          end if
+!          end if
           end if
           end do
         end do
