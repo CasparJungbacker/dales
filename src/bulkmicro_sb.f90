@@ -47,12 +47,13 @@ module bulkmicro_sb
     kappa_r = 60.7,   & !< See eq. 11 in SB2006.
     k_br = 1000.,     & !< Parameter for break-up.
     k_c = 10.58e9,    & !< Long Kernel coefficient SB2006 (k'cc).
-    k_cc = 4.44e9,    & !< Cloud-cloud collection efficiency SB2006.
+    k_cc = 4.44e9,    & !< Cloud selfcollection efficiency SB2006.
     k_l = 5.e-5,      & !< Coefficient for phi function in accretion rate.
     k_r = 5.25,       & !< Kernel SB2006.
     k_rr = 7.12,      & !< See eq. 11 in SB2006.
     Kt = 2.5e-2,      & !< Conductivity of heat [J/(sKm)].
     nu_a = 1.41e-5,   & !< Kinematic viscosity of air.
+    rho0 = 1.225,     & !< Reference air density
     Sc_num = 0.71,    & !< Schmidt number.
     sig_gr = 1.5,     & !< GSD of rain drop DSD.
     wfallmax = 9.9,   & !< Terminal velocity (?)
@@ -229,7 +230,8 @@ contains
       phi,  & !< correction function (see SB2001)
       xc,   & !< mean mass of cloud water droplets
       nuc,  & !< width parameter of cloud DSD
-      k_au    !< Coefficient for autoconversion rate
+      k_au, & !< Coefficient for autoconversion rate
+      sc      !< Selfcollection rate
 
     call timer_tic('bulkmicro_sb01/autoconversion', 1)
 
@@ -258,7 +260,7 @@ contains
                     + 0.72_field_r - 1.0_field_r !G09a
               xc = rhof(k) * ql0(i,j,k) / (Nc(i,j,k) + eps0)
               au = k_au * (nuc + 2) * (nuc + 4) / (nuc + 1)**2 &
-                        * (ql0(i,j,k) * xc)**2 * 1.225_field_r ! *rho**2/rho/rho (= 1)
+                        * (ql0(i,j,k) * xc)**2 * rho0 ! *rho**2/rho/rho (= 1)
 
               tau = qr(i,j,k) / (ql0(i,j,k) + qr(i,j,k))
               phi = k_1 * tau**k_2 * (1 - tau**k_2)**3
@@ -271,7 +273,11 @@ contains
               thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * au
               
               if (laerosol_) then
-                Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) - au / xc
+                ! When aerosols are enabled, we need to take selfcollection into account
+                sc = -k_cc * ((nuc + 2) / (nuc + 1)) * rho0 / rhof(k) &
+                     * (ql0(i,j,k) * rhof(k))**2
+
+                Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) + sc - au / xc
 
                 do s = 1, m_inc % nspecies
                   qap_inc(i-1,j-1,k,s) = qap_inc(i-1,j-1,k,s) - au / ql0(i,j,k) * qa0_inc(i-1,j-1,k,s)
@@ -1105,11 +1111,6 @@ contains
     call timer_toc('bulkmicro_sb01/sedimentation_rain')
 
   end subroutine sedimentation_rain_gpu
-
-  subroutine selfcollection
-    
-  end subroutine selfcollection
-
 
   real function sed_flux(Nin, Din, sig2, Ddiv, nnn)
   !*********************************************************************
