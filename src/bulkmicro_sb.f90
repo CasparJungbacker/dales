@@ -78,30 +78,54 @@ contains
     use modglobal,        only: dzf
     use modbulkmicrostat, only: bulkmicrotend
 
-    associate(m_inc => modes(iINC), m_inr => modes(iINR), m_acs => modes(iACS), m_cos => modes(iCOS))
+    associate(m_inc => modes(iINC), m_inr => modes(iINR), &
+              m_acs => modes(iACS), m_cos => modes(iCOS))
 
-    call calculate_rain_parameters(Nr, qr, rhof, l_mur_cst, mur_cst, qrbase, qrroof, qrmask, xr, Dvr, mur, lbdr)
+    call calculate_rain_parameters(Nr, qr, rhof, l_mur_cst, mur_cst, qrbase, &
+                                   qrroof, qrmask, xr, Dvr, mur, lbdr)
     call bulkmicrotend
-    !if (laerosol) then
-      call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, qtpmcr, qrp, Nrp, laerosol=laerosol, m_inc=m_inc, m_inr=m_inr)
-    !else
-      !call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, qtpmcr, qrp, Nrp)
-    !end if
-    call bulkmicrotend
-    call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, laerosol=laerosol, m_inc=m_inc, m_inr=m_inr)
-    call bulkmicrotend
-    call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr, laerosol=.true., m_inr=m_inr, m_acs=m_acs, m_cos=m_cos)
-    !call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr)
-    call bulkmicrotend
+    if (laerosol) then
+      call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
+                          thlpmcr, qtpmcr, qrp, Nrp)
+      call bulkmicrotend
+      call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
+                     qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp)
+      call bulkmicrotend
+      call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, &
+                       tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, &
+                       lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr)
+      call bulkmicrotend
 #ifdef DALES_GPU
-    call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, Dvr, lbdr, mur, delt, xr, l_lognormal, l_mur_cst, mur_cst, qrp, Nrp, qrmask, precep)
+      call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, Dvr, &
+                                  lbdr, mur, delt, xr, l_lognormal, l_mur_cst, &
+                                  mur_cst, qrp, Nrp, qrmask, precep)
 #else
-    !call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, mur, xr, qrp, Nrp, precep)
-    call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, mur, xr, qrp, Nrp, precep, laerosol=.true., m_inr=m_inr, sed_qr_=sed_qr)
+      call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+                              l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
+                              lbdr, mur, xr, qrp, Nrp, precep)
 #endif
+    else
+      call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
+                          thlpmcr, qtpmcr, qrp, Nrp, laerosol=laerosol, &
+                          m_inc=m_inc, m_inr=m_inr)
+      call bulkmicrotend
+      call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
+                     qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, &
+                     laerosol=laerosol, m_inc=m_inc, m_inr=m_inr)
+      call bulkmicrotend
+      call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, &
+                       tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, &
+                       lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr, &
+                       laerosol=.true., m_inr=m_inr, m_acs=m_acs, m_cos=m_cos)
+      call bulkmicrotend
+      call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+                              l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
+                              lbdr, mur, xr, qrp, Nrp, precep, &
+                              laerosol=.true., m_inr=m_inr, sed_qr_=sed_qr)
+    end if
     call bulkmicrotend
-
     end associate
+
   end subroutine do_bulkmicro_sb
 
   !> Calculate rain DSD integral properties and parameters.
