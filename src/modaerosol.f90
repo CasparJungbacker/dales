@@ -144,6 +144,10 @@ contains
 
     namelist /NAMAEROSOL/ laerosol
 
+#ifdef DALES_GPU
+    call dales_error("Aerosol microphysics are not supported on GPU!")
+#endif
+
     ! Read input
     if (myid == 0) then
       ! Namelist
