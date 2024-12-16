@@ -57,6 +57,12 @@ contains
 
     implicit none
 
+#ifdef DALES_GPU
+    if (solver_id /= 200) then
+       STOP 'Running on GPU requires solver_id = 200 (cufft)'
+    end if
+#endif
+
     if (solver_id == 0) then
       call fft2dinit(p, Fp, d, xyrt, ps, pe, qs, qe)
     else if (solver_id == 100) then
@@ -130,7 +136,7 @@ contains
     logical converged
 
     call timer_tic('modpois/poisson', 0)
-    
+
     call fillps
 
     if (solver_id == 0) then
@@ -198,7 +204,7 @@ contains
     use modmpi,    only : excjs
     use modopenboundary, only : openboundary_excjs
     implicit none
-    
+
     integer :: i, j, k, ex, ey
     real(pois_r) :: rk3coef_inv
 
@@ -223,7 +229,7 @@ contains
 
   !$acc parallel loop collapse(3) default(present) async(1)
   do k=1,kmax
-    do j=2,ey ! openbc needs these to i2,j2. Periodic bc needs them to i1,j1 
+    do j=2,ey ! openbc needs these to i2,j2. Periodic bc needs them to i1,j1
       do i=2,ex
         pup(i,j,k) = up(i,j,k) + um(i,j,k) * rk3coef_inv
         pvp(i,j,k) = vp(i,j,k) + vm(i,j,k) * rk3coef_inv
@@ -345,7 +351,7 @@ contains
     !$acc wait(1)
 
     call timer_toc('modpois/tderive')
-    
+
     return
   end subroutine tderive
 
@@ -390,9 +396,9 @@ contains
     integer :: i, j, k
 
     call timer_tic('modpois/solmpj', 1)
-    
+
   ! Generate tridiagonal matrix
-    
+
     !$acc parallel loop default(present) async(1)
     do k=1,kmax
       ! SB fixed the coefficients

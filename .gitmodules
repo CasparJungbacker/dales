@@ -7,3 +7,7 @@
 [submodule "src/RTE-RRTMGP"]
 	path = src/RTE-RRTMGP
 	url = https://github.com/earth-system-radiation/rte-rrtmgp.git
+[submodule "external/ecbuild"]
+	path = external/ecbuild
+	url = https://github.com/ecmwf/ecbuild.git
+	branch = develop

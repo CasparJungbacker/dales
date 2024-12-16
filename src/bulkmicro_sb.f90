@@ -161,9 +161,9 @@ contains
 
     integer       :: i, j, k
 
-    call timer_tic('bulk-1icro_sb01/calculate_rain_parameters', 1)
-
     if (qrbase > qrroof) return
+
+    call timer_tic('bulkmicro_sb/calculate_rain_parameters', 1)
 
     if (l_mur_cst) then
       !$acc parallel loop collapse(3) default(present)
@@ -205,7 +205,7 @@ contains
       end do
     end do
 
-    call timer_toc('bulkmicro_sb01/calculate_rain_parameters')
+    call timer_toc('bulkmicro_sb/calculate_rain_parameters')
 
   end subroutine calculate_rain_parameters
 
@@ -257,9 +257,9 @@ contains
       k_au, & !< Coefficient for autoconversion rate
       sc      !< Selfcollection rate
 
-    call timer_tic('bulkmicro_sb01/autoconversion', 1)
-
     if (qcbase > qcroof) return
+
+    call timer_tic('bulkmicro_sb01/autoconversion', 1)
 
     if (present(laerosol)) then
       laerosol_ = laerosol
@@ -376,7 +376,7 @@ contains
 
     if (max(qrbase, qcbase) > min(qrroof, qcroof)) return
 
-    call timer_tic('bulkmicro_sb01/accretion', 1)
+    call timer_tic('bulkmicro_sb/accretion', 1)
 
     if (present(laerosol)) then
       laerosol_ = laerosol
@@ -426,16 +426,16 @@ contains
       do j = 2, j1
         do i = 2, i1
           if (qrmask(i,j,k)) then
-              sc = k_rr *rhof(k)* qr(i,j,k) * Nr(i,j,k)  &
-                   * (1 + kappa_r/lbdr(i,j,k)*pirhow**(1./3.))**(-9.)* (1.225/rhof(k))**0.5
-              if (Dvr(i,j,k) .gt. 0.30E-3) then
-                phi_br = k_br * (Dvr(i,j,k)-D_eq)
-                br = (phi_br + 1.) * sc
-              else
-                br = 0.
-              end if
+            sc = k_rr *rhof(k)* qr(i,j,k) * Nr(i,j,k)  &
+                 * (1 + kappa_r/lbdr(i,j,k)*pirhow**(1./3.))**(-9.)* (1.225/rhof(k))**0.5
+            if (Dvr(i,j,k) .gt. 0.30E-3) then
+              phi_br = k_br * (Dvr(i,j,k)-D_eq)
+              br = (phi_br + 1.) * sc
+            else
+              br = 0.
+            end if
 
-              Nrp(i,j,k) = Nrp(i,j,k) - sc + br
+            Nrp(i,j,k) = Nrp(i,j,k) - sc + br
           end if
         end do
       end do
@@ -577,10 +577,6 @@ contains
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - evap
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * evap
 
-            if (isnan(qr0(i,j,k))) then
-              print *, "Found NaN in qr0 at i,j,k", i,j,k
-            end if
-
             if (laerosol_) then
               E = 0
               V = 0
@@ -635,7 +631,7 @@ contains
 
     end associate
 
-    call timer_toc('bulkmicro_sb01/evaporation')
+    call timer_toc('bulkmicro_sb/evaporation')
 
   end subroutine evaporation
 
@@ -786,8 +782,8 @@ contains
             do i = 2, i1
               if (qrmask(i,j,k)) then
 
-                wfall_qr = max(0., (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+4))))
-                wfall_Nr = max(0., (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+1))))
+                wfall_qr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+4))))
+                wfall_Nr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+1))))
 
                 sed_qr  = wfall_qr * qr_spl(i,j,k) * rhof(k) ! m/s * kg/m3
                 sed_Nr  = wfall_Nr * Nr_spl(i,j,k)
@@ -845,6 +841,7 @@ contains
 
   end subroutine sedimentation_rain
 
+#ifdef DALES_GPU
   !> Calculate the sedimentation term.
   !!
   !! \param qr Rain water mixing ratio.
@@ -904,8 +901,6 @@ contains
 
     real(field_r), save :: dt_spl
 
-    call timer_tic('bulkmicro_sb01/sedimentation_rain', 1)
-
     !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
       do j = 2, j1
@@ -916,6 +911,8 @@ contains
     end do
 
     if (qrbase > qrroof) return
+
+    call timer_tic('bulkmicro_sb/sedimentation_rain', 1)
 
     allocate(qr_spl(2:i1,2:j1,1:k1))
     allocate(Nr_spl(2:i1,2:j1,1:k1))
@@ -1135,6 +1132,7 @@ contains
     call timer_toc('bulkmicro_sb01/sedimentation_rain')
 
   end subroutine sedimentation_rain_gpu
+#endif
 
   real function sed_flux(Nin, Din, sig2, Ddiv, nnn)
   !*********************************************************************
@@ -1246,11 +1244,11 @@ contains
     real(field_r), intent(in) :: beta, D, D_min, D_max, sig2
     integer, intent(in) :: nnn
 
-    real(field_r), parameter :: eps = 1e-10       &
-                      ,a1 = 0.278393    & !a1 till a4 constants in polynomial fit to the error
-                      ,a2 = 0.230389    & !function 7.1.27 in Abramowitz and Stegun
-                      ,a3 = 0.000972    &
-                      ,a4 = 0.078108
+    real(field_r), parameter :: eps = 1e-10       
+    !                  ,a1 = 0.278393    & !a1 till a4 constants in polynomial fit to the error
+    !                  ,a2 = 0.230389    & !function 7.1.27 in Abramowitz and Stegun
+    !                  ,a3 = 0.000972    &
+    !                  ,a4 = 0.078108
     real(field_r) :: nn, ymin, ymax, erfymin, erfymax, D_inv
 
     D_inv = 1./(eps + D)

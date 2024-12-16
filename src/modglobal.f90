@@ -155,12 +155,16 @@ save
       logical :: lconstexner = .false.  !<  switch to use the initial pressure profile in the exner function
 
       ! Poisson solver: modpois / modhypre
-#ifdef USE_FFTW
-      integer :: solver_id = 100     ! Identifier for nummerical solver:    0    1   2     3       4
+      ! set default solver, can be overridden in namoptions
+#if defined(DALES_GPU)
+      integer :: solver_id = 200 ! cufft (default if OpenACC is used)
+#elif defined(USE_FFTW)
+      integer :: solver_id = 100 ! FFTW  (default if FFTW library compiled in and not on GPU)
 #else
-      integer :: solver_id = 0
+      integer :: solver_id = 0   ! Built-in FFT
 #endif
-                                     !                                     FFT  SMG PFMG BiCGSTAB GMRES
+                                     ! solver_id:                           0    1   2     3       4      100    200
+                                     !                                     FFT  SMG PFMG BiCGSTAB GMRES  FFTW  cufft
       integer :: maxiter = 10000     ! Number of iterations                 .    X   X     X       X
       real(real64):: tolerance = 1E-8! Convergence threshold                .    X   X     X       X
       integer :: n_pre = 1           ! Number of pre and post relaxations   .    X   X     X       X

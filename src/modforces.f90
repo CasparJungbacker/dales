@@ -88,7 +88,7 @@ contains
     !$acc kernels default(present) async(2)
     do k=2,kmax
        wp(:,:,k) = wp(:,:,k) + grav*(thv0h(:,:,k)-thvh(k))/thvh(k) - &
-                  grav*(sv0(:,:,k,iqr)*dzf(k-1)+sv0(:,:,k-1,iqr)*dzf(k))/(2.0*dzh(k))
+                  grav*(sv0(:,:,k,iqr)*dzf(k-1)+sv0(:,:,k-1,iqr)*dzf(k))/(2*dzh(k))
     end do
     !$acc end kernels
   else
@@ -103,7 +103,7 @@ contains
 !     special treatment for lowest full level: k=1
 !     --------------------------------------------
   !$acc kernels default(present) async(3)
-  wp(:,:,1) = 0.0
+  wp(:,:,1) = 0
   !$acc end kernels
 
   !$acc wait

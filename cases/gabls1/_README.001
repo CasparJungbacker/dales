@@ -1,0 +1,26 @@
+Last updated: 21 November 2024
+
+## CASE DESCRIPTION: GABLS1
+A weakly stable boundary layer is created by a slow constant cooling of the surface temperature. The GABLS1 case is extensively described and documented in:
+Beare, R.J. et al. An Intercomparison of Large-Eddy Simulations of the Stable Boundary Layer. Boundary-Layer Meteorol 118, 247–272 (2006). https://doi.org/10.1007/s10546-004-2820-6
+
+This folder contains all necessary input files to run the GABLS1 case, namely
+	namoptions.001
+	prof.inp.001
+	lscale.inp.001
+	ls_flux.inp.001
+
+Further, it contains the following 
+	dales_gabls1.py 		: script to generate new input files (e.g., after changing vertical levels)
+	plot_profiles.py 		: a simple template script to plot time-averaged profiles from output and time series
+	_wind_temperature_gabls1.png 	: example averaged profiles of wind and temperature, with both deardorff tke subgrid scheme and smagorinsky subgrid scheme
+	_flux_momheat_gabls1.png 	: example average profiles of momentum flux and heat flux, with both deardorff tke subgrid scheme and smagorinsky subgrid scheme 
+	namoptions_SMAGORINSKY.001	: namoptions file for the use of the Smagorinsky subgrid scheme, the default one uses the Deardorff subgrid scheme. To use, replace the default one with this one.
+
+Default settings in namoptions.001 use:
+	kmax = 128 vertical levels
+	itot = jtot = 128 gridpoints in the horizontal
+	nx = ny = 4 processes in each direction (these can be freely changes as long as they are powers of 2 AND itot and jtot are divisible by them
+
+When changing the amount of vertical levels, new input files must be created using the python script:
+	python3 dales_gabls1.py -iexpr 001

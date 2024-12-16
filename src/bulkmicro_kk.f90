@@ -61,7 +61,7 @@ contains
                     thlpmcr, qtpmcr, qrp, Nrp)
     call bulkmicrotend
 #ifdef DALES_GPU
-    call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbaes, qrroof, qrmask, delt, &
+    call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, delt, &
                                 Dvr, xr, qrp, Nrp, precep)
 #else
     call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, delt, &
@@ -427,6 +427,7 @@ contains
 
   end subroutine sedimentation_rain
 
+#ifdef DALES_GPU
   !> Calculate the sedimentation term. Optimized for GPU's.
   !!
   !! \param qr Rain water mixing ratio.
@@ -611,5 +612,6 @@ contains
     call timer_toc('bulkmicro_kk/sedimentation_rain')
 
   end subroutine sedimentation_rain_gpu
+#endif
 
 end module bulkmicro_kk

@@ -284,7 +284,7 @@ contains
   use modstat_nc, only : lnetcdf, writestat_nc
   implicit none
 
-  integer i,k,n
+  integer i,k,n,isv
   character(20) :: name
 
   real, allocatable :: thv0(:,:),vars(:,:,:),buoy(:,:)
@@ -362,14 +362,10 @@ contains
             vars(:,:,6) = qtm(2:i1,crossplane(cross),1:kmax)
             vars(:,:,7) = ql0(2:i1,crossplane(cross),1:kmax)
             vars(:,:,8) = buoy(2:i1,1:kmax)
-            if(nsv>1) then
-               vars(:,:,9) = svm(2:i1,crossplane(cross),1:kmax,2)
-               vars(:,:,10) = svm(2:i1,crossplane(cross),1:kmax,1)
-            else
-               vars(:,:,9) = 0.
-               vars(:,:,10) = 0.
-            end if
-            vars(:,:,11) = e120(2:i1,crossplane(cross),1:kmax)
+            vars(:,:,9) = e120(2:i1,crossplane(cross),1:kmax)
+            do isv = 1,nsv
+               vars(:,:,9+isv) = svm(2:i1,crossplane(cross),1:kmax,isv)
+            end do
             call writestat_nc(ncid1(cross),1,tncname1,(/rtimee/),nrec1(cross),.true.)
             call writestat_nc(ncid1(cross),nvar,ncname1(1:nvar,:),vars,nrec1(cross),imax,kmax)
          end if
@@ -386,12 +382,11 @@ contains
     use modfields, only : um,vm,wm,thlm,qtm,svm,thl0,qt0,ql0,e120,exnf,thvf
     use modmpi,    only : cmyid
     use modstat_nc, only : lnetcdf, writestat_nc
-    use modmicrodata, only : iqr,inr
     implicit none
 
 
     ! LOCAL
-    integer i,j,n
+    integer i,j,n,isv
     character(40) :: name
     real, allocatable :: thv0(:,:,:),vars(:,:,:),buoy(:,:,:)
 
@@ -468,14 +463,10 @@ contains
           vars(:,:,6) = qtm(2:i1,2:j1,crossheight(cross))
           vars(:,:,7) = ql0(2:i1,2:j1,crossheight(cross))
           vars(:,:,8) = buoy(2:i1,2:j1,cross)
-          if(nsv>1) then
-             vars(:,:,9) = svm(2:i1,2:j1,crossheight(cross),iqr)
-             vars(:,:,10) = svm(2:i1,2:j1,crossheight(cross),inr)
-          else
-             vars(:,:,9) = 0.
-             vars(:,:,10) = 0.
-          end if
-          vars(:,:,11) = e120(2:i1,2:j1,crossheight(cross))
+          vars(:,:,9) = e120(2:i1,2:j1,crossheight(cross))
+          do isv = 1,nsv
+             vars(:,:,9+isv) = svm(2:i1,2:j1,crossheight(cross),isv)
+          end do
           call writestat_nc(ncid2(cross),1,tncname2,(/rtimee/),nrec2(cross),.true.)
           call writestat_nc(ncid2(cross),nvar,ncname2(1:nvar,:),vars,nrec2(cross),imax,jmax)
        end do
@@ -496,7 +487,7 @@ contains
 
 
     ! LOCAL
-    integer j,k,n
+    integer j,k,n,isv
     character(21) :: name
 
     real, allocatable :: thv0(:,:),vars(:,:,:),buoy(:,:)
@@ -581,14 +572,10 @@ contains
              vars(:,:,6) = qtm(crossortho(cross),2:j1,1:kmax)
              vars(:,:,7) = ql0(crossortho(cross),2:j1,1:kmax)
              vars(:,:,8) = buoy(2:j1,1:kmax)
-             if(nsv>1) then
-                vars(:,:,9) = svm(crossortho(cross),2:j1,1:kmax,2)
-                vars(:,:,10) = svm(crossortho(cross),2:j1,1:kmax,1)
-             else
-                vars(:,:,9) = 0.
-                vars(:,:,10) = 0.
-             end if
-             vars(:,:,11) = e120(crossortho(cross),2:j1,1:kmax)
+             vars(:,:,9) = e120(crossortho(cross),2:j1,1:kmax)
+             do isv = 1,nsv
+                vars(:,:,9+isv) = svm(crossortho(cross),2:j1,1:kmax,isv)
+             end do
              call writestat_nc(ncid3(cross),1,tncname3,(/rtimee/),nrec3(cross),.true.)
              call writestat_nc(ncid3(cross),nvar,ncname3(1:nvar,:),vars,nrec3(cross),jmax,kmax)
           end if

@@ -44,6 +44,7 @@ contains
     ! Initialisation routine for openboundaries
     use modmpi, only : myidx, myidy, nprocx, nprocy, myid
     use modglobal, only : imax,jmax,kmax,i1,j1,k1,dx,dy,itot,jtot,solver_id,nsv,cu,cv
+    use modboundary, only: dsv
     implicit none
     integer :: i
 
@@ -137,11 +138,14 @@ contains
         endif
     end do
     call initsynturb
+    allocate(dsv(nsv)) ! dsv is not used with open boundaries
+    dsv = 0            ! but it is written to the restart files
   end subroutine initopenboundary
 
   subroutine exitopenboundary
     ! Exit routine for openboundaries
     use modglobal, only : nsv
+    use modboundary, only : dsv
     implicit none
     integer :: i
     if(.not.lopenbc) return
@@ -155,6 +159,7 @@ contains
       if(nsv>0) deallocate(boundary(i)%sv,boundary(i)%svturb)
     end do
     deallocate(rhointi)
+    deallocate(dsv)
     call exitsynturb
   end subroutine exitopenboundary
 
@@ -787,7 +792,7 @@ contains
             valtarget = (fp*val(j,k,itp)+fm*val(j,k,itm)+turb(j,k))*coefdir
             a(2-ih:sx-1,j+1,k) = ( 2.*dx*valtarget - &
               a(sx,j+1,k)*(coefdir*dx+2.*coefneu) ) / (coefdir*dx-2.*coefneu)
-            if(lmax0==1) a(sx-1,j+1,k) = max(0.,a(sx-1,j+1,k))
+            if(lmax0==1) a(sx-1,j+1,k) = max(0._field_r,a(sx-1,j+1,k))
           endif
         end do
       end do
@@ -804,7 +809,7 @@ contains
             valtarget = (fp*val(j,k,itp)+fm*val(j,k,itm)+turb(j,k))*coefdir
             a(ex+1:i1+ih,j+1,k) = ( 2.*dx*valtarget - &
               a(ex,j+1,k)*(coefdir*dx-2.*coefneu) ) / (coefdir*dx+2.*coefneu)
-            if(lmax0==1) a(ex+1,j+1,k) = max(a(ex+1,j+1,k),0.)
+            if(lmax0==1) a(ex+1,j+1,k) = max(a(ex+1,j+1,k),0._field_r)
           endif
         end do
       end do
@@ -821,7 +826,7 @@ contains
             valtarget = (fp*val(i,k,itp)+fm*val(i,k,itm)+turb(i,k))*coefdir
             a(i+1,2-jh:sy-1,k) = ( 2.*dy*valtarget - &
               a(i+1,sy,k)*(coefdir*dy+2.*coefneu) ) / (coefdir*dy-2.*coefneu)
-            if(lmax0==1) a(i+1,sy-1,k) = max(a(i+1,sy-1,k),0.)
+            if(lmax0==1) a(i+1,sy-1,k) = max(a(i+1,sy-1,k),0._field_r)
           endif
         end do
       end do
@@ -838,7 +843,7 @@ contains
             valtarget = (fp*val(i,k,itp)+fm*val(i,k,itm)+turb(i,k))*coefdir
             a(i+1,ey+1:j1+jh,k) = ( 2.*dy*valtarget - &
               a(i+1,ey,k)*(coefdir*dy-2.*coefneu) ) / (coefdir*dy+2.*coefneu)
-            if(lmax0==1) a(i+1,ey+1,k) = max(a(i+1,ey+1,k),0.)
+            if(lmax0==1) a(i+1,ey+1,k) = max(a(i+1,ey+1,k),0._field_r)
           endif
         end do
       end do
@@ -862,7 +867,7 @@ contains
             valtarget = (fp*val(i,j,itp)+fm*val(i,j,itm)+turb(i,j))*coefdir+ddz*coefneu
             a(i+1,j+1,ez) = ( 2.*dzh(ez)*valtarget - &
               a(i+1,j+1,ez-1)*(coefdir*dzh(ez)-2.*coefneu) ) / (coefdir*dzh(ez)+2.*coefneu)
-            if(lmax0==1) a(i+1,j+1,ez) = max(a(i+1,j+1,ez),0.)
+            if(lmax0==1) a(i+1,j+1,ez) = max(a(i+1,j+1,ez),0._field_r)
           endif
         end do
       end do
@@ -881,7 +886,9 @@ contains
     integer, intent(in) :: nx1,nx2,ib
     real(field_r), intent(in), dimension(nx1,nx2) :: turb
     integer :: i,j,k,itmc,itmn,itpc,itpn,ipatch,jpatch,kpatch
-    real :: tm,tp,fpc,fmc,fpn,fmn,unext,uwallcurrent,ipos,jpos,tau
+    real :: tm,tp,fpc,fmc,fpn,fmn,unext,ipos,jpos,tau
+    real(field_r) :: uwallcurrent
+
     itmc=1
     itmn=1
     if(ntboundary>1) then

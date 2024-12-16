@@ -302,7 +302,7 @@ module modsimpleice
           tc=tmp0(i,j,k)-tmelt ! Temperature wrt melting point
           times=min(1.e3,(3.56*tc+106.7)*tc+1.e3) ! Time scale for ice autoconversion
           auti=qli/times
-          aut = min(autl + auti,ql0(i,j,k)/delt)
+          aut = min(autl + auti,ql0(i,j,k)/delt*1.0) ! convert RHS to double for nvidia compiler
           qrp(i,j,k) = qrp(i,j,k)+aut
           qtpmcr(i,j,k) = qtpmcr(i,j,k)-aut
           thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*aut
@@ -321,7 +321,7 @@ module modsimpleice
           autl=max(0.,timekessl*(qll-qll0))
           tc=tmp0(i,j,k)-tmelt
           auti=max(0.,betakessi*exp(0.025*tc)*(qli-qli0))
-          aut = min(autl + auti,ql0(i,j,k)/delt)
+          aut = min(autl + auti,ql0(i,j,k)/delt*1.0) ! convert RHS to double for nvidia compiler
           qrp(i,j,k) = qrp(i,j,k)+aut
           qtpmcr(i,j,k) = qtpmcr(i,j,k)-aut
           thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*aut
@@ -368,7 +368,7 @@ module modsimpleice
         accr=(gaccrl+gaccri)*qrr/(qrr+1.e-9)
         accs=(gaccsl+gaccsi)*qrs/(qrs+1.e-9)
         accg=(gaccgl+gaccgi)*qrg/(qrg+1.e-9)
-        acc= min(accr+accs+accg,ql0(i,j,k)/delt)  ! total growth by accretion
+        acc= min(accr+accs+accg,ql0(i,j,k)/delt*1.0)  ! total growth by accretion ! convert RHS to double for nvidia compiler
         qrp(i,j,k) = qrp(i,j,k)+acc
         qtpmcr(i,j,k) = qtpmcr(i,j,k)-acc
         thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*acc
@@ -411,7 +411,7 @@ module modsimpleice
         evapdepg=(4.*pi/(betag*rhof(k)))*(ssi-1.)*ventg*thfun
         ! total growth by deposition and evaporation
         ! limit with qr and ql after accretion and autoconversion
-        devap= max(min(evapfactor*(evapdepr+evapdeps+evapdepg),ql0(i,j,k)/delt+qrp(i,j,k)),-qr(i,j,k)/delt-qrp(i,j,k))
+        devap= max(min(evapfactor*(evapdepr+evapdeps+evapdepg),ql0(i,j,k)/delt+qrp(i,j,k)*1.0),-qr(i,j,k)/delt-qrp(i,j,k)*1.0) !
         qrp(i,j,k) = qrp(i,j,k)+devap
         qtpmcr(i,j,k) = qtpmcr(i,j,k)-devap
         thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*devap

@@ -744,7 +744,7 @@ contains
         clwav(1) = clwav(1) + ql0(i,j,1) * ilratio
         cliav(1) = cliav(1) + ql0(i,j,1) * (1-ilratio)
 
-        if (nsv > 1) then
+        if (iqr > 0) then
            ilratio = max(0._field_r,min(1._field_r,(tmp0(i,j,1)-tdnrsg)/(tuprsg-tdnrsg)))
            plwav(1) = plwav(1) + sv0(i,j,1,iqr) * ilratio
            pliav(1) = pliav(1) + sv0(i,j,1,iqr) * (1-ilratio)
@@ -850,7 +850,7 @@ contains
           clwav_s = clwav_s + ql0(i,j,k) * ilratio
           cliav_s = cliav_s + ql0(i,j,k) * (1-ilratio)
 
-          if (nsv > 1) then
+          if (iqr > 0) then
             ilratio = max(0._field_r,min(1._field_r,(tmp0(i,j,k)-tdnrsg)/(tuprsg-tdnrsg)))
             plwav_s = plwav_s + sv0(i,j,k,iqr) * ilratio
             pliav_s = pliav_s + sv0(i,j,k,iqr) * (1-ilratio)
