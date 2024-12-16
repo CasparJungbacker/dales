@@ -109,7 +109,7 @@ module modaerosol
 
   ! Variables
   logical,      public, protected :: laerosol = .false. !< Switch for enabling/disabling interactive aerosols.
-  type(mode_t), public, protected :: modes(maxmodes)   !< List of modes.
+  type(mode_t), public            :: modes(maxmodes)   !< List of modes.
 
   type(aerosol_t), allocatable                    :: aerosols(:)
   integer,         allocatable, public, protected :: idx_tab(:,:)
@@ -627,10 +627,11 @@ contains
   !! \param rhof Density of full levels.
   !! \param delt Time step size.
   !! \param modes List of aerosol modes.
-  subroutine scavenging(ql, sed_qr, Nc, rhof, delt, modes)
+  subroutine scavenging(ql, sed_qr, Nc, qrmask, rhof, delt, modes)
     real(field_r), intent(in)    :: ql(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: sed_qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nc(2:i1,2:j1,1:k1)
+    logical,       intent(in)    :: qrmask(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
     real(field_r), intent(in)    :: delt
     type(mode_t),  intent(inout) :: modes(maxmodes)

@@ -321,7 +321,7 @@ module modbulkmicro
     end if
 
     if (laerosol) then
-      call scavenging(ql0, sed_qr, Nc, rhof, delt, modes)
+      call scavenging(ql0, sed_qr, Nc, qrmask, rhof, delt, modes)
     end if
 
     if (laerosol) then

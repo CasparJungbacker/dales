@@ -78,13 +78,10 @@ contains
     use modglobal,        only: dzf
     use modbulkmicrostat, only: bulkmicrotend
 
-    associate(m_inc => modes(iINC), m_inr => modes(iINR), &
-              m_acs => modes(iACS), m_cos => modes(iCOS))
-
     call calculate_rain_parameters(Nr, qr, rhof, l_mur_cst, mur_cst, qrbase, &
                                    qrroof, qrmask, xr, Dvr, mur, lbdr)
     call bulkmicrotend
-    if (laerosol) then
+    if (.not. laerosol) then
       call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
                           thlpmcr, qtpmcr, qrp, Nrp)
       call bulkmicrotend
@@ -105,6 +102,8 @@ contains
                               lbdr, mur, xr, qrp, Nrp, precep)
 #endif
     else
+      associate(m_inc => modes(iINC), m_inr => modes(iINR), &
+                m_acs => modes(iACS), m_cos => modes(iCOS))
       call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
                           thlpmcr, qtpmcr, qrp, Nrp, laerosol=laerosol, &
                           m_inc=m_inc, m_inr=m_inr)
@@ -122,9 +121,9 @@ contains
                               l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
                               lbdr, mur, xr, qrp, Nrp, precep, &
                               laerosol=.true., m_inr=m_inr, sed_qr_=sed_qr)
+      end associate
     end if
     call bulkmicrotend
-    end associate
 
   end subroutine do_bulkmicro_sb
 
