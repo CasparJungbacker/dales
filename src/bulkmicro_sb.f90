@@ -29,6 +29,8 @@ module bulkmicro_sb
 
   private
 
+  character(*),  parameter :: modname = "bulkmicro_sb"
+
   ! Constants
   ! TODO, maybe read these from a namelist.
   real(field_r), parameter :: &
@@ -245,6 +247,8 @@ contains
     type(mode_t), optional, intent(inout) :: m_inc
     type(mode_t), optional, intent(inout) :: m_inr
 
+    character(*), parameter :: routine = modname//"::autoconversion"
+
     integer       :: i, j, k, s, naer
     logical :: laerosol_
     real(field_r) :: &
@@ -294,6 +298,11 @@ contains
 
               qtpmcr(i,j,k) = qtpmcr(i,j,k) - au
               thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * au
+
+              if (isnan(thlpmcr(i,j,k))) then
+                write(6,*) "NaN detected in "//routine//", at ", i,j,k
+                stop
+              end if
               
               if (laerosol_) then
                 ! When aerosols are enabled, we need to take selfcollection into account
@@ -364,6 +373,8 @@ contains
     type(mode_t),  optional, intent(inout) :: m_inc
     type(mode_t),  optional, intent(inout) :: m_inr
 
+    character(*), parameter :: routine = modname//"::accretion"
+
     integer :: i,j,k, s
     logical :: laerosol_
 
@@ -403,6 +414,11 @@ contains
             qrp(i,j,k) = qrp(i,j,k) + ac
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - ac
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv/(cp*exnf(k)))*ac
+
+              if (isnan(thlpmcr(i,j,k))) then
+                write(6,*) "NaN detected in "//routine//", at ", i,j,k
+                stop
+              end if
 
             if (laerosol_) then
               xc = rhof(k) * ql0(i,j,k) / Nc(i-1,j-1,k)
@@ -517,6 +533,8 @@ contains
     real(field_r) :: mur_, lbdr_
     real(field_r) :: dm, dm_fac, e, eps, evapt, f_evp, fm, fn, rho, v, dn
 
+    character(*), parameter :: routine = modname//"::evaporation"
+
     real(field_r), parameter :: Dc = 1.0
     integer :: src_idx, target_idx
 
@@ -575,6 +593,11 @@ contains
 
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - evap
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * evap
+
+              if (isnan(thlpmcr(i,j,k))) then
+                write(6,*) "NaN detected in "//routine//", at ", i,j,k
+                stop
+              end if
 
             if (laerosol_) then
               E = 0
@@ -710,9 +733,6 @@ contains
 
     if (qrbase > qrroof) return
 
-    associate(qa_inr => m_inr % conc(:,:,:,2:), &
-              qap_inr => m_inr % tend(:,:,:,2:))
-
     allocate(qr_spl(2:i1,2:j1,1:k1))
     allocate(Nr_spl(2:i1,2:j1,1:k1))
 
@@ -727,7 +747,7 @@ contains
       if (jn == 1) then
         qr_spl(:,:,:) = qr(:,:,:)
         Nr_spl(:,:,:) = Nr(:,:,:)
-        if (laerosol_) qa_spl(:,:,:,:) = qa_inr(:,:,:,:)
+        if (laerosol_) qa_spl(:,:,:,:) = m_inr % conc(:,:,:,:)
       else
         ! update parameters after the first iteration
         ! a new mask
@@ -828,13 +848,11 @@ contains
     deallocate(qr_spl, Nr_spl)
 
     if (laerosol_) then
-      qap_inr(:,:,qrbase:qrroof,:) = qap_inr(:,:,qrbase:qrroof,:) + &
-        (qa_spl(:,:,qrbase:qrroof,:) - qa_inr(:,:,qrbase:qrroof,:)) / delt
+      m_inr % tend(:,:,qrbase:qrroof,:) = m_inr % tend(:,:,qrbase:qrroof,:) + &
+        (qa_spl(:,:,qrbase:qrroof,:) - m_inr % conc(:,:,qrbase:qrroof,:)) / delt
 
       deallocate(qa_spl)
     end if
-
-    end associate
 
     call timer_toc('bulkmicro_sb01/sedimentation_rain')
 

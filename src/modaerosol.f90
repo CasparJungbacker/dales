@@ -475,6 +475,7 @@ contains
   !! \param w Vertical velocity.
   !! \param delt Time step size.
   subroutine activation_pn15(m_ais, m_acs, m_cos, m_inc, w, delt)
+    use modmicrodata, only: qcmask
     type(mode_t),  intent(inout) :: m_ais
     type(mode_t),  intent(inout) :: m_acs
     type(mode_t),  intent(inout) :: m_cos
@@ -484,6 +485,7 @@ contains
 
     integer :: i, j, k, s
     integer :: imod, iaer
+    integer :: my_number, my_target
 
     character(*),  parameter :: routine = modname//"::activation_pn15"
     real(field_r), parameter :: r_crit = 35E-9
@@ -513,6 +515,7 @@ contains
       ! Because of the associate block, we need to start at 1
       do j = 1, j1 - 1
         do i = 1, i1 - 1
+        if (qcmask(i+1,j+1,k)) then
           ! Step 1: compute how much particles can activate in the AIS mode
           mode_total_mass = 0
           mode_mean_rho = 0
@@ -558,8 +561,10 @@ contains
           do s = 1, m_cos % nspecies - 1
             tend_m = fm * qa_cos(i,j,k,s) / delt
             tend_m = max(0.0_field_r, tend_m)
+            my_number = m_cos % aero_idx(s)
+            my_target = idx_tab(iINC, my_number)
             qap_cos(i,j,k,s) = qap_cos(i,j,k,s) - tend_m
-            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+            qap_inc(i,j,k,my_target) = qap_inc(i,j,k,my_target) + tend_m
           end do
 
           dNcdt = merge(dNcdt - N_cos(i,j,k) / delt, 0.0_field_r, &
@@ -580,8 +585,10 @@ contains
           do s = 1, m_acs % nspecies - 1
             tend_m = fm * qa_acs(i,j,k,s) / delt
             tend_m = max(0.0_field_r, tend_m)
+            my_number = m_acs % aero_idx(s)
+            my_target = idx_tab(iINC, my_number)
             qap_acs(i,j,k,s) = qap_acs(i,j,k,s) - tend_m
-            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+            qap_inc(i,j,k,my_target) = qap_inc(i,j,k,my_target) + tend_m
           end do
 
           dNcdt = merge(dNcdt - N_acs(i,j,k) / delt, 0.0_field_r, &
@@ -602,9 +609,12 @@ contains
           do s = 1, m_ais % nspecies - 1
             tend_m = fm * qa_ais(i,j,k,s) / delt
             tend_m = max(0.0_field_r, tend_m)
+            my_number = m_ais % aero_idx(s)
+            my_target = idx_tab(iINC, my_number)
             qap_ais(i,j,k,s) = qap_ais(i,j,k,s) - tend_m
-            qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+            qap_inc(i,j,k,my_target) = qap_inc(i,j,k,my_target) + tend_m
           end do
+          end if
         end do
       end do
     end do
@@ -628,6 +638,7 @@ contains
   !! \param delt Time step size.
   !! \param modes List of aerosol modes.
   subroutine scavenging(ql, sed_qr, Nc, qrmask, rhof, delt, modes)
+    use modmicrodata, only: qcmask
     real(field_r), intent(in)    :: ql(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: sed_qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nc(2:i1,2:j1,1:k1)
@@ -661,6 +672,7 @@ contains
       do k = 1, k1
         do j = 1, j1-1
           do i = 1, i1-1 
+            if (qcmask(i+1,j+1,k) .and. Nc(i+1,j+1,k) > 1E3) then
             ! Mode mean properties
             mode_mean_mass = 0
             mode_mean_rho = 0
@@ -719,6 +731,7 @@ contains
                   modes(iINR) % tend(i+1,j+1,k,target_idx) + tend_m
               end do
             end if
+          end if
           end do
         end do
       end do
@@ -726,7 +739,7 @@ contains
       do k = 1, k1
         do j = 1, j1-1
           do i = 1, i1-1 
-            if (qrmask(i,j,k) .and. sed_qr(i+1,j+1,k)*3600 > 0.01_field_r) then
+            if (qrmask(i+1,j+1,k) .and. sed_qr(i+1,j+1,k)*3600 > 0.01_field_r) then
               ! Mode mean properties
               mode_mean_mass = 0
               mode_mean_rho = 0
