@@ -22,7 +22,6 @@ module bulkmicro_kk
   use modprecision, only: field_r
   use modtimer,     only: timer_tic, timer_toc
 
-
   implicit none
 
   private
@@ -393,8 +392,8 @@ contains
         do j = 2, j1
           do i = 2, i1
             if (qrmask(i,j,k)) then
-              sed_qr = max(0.0_field_r, 0.006_field_r * 1E6_field_r * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
-              sed_Nr = max(0.0_field_r, 0.0035_field_r * 1E6_field_r * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
+              sed_qr = max(0.0_field_r, 0.006_field_r * 1E6 * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
+              sed_Nr = max(0.0_field_r, 0.0035_field_r * 1E6 * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
 
               qr_spl(i,j,k) = qr_spl(i,j,k) - sed_qr * dt_spl / (dzf(k) * rhof(k))
               Nr_spl(i,j,k) = Nr_spl(i,j,k) - sed_Nr * dt_spl / dzf(k)
@@ -539,7 +538,7 @@ contains
           do j = 2, j1
             do i = 2, i1
               if (qrmask(i,j,k)) then
-                precep(i,j,k) = max(0.0_field_r, 0.006_field_r * 1E6_field_r * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k)
+                precep(i,j,k) = max(0.0_field_r, 0.006_field_r * 1E6 * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k)
               endif
             enddo
           enddo
@@ -557,8 +556,8 @@ contains
         do j = 2, j1
           do i = 2, i1
             if (qrmask(i,j,k)) then
-              sed_qr = max(0.0_field_r, 0.006_field_r *1E6_field_r * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
-              sed_Nr = max(0.0_field_r, 0.0035_field_r *1E6_field_r * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
+              sed_qr = max(0.0_field_r, 0.006_field_r *1E6 * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
+              sed_Nr = max(0.0_field_r, 0.0035_field_r *1E6 * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
 
               qr_tmp(i,j,k) = qr_tmp(i,j,k) - sed_qr * dt_spl / (dzf(k) * rhof(k))
               Nr_tmp(i,j,k) = Nr_tmp(i,j,k) - sed_Nr * dt_spl / dzf(k)
@@ -572,8 +571,8 @@ contains
         do j = 2, j1
           do i = 2, i1
             if (qrmask(i,j,k)) then
-              sed_qr = max(0.0_field_r, 0.006_field_r *1E6_field_r * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
-              sed_Nr = max(0.0_field_r, 0.0035_field_r *1E6_field_r * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
+              sed_qr = max(0.0_field_r, 0.006_field_r *1E6 * Dvr(i,j,k) - 0.2_field_r) * qr_spl(i,j,k) * rhof(k)
+              sed_Nr = max(0.0_field_r, 0.0035_field_r *1E6 * Dvr(i,j,k) - 0.1_field_r) * Nr_spl(i,j,k)
 
               !$acc atomic update
               qr_tmp(i,j,k) = qr_tmp(i,j,k) - sed_qr*dt_spl/(dzf(k)*rhof(k))

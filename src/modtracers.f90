@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 !> \file modtracers.f90
 !! Definitions and functions for passive and reactive tracers
 
@@ -133,7 +134,7 @@ contains
   !! \param laero Tracer is involved in aerosol microphyiscs.
   !! \note All tracers should be added before readinitfiles is called!
   subroutine add_tracer(name, long_name, unit, molar_mass, lemis, lreact, &
-                        ldep, lags, lnudge, lmicro, isv)
+                        ldep, lags, laero, lnudge, lmicro, isv)
     character(*),  intent(in)            :: name
     character(*),  intent(in),  optional :: long_name
     character(*),  intent(in),  optional :: unit
@@ -142,6 +143,7 @@ contains
     logical,       intent(in),  optional :: lreact
     logical,       intent(in),  optional :: ldep
     logical,       intent(in),  optional :: lags
+    logical,       intent(in),  optional :: laero
     logical,       intent(in),  optional :: lnudge
     logical,       intent(in),  optional :: lmicro
     integer,       intent(out), optional :: isv
@@ -179,6 +181,7 @@ contains
     if (present(lreact)) tracer_prop(nsv) % lreact = lreact
     if (present(ldep)) tracer_prop(nsv) % ldep = ldep
     if (present(lags)) tracer_prop(nsv) % lags = lags
+    if (present(laero)) tracer_prop(nsv) % laero = laero
     if (present(lnudge)) tracer_prop(nsv) % lnudge = lnudge
     if (present(lmicro)) tracer_prop(nsv) % lmicro = lmicro
 
@@ -317,7 +320,7 @@ contains
     character(32) :: long_name
     character(16) :: unit
     real(field_r) :: molar_mass
-    logical       :: lemis, lreact, ldep, lags, lnudge
+    logical       :: lemis, lreact, ldep, lags, lnudge, laero
 
     inquire(file=filename, exist=file_exists)
 
@@ -344,12 +347,14 @@ contains
       call read_nc_attribute(ncid, varids(ivar), "lreact", lreact, default=.false.)
       call read_nc_attribute(ncid, varids(ivar), "ldep", ldep, default=.false.)
       call read_nc_attribute(ncid, varids(ivar), "lags", lags, default=.false.)
+      call read_nc_attribute(ncid, varids(ivar), "laero", laero, default=.false.)
       call read_nc_attribute(ncid, varids(ivar), "lnudge", lnudge, default=.false.)
 
       ! Setup tracer
       call add_tracer(trim(name), long_name=trim(long_name), unit=unit, &
                       molar_mass=molar_mass, lemis=lemis, lreact=lreact, &
-                      ldep=ldep, lags=lags, lnudge=lnudge, lmicro=.false.)
+                      ldep=ldep, lags=lags, laero=laero, lnudge=lnudge, &
+                      lmicro=.false.)
     end do
 
     deallocate(varids)

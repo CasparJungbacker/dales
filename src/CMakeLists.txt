@@ -15,6 +15,7 @@ set( dales_srcs
 	le_drydepos_gas_depac.f90
 	modAGScross.f90
 	modadvection.f90
+	modaerosol.f90
 	modboundary.f90
 	modbudget.f90
 	modbulkmicro.f90
@@ -46,9 +47,11 @@ set( dales_srcs
 	modgpumpiinterface.f90
 	modheterostats.f90
 	modhypre.f90
+	modlookuptable.f90
 	modlsm.f90
 	modlsmcrosssection.f90
 	modlsmstat.f90
+	modmath.f90
 	modmicrodata.f90
 	modmicrodata3.f90
 	modmicrophysics.f90

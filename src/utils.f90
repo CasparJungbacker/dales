@@ -1,5 +1,6 @@
 !> Module with various handy functions/subroutines
 module utils
+  use modmpi, only: myid
 
   implicit none
 
@@ -16,8 +17,21 @@ module utils
   public :: findval
   public :: to_lower
   public :: to_upper
+  public :: dales_error
 
 contains
+
+  !> Prints an error message and exits the program.
+  !!
+  !! \param message Message to print
+  subroutine dales_error(message)
+    character(*), intent(in) :: message
+
+    if (myid == 0) then
+      write(6,*) "*** ERROR: ", message, " ***"
+    end if
+    error stop
+  end subroutine dales_error
 
   !> Find a value in an array of values based on a key in an array of keys
   !!

@@ -713,7 +713,10 @@ contains
        Tl_max = maxval(thl0(2:i1,2:j1,k)) * exnf(k)
        qt_max = maxval(qt0(2:i1,2:j1,k))
        if (Tl_min < 150) STOP 'icethermo0_fast: Tl_min below limit 150K'
-       if (esat_tab(Tl_max + 5) > presf(k)) STOP 'icethermo0_fast: Tl_max too close to boiling point'
+       if (esat_tab(Tl_max + 5) > presf(k)) then
+         print *, "Tlmax:", Tl_max
+         STOP 'icethermo0_fast: Tl_max too close to boiling point'
+        end if
 
        qsat_ = qsat_tab(Tl_min, presf(k)) ! lowest possible qsat in this slab
        if (qt_max > qsat_) then

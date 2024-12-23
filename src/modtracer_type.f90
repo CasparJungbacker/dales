@@ -4,7 +4,7 @@ module modtracer_type
  
   implicit none
   
-  type T_tracer
+  type tracer_t
   ! Fixed tracer properties
       ! Tracer name
       character(len=16) :: tracname
@@ -28,18 +28,24 @@ module modtracer_type
       logical           :: lmicro=.false.
       ! Boolean if tracer is nudged
       logical           :: lnudge=.false.
+      ! Boolean if in aerosol microphysics
+      logical           :: laero=.false.
       ! ! Static tracer properties:
       ! real :: diffusivity
 
   contains
     procedure :: print_properties => tracer_print_properties
-  end type T_tracer
+  end type tracer_t
+
+  type, public :: tracer_ptr_t
+    type(tracer_t), pointer :: ptr => null()
+  end type tracer_ptr_t
 
 contains
 
   subroutine tracer_print_properties(self)
 
-    class(T_tracer), intent(in) :: self
+    class(tracer_t), intent(in) :: self
 
     write(*,*) "Tracer: ", self%tracname
     write(*,*) "  long name  : ", trim(self%traclong)
@@ -51,6 +57,7 @@ contains
     write(*,*) "  ldep       : ", self%ldep
     write(*,*) "  lags       : ", self%lags
     write(*,*) "  lmicro     : ", self%lmicro
+    write(*,*) "  laero      : ", self%laero
 
   end subroutine tracer_print_properties
 

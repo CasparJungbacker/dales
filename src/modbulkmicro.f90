@@ -59,13 +59,16 @@ module modbulkmicro
 
 !> Initializes and allocates the arrays
   subroutine initbulkmicro
+    use modaerosol, only: laerosol
     use modglobal, only : i1,j1,k1,ih,jh
-    use modmicrodata, only : lacz_gamma, Nr, Nrp, qr, qrp, thlpmcr, &
+    use modmicrodata, only : lacz_gamma, Nc, Nc_0, Nr, Nrp, qr, qrp, thlpmcr, &
                              qtpmcr, Dvr, xr, mur, &
-                             lbdr, iqr, inr, &
-                             precep, qrmask, qcmask
+                             lbdr, iqr, inr, inc, &
+                             precep, qrmask, qcmask, sed_qr
     use modtracers,   only: add_tracer
+    use modfields, only: sv0
     implicit none
+
 
     ! Setup two tracers for precipitation
     call add_tracer("qr", long_name="rain water mixing ratio", &
@@ -74,12 +77,15 @@ module modbulkmicro
     call add_tracer("Nr", long_name="rain droplet number concentration", &
                     unit="1/m^3", lmicro=.true., isv=inr)
 
+    call add_tracer("Nc", long_name="rain droplet number concentration", &
+                    unit="1/m^3", lmicro=.true., isv=inc)
+
                                         ! Fields accessed by:
-    allocate(Nr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
-            ,qr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
+    allocate(qr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
             ,Nrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
             ,qrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
             ,Dvr      (2:i1,2:j1,k1)  & ! dobulkmicrostat
+            ,sed_qr   (2:i1,2:j1,k1)  & ! dobulkmicrostat
             ,precep   (2:i1,2:j1,k1)  ) ! dobulkmicrostat, dosimpleicestat, docape
 
     allocate(thlpmcr  (2:i1,2:j1,k1)  & !
@@ -90,11 +96,13 @@ module modbulkmicro
             ,qrmask   (2:i1,2:j1,k1)  & !
             ,qcmask   (2:i1,2:j1,k1)  )
 
+
+
     gamma25=lacz_gamma(2.5)
     gamma3=2.
     gamma35=lacz_gamma(3.5)
 
-    !$acc enter data copyin(Nr, qr, Nrp, qrp, Dvr, precep, &
+    !$acc enter data copyin(Nrp, qrp, Dvr, precep, &
     !$acc&                  thlpmcr, qtpmcr, xr, mur, lbdr, qrmask, qcmask)
 
   end subroutine initbulkmicro
@@ -112,7 +120,7 @@ module modbulkmicro
     !$acc exit data delete(Nr, qr, Nrp, qrp, Dvr, precep, &
     !$acc&                 thlpmcr, qtpmcr, xr, mur, lbdr, qrmask, qcmask)
 
-    deallocate(Nr,Nrp,qr,qrp,thlpmcr,qtpmcr)
+    deallocate(Nrp,qrp,thlpmcr,qtpmcr)
     deallocate(Dvr,xr,mur,lbdr)
     deallocate(precep,qrmask,qcmask)
 
@@ -120,6 +128,7 @@ module modbulkmicro
 
 !> Calculates the microphysical source term.
   subroutine bulkmicro
+    use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging
     use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -127,20 +136,27 @@ module modbulkmicro
     use modmicrodata, only : Nr, qr, Nrp, qrp, thlpmcr, qtpmcr, delt, &
                              l_sedc, l_mur_cst, l_lognormal, l_rain, &
                              qrmask, qrmin, qcmask, qcmin, &
-                             mur_cst, inr, iqr, l_sb
+                             mur_cst, inr, iqr, l_sb, Nc, Nc_0, iNc, &
+                             sed_qr
     use bulkmicro_sb, only: do_bulkmicro_sb
     use bulkmicro_kk, only: do_bulkmicro_kk
     implicit none
-    integer :: i, j, k
+    integer :: i, j, k, imod
     real :: qrtest,nr_cor,qr_cor
     real :: qrsum_neg, qrsum, Nrsum_neg, Nrsum
+
+    qr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iqr)
+    Nr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNr)
+    Nc(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNc)
+
+    if (.not. laerosol) then
+      Nc(:,:,:) = Nc_0
+    end if
 
     !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
-          Nr(i,j,k) = sv0(i,j,k,inr)
-          qr(i,j,k) = sv0(i,j,k,iqr)
           Nrp(i,j,k)     = 0.0
           qrp(i,j,k)     = 0.0
           thlpmcr(i,j,k) = 0.0
@@ -209,7 +225,7 @@ module modbulkmicro
         do i = 2, i1
           ! Update mask prior to using it
           qrmask(i,j,k) = (qr(i,j,k) > qrmin .and. Nr(i,j,k) > 0.0)
-          qcmask(i,j,k) = ql0(i,j,k) > qcmin
+          qcmask(i,j,k) = (ql0(i,j,k) > qcmin .and. Nc(i,j,k) > 0.0)
           if (qrmask(i,j,k)) then
             qrbase = min(k, qrbase)
           endif
@@ -277,8 +293,17 @@ module modbulkmicro
     endif
 #endif
 
+    if (laerosol) then
+      do imod = 1, maxmodes
+        call modes(imod) % copy_in(sv0)
+      end do
+    end if
+
     ! if there is nothing to do, we can return at this point
     ! if (min(qrbase,qcbase).gt.max(qrroof,qcroof)) return
+    if (laerosol) then
+      call activation 
+    end if
 
     if (l_sedc) then
       call sedimentation_cloud
@@ -293,6 +318,16 @@ module modbulkmicro
       else
         call do_bulkmicro_kk
       end if
+    end if
+
+    if (laerosol) then
+      call scavenging(ql0, sed_qr, Nc, qrmask, rhof, delt, modes)
+    end if
+
+    if (laerosol) then
+      do imod = 1, maxmodes
+        call modes(imod) % copy_out(svp, svm, delt)
+      end do
     end if
 
     !*********************************************************************
@@ -324,9 +359,11 @@ module modbulkmicro
           ! clip the tendencies so that qr,Nr >= 0 next step
           svp(i,j,k,iqr) = max(svp(i,j,k,iqr), -svm(i,j,k,iqr)/delt)
           svp(i,j,k,inr) = max(svp(i,j,k,inr), -svm(i,j,k,inr)/delt)
+          svp(i,j,k,inc) = max(svp(i,j,k,inc), -svm(i,j,k,inc)/delt)
         enddo
       enddo
     enddo
+
   end subroutine bulkmicro
 
   !> Sedimentation of cloud water ((Bretherton et al,GRL 2007))
@@ -340,7 +377,7 @@ module modbulkmicro
   subroutine sedimentation_cloud
     use modglobal, only : i1,j1,rlv,cp,dzf,pi
     use modfields, only : rhof,exnf,ql0
-    use modmicrodata, only : csed,c_St,rhow,sig_g,Nc_0, &
+    use modmicrodata, only : csed,c_St,rhow,sig_g,Nc, &
                              qtpmcr,thlpmcr,qcmask
     implicit none
     integer :: i, j, k
@@ -357,7 +394,7 @@ module modbulkmicro
       do j = 2, j1
         do i = 2, i1
           if (qcmask(i,j,k)) then
-            sedc = csed*Nc_0**(-2./3.)*(ql0(i,j,k)*rhof(k))**(5./3.)
+            sedc = csed*Nc(i,j,k)**(-2./3.)*(ql0(i,j,k)*rhof(k))**(5./3.)
 
             !$acc atomic update
             qtpmcr(i,j,k)  = qtpmcr (i,j,k) - sedc /(dzf(k)*rhof(k))

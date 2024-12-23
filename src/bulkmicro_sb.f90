@@ -17,15 +17,19 @@
 !
 !> Kernels for Seifert-Beheng microphysics
 module bulkmicro_sb
+  use modaerosol,   only: mode_t, iINC, iINR, iACS, iCOS
   use modglobal,    only: ih, jh, i1, j1, k1, nsv, rlv, cp, eps1, pi, rv, &
                           mygamma21, mygamma251
-  use modmicrodata, only: Nc_0, pirhow, qrmin, iqr, inr, rhow
+  use modmath,      only: inv_sqrt_two
+  use modmicrodata, only: Nc_0, pirhow, qrmin, iqr, inr, rhow, eps0
   use modprecision, only: field_r
   use modtimer,     only: timer_tic, timer_toc
 
   implicit none
 
   private
+
+  character(*),  parameter :: modname = "bulkmicro_sb"
 
   ! Constants
   ! TODO, maybe read these from a namelist.
@@ -45,11 +49,13 @@ module bulkmicro_sb
     kappa_r = 60.7,   & !< See eq. 11 in SB2006.
     k_br = 1000.,     & !< Parameter for break-up.
     k_c = 10.58e9,    & !< Long Kernel coefficient SB2006 (k'cc).
+    k_cc = 4.44e9,    & !< Cloud selfcollection efficiency SB2006.
     k_l = 5.e-5,      & !< Coefficient for phi function in accretion rate.
     k_r = 5.25,       & !< Kernel SB2006.
     k_rr = 7.12,      & !< See eq. 11 in SB2006.
     Kt = 2.5e-2,      & !< Conductivity of heat [J/(sKm)].
     nu_a = 1.41e-5,   & !< Kinematic viscosity of air.
+    rho0 = 1.225,     & !< Reference air density
     Sc_num = 0.71,    & !< Schmidt number.
     sig_gr = 1.5,     & !< GSD of rain drop DSD.
     wfallmax = 9.9,   & !< Terminal velocity (?)
@@ -65,10 +71,11 @@ module bulkmicro_sb
 contains
 
   subroutine do_bulkmicro_sb
-    use modmicrodata,     only: qr, Nr, iqr, iNr, thlpmcr, qtpmcr, qcbase, &
+    use modaerosol,       only: modes, iINC, iINR, laerosol
+    use modmicrodata,     only: qr, Nc, Nr, iqr, iNr, thlpmcr, qtpmcr, qcbase, &
                                 qcroof, qrbase, qrroof, qcmask, qrmask, qrp, Nrp, &
                                 Dvr, xr, lbdr, mur, delt, l_lognormal, l_mur_cst, &
-                                mur_cst, precep
+                                mur_cst, precep, sed_qr
     use modfields,        only: rhof, ql0, exnf, qvsl, tmp0, esl, svm, qt0
     use modglobal,        only: dzf
     use modbulkmicrostat, only: bulkmicrotend
@@ -76,25 +83,48 @@ contains
     call calculate_rain_parameters(Nr, qr, rhof, l_mur_cst, mur_cst, qrbase, &
                                    qrroof, qrmask, xr, Dvr, mur, lbdr)
     call bulkmicrotend
-    call autoconversion(ql0, qr, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
-                        qtpmcr, qrp, Nrp)
-    call bulkmicrotend
-    call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
-                   qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp)
-    call bulkmicrotend
-    call evaporation(ql0, qt0, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, tmp0, &
-                     esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, lbdr, &
-                     mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr)
-    call bulkmicrotend
+    if (.not. laerosol) then
+      call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
+                          thlpmcr, qtpmcr, qrp, Nrp)
+      call bulkmicrotend
+      call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
+                     qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp)
+      call bulkmicrotend
+      call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, &
+                       tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, &
+                       lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr)
+      call bulkmicrotend
 #ifdef DALES_GPU
-    call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
-                                l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, &
-                                mur, xr, qrp, Nrp, precep)
+      call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, Dvr, &
+                                  lbdr, mur, delt, xr, l_lognormal, l_mur_cst, &
+                                  mur_cst, qrp, Nrp, qrmask, precep)
 #else
-    call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
-                            l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, &
-                            mur, xr, qrp, Nrp, precep)
+      call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+                              l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
+                              lbdr, mur, xr, qrp, Nrp, precep)
 #endif
+    else
+      associate(m_inc => modes(iINC), m_inr => modes(iINR), &
+                m_acs => modes(iACS), m_cos => modes(iCOS))
+      call autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, &
+                          thlpmcr, qtpmcr, qrp, Nrp, laerosol=laerosol, &
+                          m_inc=m_inc, m_inr=m_inr)
+      call bulkmicrotend
+      call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
+                     qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, &
+                     laerosol=laerosol, m_inc=m_inc, m_inr=m_inr, Nc=Nc)
+      call bulkmicrotend
+      call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, &
+                       tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, &
+                       lbdr, mur, xr, qrp, Nrp, delt, qtpmcr, thlpmcr, &
+                       laerosol=.true., m_inr=m_inr, m_acs=m_acs, m_cos=m_cos)
+      call bulkmicrotend
+      call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+                              l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
+                              lbdr, mur, xr, qrp, Nrp, precep, &
+                              laerosol=.true., m_inr=m_inr, sed_qr_=sed_qr)
+      end associate
+    end if
     call bulkmicrotend
 
   end subroutine do_bulkmicro_sb
@@ -184,6 +214,7 @@ contains
   !!
   !! \param ql0 Liquid water mixing ratio.
   !! \param qr Rain water mixing ratio.
+  !! \param Nc Cloud condensation nucleii.
   !! \param exnf Exner function at full levels.
   !! \param rhof Density at full levels.
   !! \param qcbase Lowest level with cloud.
@@ -193,10 +224,15 @@ contains
   !! \param qtpmcr Tendency of $\q_t$.
   !! \param qrp Tendency of rain water mixing ratio.
   !! \param Nrp Tendency of rain drop number concentration.
-  subroutine autoconversion(ql0, qr, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
-                            qtpmcr, qrp, Nrp)
+  !! \param laerosol Switch for applying autoconversion to aerosols.
+  !! \param m_inc In-cloud aerosol mode.
+  !! \param m_inr In-rain aerosol mode.
+  subroutine autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
+                            qtpmcr, qrp, Nrp, laerosol, m_inc, m_inr)
+    use modmicrodata, only: delt
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
+    real(field_r), intent(in)    :: Nc(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
 
@@ -208,20 +244,40 @@ contains
     real(field_r), intent(inout) :: qrp(2:i1,2:j1,1:k1)
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
 
-    integer       :: i, j, k
+    logical,      optional, intent(in)    :: laerosol
+    type(mode_t), optional, intent(inout) :: m_inc
+    type(mode_t), optional, intent(inout) :: m_inr
+
+    character(*), parameter :: routine = modname//"::autoconversion"
+
+    integer       :: i, j, k, s, naer
+    logical :: laerosol_
     real(field_r) :: &
       au,   &
       tau,  & !< internal time scale
       phi,  & !< correction function (see SB2001)
       xc,   & !< mean mass of cloud water droplets
       nuc,  & !< width parameter of cloud DSD
-      k_au    !< Coefficient for autoconversion rate
+      k_au, & !< Coefficient for autoconversion rate
+      sc      !< Selfcollection rate
 
     if (qcbase > qcroof) return
 
-    call timer_tic('bulkmicro_sb/autoconversion', 1)
+    call timer_tic('bulkmicro_sb01/autoconversion', 1)
+
+    if (present(laerosol)) then
+      laerosol_ = laerosol
+    else
+      laerosol_ = .false.
+    end if
 
     k_au = k_c / (20 * x_s)
+
+    associate(Ncp => m_inc % tend(:,:,:,1), &
+              qap_inc => m_inc % tend(:,:,:,2:), &
+              qap_inr => m_inc % tend(:,:,:,2:), &
+              qa0_inc => m_inc % conc(:,:,:,2:), &
+              qa0_inr => m_inr % conc(:,:,:,2:))
 
     !$acc parallel loop collapse(3) default(present)
     do k = qcbase, qcroof
@@ -230,24 +286,44 @@ contains
            if (qcmask(i,j,k)) then
               nuc = 1.58_field_r * (rhof(k) * ql0(i,j,k) * 1000.0_field_r) &
                     + 0.72_field_r - 1.0_field_r !G09a
-              xc = rhof(k) * ql0(i,j,k) / Nc_0 ! No eps0 necessary
+              xc = rhof(k) * ql0(i,j,k) / (Nc(i,j,k) + eps0)
               au = k_au * (nuc + 2) * (nuc + 4) / (nuc + 1)**2 &
-                        * (ql0(i,j,k) * xc)**2 * 1.225_field_r ! *rho**2/rho/rho (= 1)
+                        * (ql0(i,j,k) * xc)**2 * rho0 ! *rho**2/rho/rho (= 1)
 
               tau = qr(i,j,k) / (ql0(i,j,k) + qr(i,j,k))
               phi = k_1 * tau**k_2 * (1 - tau**k_2)**3
               au = au * (1 + phi / (1 - tau)**2)
 
+              au = min(ql0(i,j,k) / delt, au)
+
               qrp(i,j,k) = qrp(i,j,k) + au
               Nrp(i,j,k) = Nrp(i,j,k) + au / x_s
+
               qtpmcr(i,j,k) = qtpmcr(i,j,k) - au
               thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * au
+
+              
+              if (laerosol_) then
+                ! When aerosols are enabled, we need to take selfcollection into account
+                sc = -k_cc * ((nuc + 2) / (nuc + 1)) * rho0 / rhof(k) &
+                     * (ql0(i,j,k) * rhof(k))**2
+
+                Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) + sc - au / xc
+
+                do s = 1, m_inc % nspecies
+                  qap_inc(i-1,j-1,k,s) = qap_inc(i-1,j-1,k,s) - au / ql0(i,j,k) * qa0_inc(i-1,j-1,k,s)
+                  qap_inr(i-1,j-1,k,s) = qap_inr(i-1,j-1,k,s) + au / ql0(i,j,k) * qa0_inr(i-1,j-1,k,s)
+                end do
+              end if
            end if
         end do
       end do
     end do
 
-    call timer_toc('bulkmicro_sb/autoconversion')
+    end associate
+
+
+    call timer_toc('bulkmicro_sb01/autoconversion')
 
   end subroutine autoconversion
 
@@ -271,7 +347,8 @@ contains
   !! \param qrp Tendency of rain water mixing ratio.
   !! \param Nrp Tendency of rain drop number concentration.
   subroutine accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
-                       qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp)
+                       qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, &
+                       laerosol, m_inc, m_inr, Nc)
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nr(2:i1,2:j1,1:k1)
@@ -290,9 +367,20 @@ contains
     real(field_r), intent(inout) :: qrp(2:i1,2:j1,1:k1)
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
 
-    integer :: i,j,k
+    logical,       optional, intent(in)    :: laerosol
+    !real(field_r), optional, intent(in)    :: Nc(2:i1,2:j1,1:k1)
+    !real(field_r), optional, intent(in)    :: Ncp(2:i1,2:j1,1:k1)
+    type(mode_t),  optional, intent(inout) :: m_inc
+    type(mode_t),  optional, intent(inout) :: m_inr
+    real(field_r), optional, intent(in)    :: Nc(2:i1,2:j1,1:k1)
+
+    character(*), parameter :: routine = modname//"::accretion"
+
+    integer :: i,j,k, s
+    logical :: laerosol_
 
     real(field_r) :: ac, sc, br
+    real(field_r) :: xc
     real(field_r) :: phi     !  correction function (see SB2001)
     real(field_r) :: phi_br
     real(field_r) :: tau     !  internal time scale
@@ -301,19 +389,42 @@ contains
 
     call timer_tic('bulkmicro_sb/accretion', 1)
 
+    if (present(laerosol)) then
+      laerosol_ = laerosol
+    else
+      laerosol_ = .false.
+    end if
+
+    associate(Ncp => m_inc % tend(:,:,:,1), &
+              qap_inc => m_inc % tend(:,:,:,2:), &
+              qap_inr => m_inc % tend(:,:,:,2:), &
+              qa0_inc => m_inc % conc(:,:,:,2:), &
+              qa0_inr => m_inr % conc(:,:,:,2:))
+
     !$acc parallel loop collapse(3) default(present)
     do k = max(qrbase,qcbase), min(qrroof, qcroof)
       do j = 2, j1
         do i = 2, i1
           if (qrmask(i,j,k) .and. qcmask(i,j,k)) then
-             tau = qr(i,j,k) / (ql0(i,j,k) + qr(i,j,k))
-             phi = (tau / (tau + k_l))**4
-             ac = k_r * rhof(k) * ql0(i,j,k) * qr(i,j,k) * phi &
-                  * (1.225_field_r / rhof(k))**0.5_field_r
+            tau = qr(i,j,k) / (ql0(i,j,k) + qr(i,j,k))
+            phi = (tau / (tau + k_l))**4
+            ac = k_r * rhof(k) * ql0(i,j,k) * qr(i,j,k) * phi &
+                 * (1.225_field_r / rhof(k))**0.5_field_r
 
-             qrp(i,j,k) = qrp(i,j,k) + ac
-             qtpmcr(i,j,k) = qtpmcr(i,j,k) - ac
-             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * ac
+            qrp(i,j,k) = qrp(i,j,k) + ac
+            qtpmcr(i,j,k) = qtpmcr(i,j,k) - ac
+            thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv/(cp*exnf(k)))*ac
+
+
+            if (laerosol_) then
+              xc = rhof(k) * ql0(i,j,k) / (Nc(i1,j1,k) + eps0)
+              Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) - ac / xc
+
+              do s = 1, m_inc % nspecies 
+                qap_inc(i-1,j-1,k,s) = qap_inc(i-1,j-1,k,s) - ac / ql0(i,j,k) * qa0_inc(i-1,j-1,k,s)
+                qap_inr(i-1,j-1,k,s) = qap_inr(i-1,j-1,k,s) + ac / ql0(i,j,k) * qa0_inc(i-1,j-1,k,s)
+              end do
+            end if
           end if
         end do
       end do
@@ -326,23 +437,24 @@ contains
       do j = 2, j1
         do i = 2, i1
           if (qrmask(i,j,k)) then
-             sc = k_rr *rhof(k)* qr(i,j,k) * Nr(i,j,k)  &
-                  * (1 + kappa_r / lbdr(i,j,k) * pirhow**(1.0_field_r/3))**(-9) &
-                  * (1.225_field_r / rhof(k))**0.5_field_r
-             if (Dvr(i,j,k) .gt. 0.30E-3_field_r) then
-               phi_br = k_br * (Dvr(i,j,k) - D_eq)
-               br = (phi_br + 1) * sc
-             else
-               br = 0
-             end if
+            sc = k_rr *rhof(k)* qr(i,j,k) * Nr(i,j,k)  &
+                 * (1 + kappa_r/lbdr(i,j,k)*pirhow**(1./3.))**(-9.)* (1.225/rhof(k))**0.5
+            if (Dvr(i,j,k) .gt. 0.30E-3) then
+              phi_br = k_br * (Dvr(i,j,k)-D_eq)
+              br = (phi_br + 1.) * sc
+            else
+              br = 0.
+            end if
 
-             Nrp(i,j,k) = Nrp(i,j,k) - sc + br
+            Nrp(i,j,k) = Nrp(i,j,k) - sc + br
           end if
         end do
       end do
     end do
 
-    call timer_toc('bulkmicro_sb/accretion')
+    end associate
+
+    call timer_toc('bulkmicro_sb01/accretion')
 
   end subroutine accretion
 
@@ -370,11 +482,14 @@ contains
   !! \param delt Time step size.
   !! \param qtpmcr Tendency of total water mixing ratio.
   !! \param thlpmcr Tendency of $\theta_l$.
-  subroutine evaporation(ql0, qt0, qrm, Nrm, qvsl, tmp0, esl, exnf, rhof, Nr, qrbase, &
+  subroutine evaporation(ql0, qt0, qr0, qrm, Nrm, qvsl, tmp0, esl, exnf, rhof, Nr, qrbase, &
                          qrroof, qrmask, Dvr, lbdr, mur, xr, qrp, Nrp, delt, &
-                         qtpmcr, thlpmcr)
+                         qtpmcr, thlpmcr, laerosol, m_inr, m_acs, m_cos)
+    use modfields, only: svm
+    use modaerosol, only: idx_tab
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qt0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
+    real(field_r), intent(in)    :: qr0(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: qrm(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: Nrm(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qvsl(2-ih:i1+ih,2-jh:j1+jh,1:k1)
@@ -398,17 +513,44 @@ contains
     real(field_r), intent(inout) :: qtpmcr(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(inout) :: thlpmcr(2:i1,2:j1,1:k1)
 
-    integer       :: i,j,k
+    logical,      optional, intent(in)    :: laerosol
+    type(mode_t), optional, intent(inout) :: m_inr
+    type(mode_t), optional, intent(inout) :: m_acs
+    type(mode_t), optional, intent(inout) :: m_cos
+
+    integer       :: i,j,k,l
     integer       :: numel
+    logical       :: laerosol_
+    integer       :: idx
     real(field_r) :: F !< ventilation factor
     real(field_r) :: S !< super or undersaturation
     real(field_r) :: G !< cond/evap rate of a drop
     real(field_r) :: evap, Nevap
     real(field_r) :: mur_, lbdr_
+    real(field_r) :: dm, dm_fac, e, eps, evapt, f_evp, fm, fn, rho, v, dn
+
+    character(*), parameter :: routine = modname//"::evaporation"
+
+    real(field_r), parameter :: Dc = 1.0
+    integer :: src_idx, target_idx
 
     if (qrbase > qrroof) return
 
-    call timer_tic('bulkmicro_sb/evaporation', 1)
+    call timer_tic('bulkmicro_sb01/evaporation', 1)
+
+    if (present(laerosol)) then
+      laerosol_ = laerosol
+    else
+      laerosol_ = .false.
+    end if
+
+    associate(&!Nrp => m_inr % tend(:,:,:,1), &
+              qap_inr => m_inr % tend(:,:,:,2:), &
+              qa0_inr => m_inr % conc(:,:,:,2:), &
+              Nap_acs => m_acs % tend(:,:,:,1), &
+              Nap_cos => m_cos % tend(:,:,:,1), &
+              qap_acs => m_acs % tend(:,:,:,2:), &
+              qap_cos => m_cos % tend(:,:,:,2:))
 
     !$acc parallel loop collapse(3) default(present)
     do k = qrbase, qrroof
@@ -447,10 +589,61 @@ contains
 
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - evap
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * evap
+
+
+            if (laerosol_) then
+              E = 0
+              V = 0
+              ! Fraction of evaporated aerosol
+              f_evp = max(min(-evap / (qr0(i,j,k) + eps0) * delt, 1.0_field_r), 0.0_field_r)
+              ! Correction factor from Gong et al. (2006)
+              eps = (1 - exp(-2 * sqrt(f_evp)) * (1 + 2 * sqrt(f_evp) + 2 * f_evp + (4.0_field_r/3) * f_evp**(3.0_field_r/2))) * (1 - f_evp) + f_evp * f_evp
+              do l = 1, m_inr % nspecies
+                evapt = eps * f_evp * qa0_inr(i-1,j-1,k,l) / delt
+                qap_inr(i-1,j-1,k,l) = qap_inr(i-1,j-1,k,l) - evapt
+
+                ! TODO: maybe limit to available aerosol
+                idx = m_inr % trac_idx(l+1)
+                evapt = max(evapt, min(0.0_field_r, - svm(i,j,k,idx)/delt))
+                
+                ! Evaporation can't be a source
+                evapt = max(0.0_field_r, evapt)
+
+                E = E + evapt
+                V = V + E / m_inr % rho(l)
+              end do
+
+              rho = E / (V + eps0)
+
+              Nevap = max(0._field_r, -1 * Nevap)
+              Dn = 1e6 * (6 * E / (pi * Nevap * rho * 1e9 + eps0))**(1.0_field_r / 3) &
+                   * exp(-(3.0_field_r / 2) * m_inr % log_sigma_g**2)
+              Dm = Dn * exp(3 * log(1.5_field_r)**2)
+
+              if (Dn > 0) then
+              Fn = 0.5_field_r * erfc(-log(Dc/Dn) / log(1.5_field_r) * inv_sqrt_two)
+              Fm = 0.5_field_r * erfc(-log(Dc/Dm) / log(1.5_field_r) * inv_sqrt_two)
+
+              Nap_acs(i-1,j-1,k) = Nap_acs(i-1,j-1,k) + Fn * Nevap
+              Nap_cos(i-1,j-1,k) = Nap_cos(i-1,j-1,k) + (1 - Fn) * Nevap
+
+             ! Redistribute over ACS and COS modes
+              do l = 1, m_inr % nspecies
+                evapt = eps * f_evp * qa0_inr(i-1,j-1,k,l) / delt
+                src_idx = m_inr % aero_idx(l)
+                target_idx = idx_tab(iACS,src_idx)
+                qap_acs(i-1,j-1,k,target_idx) = qap_acs(i-1,j-1,k,target_idx) + Fm * evapt
+                target_idx = idx_tab(iCOS,src_idx)
+                qap_cos(i-1,j-1,k,target_idx) = qap_cos(i-1,j-1,k,target_idx) + (1 - Fm) * evapt
+              end do
+            end if
+            end if
           end if
         end do
       end do
     end do
+
+    end associate
 
     call timer_toc('bulkmicro_sb/evaporation')
 
@@ -477,7 +670,7 @@ contains
   !! \param precep Precipitation.
   subroutine sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
                                 l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, &
-                                mur, xr, qrp, Nrp, precep)
+                                mur, xr, qrp, Nrp, precep, laerosol, m_inr, sed_qr_)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
@@ -500,20 +693,32 @@ contains
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
     real(field_r), intent(out)   :: precep(2:i1,2:j1,1:k1)
 
-    integer       :: i, j, k, jn
+    logical,       intent(in),    optional :: laerosol 
+    type(mode_t),  intent(inout), optional :: m_inr
+    real(field_r), intent(out),   optional :: sed_qr_(2:i1,2:j1,1:k1)
+
+    integer       :: i, j, k, jn, sedimbase, s
     integer       :: n_spl      !<  sedimentation time splitting loop
     real(field_r) :: pwcont
+    real(field_r) :: delt_inv
     real(field_r) :: Dgr           !<  lognormal geometric diameter
     real(field_r) :: wfall_qr      !<  fall velocity for qr
     real(field_r) :: wfall_Nr      !<  fall velocity for Nr
     real(field_r) :: sed_qr
     real(field_r) :: sed_Nr
+    logical       :: laerosol_
 
-    real(field_r), allocatable :: qr_spl(:,:,:), Nr_spl(:,:,:)
+    real(field_r), allocatable :: qr_spl(:,:,:), Nr_spl(:,:,:), qa_spl(:,:,:,:)
 
     real(field_r) :: dt_spl
 
-    call timer_tic('bulkmicro_sb/sedimentation_rain', 1)
+    call timer_tic('bulkmicro_sb01/sedimentation_rain', 1)
+
+    if (present(laerosol)) then
+      laerosol_ = laerosol
+    else
+      laerosol_ = .false.
+    end if
 
     precep(:,:,:) = 0 ! zero the precipitation flux field
                       ! the update below is not always performed
@@ -523,6 +728,10 @@ contains
     allocate(qr_spl(2:i1,2:j1,1:k1))
     allocate(Nr_spl(2:i1,2:j1,1:k1))
 
+    if (laerosol_) then
+      allocate(qa_spl(2:i1,2:j1,1:k1,m_inr % nspecies))
+    end if
+
     n_spl = ceiling(wfallmax * delt / minval(dzf))
     dt_spl = delt / real(n_spl, kind=field_r)
 
@@ -530,6 +739,11 @@ contains
       if (jn == 1) then
         qr_spl(:,:,:) = qr(:,:,:)
         Nr_spl(:,:,:) = Nr(:,:,:)
+        if (laerosol_) then
+          do s = 1, m_inr % nspecies
+            qa_spl(:,:,:,s) = m_inr % conc(:,:,:,s+1)
+          end do
+        end if
       else
         ! update parameters after the first iteration
         ! a new mask
@@ -599,6 +813,17 @@ contains
                 if (jn==1) then
                   precep(i,j,k) = sed_qr / rhof(k)   ! kg kg-1 m s-1
                 end if
+
+                if (laerosol_) then
+                  do s = 1, m_inr % nspecies
+                    qa_spl(i,j,k,s) = qa_spl(i,j,k,s) - (sed_qr / qr_spl(i,j,k) * qa_spl(i,j,k,s)) * dt_spl / (dzf(k) * rhof(k))
+                    if (k > 1) then
+                      qa_spl(i,j,k-1,s) = qa_spl(i,j,k-1,s) + (sed_qr / qr_spl(i,j,k) * qa_spl(i,j,k,s)) * dt_spl / (dzf(k-1) * rhof(k-1))
+                    end if
+                  end do
+                  ! Scavenging needs this, annoying to re-compute
+                  sed_qr_(i,j,k) = sed_qr
+                end if
               end if
             end do
           end do
@@ -618,7 +843,16 @@ contains
 
     deallocate(qr_spl, Nr_spl)
 
-    call timer_toc('bulkmicro_sb/sedimentation_rain')
+    if (laerosol_) then
+      do s = 1, m_inr % nspecies
+      m_inr % tend(:,:,qrbase:qrroof,s+1) = m_inr % tend(:,:,qrbase:qrroof,s+1) + &
+        (qa_spl(:,:,qrbase:qrroof,s) - m_inr % conc(:,:,qrbase:qrroof,s+1)) / delt
+      end do
+
+      deallocate(qa_spl)
+    end if
+
+    call timer_toc('bulkmicro_sb01/sedimentation_rain')
 
   end subroutine sedimentation_rain
 
@@ -910,7 +1144,7 @@ contains
 
     deallocate(qr_spl, Nr_spl, qr_tmp, Nr_tmp)
 
-    call timer_toc('bulkmicro_sb/sedimentation_rain')
+    call timer_toc('bulkmicro_sb01/sedimentation_rain')
 
   end subroutine sedimentation_rain_gpu
 #endif
