@@ -112,7 +112,7 @@ contains
       call bulkmicrotend
       call accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
                      qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, &
-                     laerosol=laerosol, m_inc=m_inc, m_inr=m_inr)
+                     laerosol=laerosol, m_inc=m_inc, m_inr=m_inr, Nc=Nc)
       call bulkmicrotend
       call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,inr), qvsl, &
                        tmp0, esl, exnf, rhof, Nr, qrbase, qrroof, qrmask, Dvr, &
@@ -229,6 +229,7 @@ contains
   !! \param m_inr In-rain aerosol mode.
   subroutine autoconversion(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, qcmask, thlpmcr, &
                             qtpmcr, qrp, Nrp, laerosol, m_inc, m_inr)
+    use modmicrodata, only: delt
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nc(2:i1,2:j1,1:k1)
@@ -293,16 +294,14 @@ contains
               phi = k_1 * tau**k_2 * (1 - tau**k_2)**3
               au = au * (1 + phi / (1 - tau)**2)
 
+              au = min(ql0(i,j,k) / delt, au)
+
               qrp(i,j,k) = qrp(i,j,k) + au
               Nrp(i,j,k) = Nrp(i,j,k) + au / x_s
 
               qtpmcr(i,j,k) = qtpmcr(i,j,k) - au
               thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * au
 
-              if (isnan(thlpmcr(i,j,k))) then
-                write(6,*) "NaN detected in "//routine//", at ", i,j,k
-                stop
-              end if
               
               if (laerosol_) then
                 ! When aerosols are enabled, we need to take selfcollection into account
@@ -322,6 +321,7 @@ contains
     end do
 
     end associate
+
 
     call timer_toc('bulkmicro_sb01/autoconversion')
 
@@ -348,7 +348,7 @@ contains
   !! \param Nrp Tendency of rain drop number concentration.
   subroutine accretion(ql0, qr, Nr, exnf, rhof, qcbase, qcroof, qrbase, qrroof, &
                        qcmask, qrmask, Dvr, lbdr, thlpmcr, qtpmcr, qrp, Nrp, &
-                       laerosol, m_inc, m_inr)
+                       laerosol, m_inc, m_inr, Nc)
     real(field_r), intent(in)    :: ql0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: Nr(2:i1,2:j1,1:k1)
@@ -372,6 +372,7 @@ contains
     !real(field_r), optional, intent(in)    :: Ncp(2:i1,2:j1,1:k1)
     type(mode_t),  optional, intent(inout) :: m_inc
     type(mode_t),  optional, intent(inout) :: m_inr
+    real(field_r), optional, intent(in)    :: Nc(2:i1,2:j1,1:k1)
 
     character(*), parameter :: routine = modname//"::accretion"
 
@@ -395,7 +396,6 @@ contains
     end if
 
     associate(Ncp => m_inc % tend(:,:,:,1), &
-              Nc => m_inc % conc(:,:,:,1), &
               qap_inc => m_inc % tend(:,:,:,2:), &
               qap_inr => m_inc % tend(:,:,:,2:), &
               qa0_inc => m_inc % conc(:,:,:,2:), &
@@ -415,13 +415,9 @@ contains
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - ac
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv/(cp*exnf(k)))*ac
 
-              if (isnan(thlpmcr(i,j,k))) then
-                write(6,*) "NaN detected in "//routine//", at ", i,j,k
-                stop
-              end if
 
             if (laerosol_) then
-              xc = rhof(k) * ql0(i,j,k) / Nc(i-1,j-1,k)
+              xc = rhof(k) * ql0(i,j,k) / (Nc(i1,j1,k) + eps0)
               Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) - ac / xc
 
               do s = 1, m_inc % nspecies 
@@ -594,10 +590,6 @@ contains
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - evap
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * evap
 
-              if (isnan(thlpmcr(i,j,k))) then
-                write(6,*) "NaN detected in "//routine//", at ", i,j,k
-                stop
-              end if
 
             if (laerosol_) then
               E = 0
@@ -747,7 +739,11 @@ contains
       if (jn == 1) then
         qr_spl(:,:,:) = qr(:,:,:)
         Nr_spl(:,:,:) = Nr(:,:,:)
-        if (laerosol_) qa_spl(:,:,:,:) = m_inr % conc(:,:,:,:)
+        if (laerosol_) then
+          do s = 1, m_inr % nspecies
+            qa_spl(:,:,:,s) = m_inr % conc(:,:,:,s+1)
+          end do
+        end if
       else
         ! update parameters after the first iteration
         ! a new mask
@@ -848,8 +844,10 @@ contains
     deallocate(qr_spl, Nr_spl)
 
     if (laerosol_) then
-      m_inr % tend(:,:,qrbase:qrroof,:) = m_inr % tend(:,:,qrbase:qrroof,:) + &
-        (qa_spl(:,:,qrbase:qrroof,:) - m_inr % conc(:,:,qrbase:qrroof,:)) / delt
+      do s = 1, m_inr % nspecies
+      m_inr % tend(:,:,qrbase:qrroof,s+1) = m_inr % tend(:,:,qrbase:qrroof,s+1) + &
+        (qa_spl(:,:,qrbase:qrroof,s) - m_inr % conc(:,:,qrbase:qrroof,s+1)) / delt
+      end do
 
       deallocate(qa_spl)
     end if
