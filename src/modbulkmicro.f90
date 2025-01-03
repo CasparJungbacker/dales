@@ -129,7 +129,7 @@ module modbulkmicro
 !> Calculates the microphysical source term.
   subroutine bulkmicro
     use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging
-    use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
+    use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp, rtimee
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
     use modmpi,    only : myid
@@ -195,6 +195,9 @@ module modbulkmicro
             if (Nr(i,j,k) < 0.0) then
               Nrsum_neg = Nrsum_neg + Nr(i,j,k)
               Nr(i,j,k) = 0.0
+            end if
+            if (Nc(i,j,k) < 0.0) then
+              Nc(i,j,k) = 0.0
             end if
           enddo
         enddo
@@ -312,7 +315,7 @@ module modbulkmicro
     !*********************************************************************
     ! call microphysical processes subroutines
     !*********************************************************************
-    if (l_rain) then
+    if (l_rain .and. rtimee > 10800.0) then
       if (l_sb) then
         call do_bulkmicro_sb
       else

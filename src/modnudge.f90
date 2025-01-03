@@ -320,15 +320,21 @@ contains
 
   !> Perform nudging of velocities, temperature and humidity fields.
   subroutine nudge
-    use modglobal,  only: timee, rtimee, i1, j1, kmax, rdt, nsv
+    use modglobal,  only: timee, rtimee, i1, j1, kmax, rdt, nsv, pi, dzh, zh, k1, rk3step
+                          
     use modfields,  only: up, vp, wp, thlp, qtp, u0av, v0av, qt0av, thl0av, &
-                          svp, sv0av
+                          svp, sv0av, thl0
     use modtracers, only: tracer_prop
+    use modmpi, only: myid
+    use modtimestat, only: zi, dtav_zi => dtav
 
     character(*), parameter :: routine = modname//"::nudge"
 
     integer       :: i, j, k, n, t
     real(field_r) :: dtm, dtp, currtnudge
+    real(field_r) :: z_rlx = 1100, z_rlx_p = 1300
+    real(field_r), allocatable :: gamma_n(:), grad(:)
+    integer       :: location
 
     if (.not. (lnudge)) return
 
@@ -347,6 +353,44 @@ contains
     dtm = (rtimee - timenudge(t)) / (timenudge(t + 1) - timenudge(t))
     dtp = (timenudge(t + 1) - rtimee) / (timenudge(t + 1) - timenudge(t))
 
+    allocate(gamma_n(kmax))!, grad(k1))
+
+    !grad(1) = 0
+    !location = 1
+
+    !do j = 2, j1
+    !  do i = 2, i1
+    !    grad(1:kmax) = (thl0(i,j,2:k1) - thl0(i,j,1:kmax)) / dzh(2:k1)
+    !    location = max(location, maxloc(grad, 1))
+    !  end do
+    !end do
+
+    !z_rlx = zh(location) + 100
+    !z_rlx_p = z_rlx + 200
+
+    !if (myid == 0 .and. rk3step == 1) then
+    !  write(6,*) "Nudging ramp-up from ", z_rlx, " to ", z_rlx_p
+    !end if
+
+    if (rtimee > dtav_zi) then
+      z_rlx = zi + 100
+      z_rlx_p = z_rlx + 200
+    end if
+
+    if (myid == 0 .and. rk3step == 1) then
+      write(6,*) "Nudging ramp-up from ", z_rlx, " to ", z_rlx_p
+    end if
+
+    do k = 1, kmax
+      if (zh(k) < z_rlx) then
+        gamma_n(k) = 0
+      else if (zh(k) > z_rlx_p) then
+        gamma_n(k) = 1
+      else
+        gamma_n(k) = 0.5_field_r * (1 - cos(pi * (zh(k) - z_rlx) / (z_rlx_p - z_rlx)))
+      end if
+    end do
+
     if (lunudge) then
       !$acc parallel loop collapse(3) private(currtnudge) default(present) async
       do k = 1, kmax
@@ -355,7 +399,7 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              tunudge(k,t) * dtp + tunudge(k,t + 1) * dtm)
             up(i,j,k) = up(i,j,k) - (u0av(k) - (unudge(k,t) * dtp + &
-                        unudge(k,t + 1) * dtm)) / currtnudge
+                        unudge(k,t + 1) * dtm)) / currtnudge * gamma_n(k)
           end do
         end do
       end do
@@ -369,7 +413,7 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              tvnudge(k,t) * dtp + tvnudge(k,t + 1) * dtm)
             vp(i,j,k) = vp(i,j,k) - (v0av(k) - (vnudge(k,t) * dtp + &
-                        vnudge(k,t + 1) * dtm)) / currtnudge
+                        vnudge(k,t + 1) * dtm)) / currtnudge * gamma_n(k)
           end do
         end do
       end do
@@ -383,7 +427,7 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              twnudge(k,t) * dtp + twnudge(k,t + 1) * dtm)
             wp(i,j,k) = wp(i,j,k) - ((wnudge(k,t) * dtp + wnudge(k,t + 1) &
-                        * dtm)) / currtnudge
+                        * dtm)) / currtnudge * gamma_n(k)
           end do
         end do
       end do
@@ -397,7 +441,7 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              tthlnudge(k,t) * dtp + tthlnudge(k,t + 1) * dtm)
             thlp(i,j,k) = thlp(i,j,k) - (thl0av(k) - (thlnudge(k,t) * dtp + &
-                          thlnudge(k,t + 1) * dtm)) / currtnudge
+                          thlnudge(k,t + 1) * dtm)) / currtnudge * gamma_n(k)
           end do
         end do
       end do
@@ -411,7 +455,7 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              tqtnudge(k,t) * dtp + tqtnudge(k,t + 1) * dtm)
             qtp(i,j,k) = qtp(i,j,k) - (qt0av(k) - (qtnudge(k,t) * dtp + &
-                        qtnudge(k,t + 1) * dtm)) / currtnudge
+                        qtnudge(k,t + 1) * dtm)) / currtnudge * gamma_n(k)
           end do
         end do
       end do
@@ -429,7 +473,7 @@ contains
                                  tsvnudge(k,t,n) * dtp + &
                                  tsvnudge(k,t + 1,n) * dtm)
                 svp(i,j,k,n) = svp(i,j,k,n) - (sv0av(k,n) - (svnudge(k,t,n) &
-                               * dtp + svnudge(k,t + 1,n) * dtm)) / currtnudge 
+                               * dtp + svnudge(k,t + 1,n) * dtm)) / currtnudge  * gamma_n(k)
               end do
             end do
           end do

@@ -63,7 +63,7 @@ save
   real(field_r) :: prav, pravl
   real(field_r) :: qtintav, qrintav
   real(field_r) :: cc, wmax, qlmax
-  real(field_r) :: qlint, qtint, qrint
+  real(field_r) :: qlint, qtint, qrint, ncint
   logical:: store_zi = .false.
   real(field_r), allocatable, dimension(:) :: profile, gradient, dgrad
   real(field_r), allocatable, dimension(:,:,:) :: blh_fld
@@ -431,6 +431,7 @@ contains
     real(field_r)   :: usttst, ustqst
     real(field_r)   :: wts, wqls,wthvs
     real(field_r)   :: c1,c2 !Used to calculate wthvs
+    real(field_r)   :: ncintavl
     real,dimension(nvar) :: vars
 
     ! lsm variables

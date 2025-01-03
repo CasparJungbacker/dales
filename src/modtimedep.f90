@@ -40,7 +40,7 @@ save
 ! switches for timedependent surface fluxes and large scale forcings
   logical       :: ltimedep     = .false. !< Overall switch, input in namoptions
   logical       :: ltimedepuv   = .false. !< Switch for time-dependent u,v forcings from ls_flux.inp
-  logical       :: ltimedepz    = .true.  !< Switch for large scale forcings
+  logical       :: ltimedepz    = .false.  !< Switch for large scale forcings
   logical       :: ltimedepsurf = .true.  !< Switch for surface fluxes
   integer    :: kflux
   integer    :: kls
@@ -73,7 +73,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine inittimedep
     use modmpi,    only :myid,mpierr,comm3d,D_MPI_BCAST
-    use modglobal, only :cexpnr,k1,kmax,ifinput,runtime,zf,ntimedep
+    use modglobal, only :cexpnr,k1,kmax,ifinput,runtime,zf,ntimedep, lstart_netcdf
     use modsurfdata,only :ps,qts,wqsurf,wtsurf,thls, Qnetav
     use modtimedepsv, only : inittimedepsv
 
@@ -81,12 +81,14 @@ contains
                                   tb_time,tb_ps,tb_qts,tb_thls,tb_wqs,tb_wts,&
                                   tb_w,tb_ug,tb_vg,&
                                   tb_uadv,tb_vadv,tb_qtadv,tb_thladv,tb_Qnet
+    use modstat_nc
 
     implicit none
 
     character (80):: chmess
     character (1) :: chmess1
-    integer :: k,t, ierr
+    integer :: k,t, ierr, ncid, varid
+    integer :: ntimedep_real
     real :: dummyr
     real, allocatable, dimension (:) :: height
     if (.not. ltimedep) return
@@ -188,6 +190,19 @@ contains
           dvdtlst  (:,t) = tb_vadv  (t,:)
         end do
 
+      else if (lstart_netcdf) then
+
+        call nchandle_error(nf90_open("init.001.nc", NF90_NOWRITE, ncid))
+        call nchandle_error(nf90_inq_varid(ncid, "time", varid))
+        call nchandle_error(nf90_get_var(ncid, varid, timeflux(1:kflux)))  
+        call nchandle_error(nf90_inq_varid(ncid, "ts_force", varid))
+        call nchandle_error(nf90_get_var(ncid, varid, thlst))
+        call nchandle_error(nf90_inq_varid(ncid, "ps_force", varid))
+        call nchandle_error(nf90_get_var(ncid, varid, pst))
+        call nchandle_error(nf90_close(ncid))
+
+        print *, timeflux
+        print *, thlst
       else
     
         open(ifinput,file='ls_flux.inp.'//cexpnr)
@@ -460,17 +475,17 @@ contains
     ! or t = 1 if rtimee < timeflux(1)
 
     fac = ( rtimee-timeflux(t) ) / ( timeflux(t+1)-timeflux(t))
-    wqsurf = wqsurft(t) + fac * ( wqsurft(t+1) - wqsurft(t)  )
-    wtsurf = wtsurft(t) + fac * ( wtsurft(t+1) - wtsurft(t)  )
+    !wqsurf = wqsurft(t) + fac * ( wqsurft(t+1) - wqsurft(t)  )
+    !wtsurf = wtsurft(t) + fac * ( wtsurft(t+1) - wtsurft(t)  )
     thls   = thlst(t)   + fac * ( thlst(t+1)   - thlst(t)    )
     ps     = pst(t)     + fac * ( pst(t+1)   - pst(t)    )
-    Qnetav = Qnetavt(t) + fac * ( Qnetavt(t+1) - Qnetavt(t)  )
+    !Qnetav = Qnetavt(t) + fac * ( Qnetavt(t+1) - Qnetavt(t)  )
 !cstep: not necessary to provide qts in ls_flux file qts    = qtst(t)    + fac * ( qtst(t+1)    - qtst(t)     )
-    if (lmoist) then
-       call qtsurf
-    else
-       qts = 0.
-    endif
+    !if (lmoist) then
+     !  call qtsurf
+    !else
+    !   qts = 0.
+    !endif
 
     return
   end subroutine timedepsurf

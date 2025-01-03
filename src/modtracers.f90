@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 !> \file modtracers.f90
 !! Definitions and functions for passive and reactive tracers
 
@@ -26,7 +25,7 @@
 module modtracers
 
   use modglobal,      only: nsv, i1, ih, j1, jh, k1, kmax, cexpnr
-  use modtracer_type, only: T_tracer
+  use modtracer_type, only: tracer_t
   use modprecision,   only: field_r
   use modfields,      only: svm, sv0, svp, sv0av, svprof
   use modstat_nc
@@ -40,18 +39,24 @@ module modtracers
 
   integer :: iname
 
-  type(T_tracer), allocatable, public, protected :: tracer_prop(:) !< List of tracers
+  type(tracer_t), allocatable, public, target, protected :: tracer_prop(:) !< List of tracers
   logical,                     protected         :: ltracers = .false.
   character(6),                protected         :: &
     tracernames(200) = (/ ('      ', iname=1, 200)/)            !< For compatibility
 
   logical :: file_exists
 
+  interface get_tracer
+    module procedure :: get_tracer_by_idx
+    module procedure :: get_tracer_by_name
+  end interface get_tracer
+
   public :: inittracers
   public :: add_tracer
   public :: allocate_tracers
   public :: exittracers
   public :: tracer_profs_from_netcdf
+  public :: get_tracer
 
   ! Old stuff, to be removed at some point
   integer, parameter:: max_tracs  =  31 !<  Max. number of tracers that can be defined
@@ -66,8 +71,7 @@ module modtracers
   logical  :: tracer_is_microphys(max_tracs) = .false. ! Tracer is involved in cloud microphysics (T/F)
 
 contains
-
-  !> Initialize tracer definition.
+!> Initialize tracer definition.
   !!
   !! Read the namelist NAMTRACERS from the namoptions file, distribute
   !! the parameters to all processes and allocate the tracer (SV) arrays.
@@ -134,7 +138,7 @@ contains
   !! \param laero Tracer is involved in aerosol microphyiscs.
   !! \note All tracers should be added before readinitfiles is called!
   subroutine add_tracer(name, long_name, unit, molar_mass, lemis, lreact, &
-                        ldep, lags, laero, lnudge, lmicro, isv)
+                        ldep, lags, laero, lnudge, lsurfsource, surface_source, lmicro, isv)
     character(*),  intent(in)            :: name
     character(*),  intent(in),  optional :: long_name
     character(*),  intent(in),  optional :: unit
@@ -145,11 +149,13 @@ contains
     logical,       intent(in),  optional :: lags
     logical,       intent(in),  optional :: laero
     logical,       intent(in),  optional :: lnudge
+    logical,       intent(in),  optional :: lsurfsource
+    real(field_r),       intent(in),  optional :: surface_source
     logical,       intent(in),  optional :: lmicro
     integer,       intent(out), optional :: isv
 
     integer                     :: s
-    type(T_tracer), allocatable :: tmp(:)
+    type(tracer_t), allocatable :: tmp(:)
 
     ! Check if the tracer already exists. If so, don't add a new one.
     if (nsv > 0) then
@@ -183,6 +189,8 @@ contains
     if (present(lags)) tracer_prop(nsv) % lags = lags
     if (present(laero)) tracer_prop(nsv) % laero = laero
     if (present(lnudge)) tracer_prop(nsv) % lnudge = lnudge
+    if (present(lsurfsource)) tracer_prop(nsv) % lsurfsource = lsurfsource
+    if (present(surface_source)) tracer_prop(nsv) % surface_source = surface_source
     if (present(lmicro)) tracer_prop(nsv) % lmicro = lmicro
 
     if (present(isv)) isv = nsv
@@ -319,8 +327,8 @@ contains
     character(NF90_MAX_NAME) :: name
     character(32) :: long_name
     character(16) :: unit
-    real(field_r) :: molar_mass
-    logical       :: lemis, lreact, ldep, lags, lnudge, laero
+    real(field_r) :: molar_mass, surfsource
+    logical       :: lemis, lreact, ldep, lags, lnudge, laero, lsurfsource
 
     inquire(file=filename, exist=file_exists)
 
@@ -349,12 +357,14 @@ contains
       call read_nc_attribute(ncid, varids(ivar), "lags", lags, default=.false.)
       call read_nc_attribute(ncid, varids(ivar), "laero", laero, default=.false.)
       call read_nc_attribute(ncid, varids(ivar), "lnudge", lnudge, default=.false.)
+      call read_nc_attribute(ncid, varids(ivar), "lsurfsource", lsurfsource, default=.false.)
+      call read_nc_attribute(ncid, varids(ivar), "suface_source", surfsource, default=0._field_r)
 
       ! Setup tracer
       call add_tracer(trim(name), long_name=trim(long_name), unit=unit, &
                       molar_mass=molar_mass, lemis=lemis, lreact=lreact, &
                       ldep=ldep, lags=lags, laero=laero, lnudge=lnudge, &
-                      lmicro=.false.)
+                      lsurfsource=lsurfsource, surface_source=surfsource, lmicro=.false.)
     end do
 
     deallocate(varids)
@@ -368,7 +378,7 @@ contains
   !! \param svprof 2D array (z,s) to place initial profiles in.
   subroutine tracer_profs_from_netcdf(filename, tracers, nsv, svprof)
     character(*),   intent(in)  :: filename
-    type(T_tracer), intent(in)  :: tracers(:)
+    type(tracer_t), intent(in)  :: tracers(:)
     real(field_r),  intent(out) :: svprof(:,:)
 
     integer :: ncid
@@ -386,5 +396,44 @@ contains
     end do
 
   end subroutine tracer_profs_from_netcdf
+
+  !> Get a tracer by ID in tracer_props
+  !!
+  !! \param idx Index of tracer.
+  function get_tracer_by_idx(idx) result(ptr)
+    integer, intent(in) :: idx
+
+    type(tracer_t), pointer :: ptr
+
+    if (idx < 1 .or. idx > nsv) then
+      call dales_error("Index is outside the range of tracer_prop")
+    end if
+
+    ptr => tracer_prop(idx)
+  end function get_tracer_by_idx
+
+  !> Get a tracer by name.
+  !!
+  !! \param name Name of tracer.
+  function get_tracer_by_name(name) result(ptr)
+    character(*), intent(in) :: name
+
+    integer :: itrac
+    logical :: found
+    type(tracer_t), pointer :: ptr
+
+    do itrac = 1, nsv
+      if (trim(name) == trim(tracer_prop(itrac) % tracname)) then
+        ptr => tracer_prop(itrac)
+        found = .true.
+        exit
+      end if
+    end do
+
+    if (.not. found) then
+      call dales_error("Tracer "//name//" not found in tracer_prop")
+    end if
+  end function
+
 
 end module modtracers

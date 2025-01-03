@@ -42,7 +42,8 @@ module bulkmicro_sb
     c_tvsb = 600.,    & !< Coefficient in terminal velocity param.
     D_eq = 1.1e-3,    & !< Parameter for break-up.
     Dv = 2.4e-5,      & !< Diffusivity of water vapor [m^2/s].
-    Dvcmax = 79.2e-6, & !< Max mean diameter of cw.
+    Dvcmax = 79.2-6,   & !< Max mean diameter of cw.
+    !Dvcmax = 50E-6,   & !< Max mean diameter of cw.
     D_s = Dvcmax,     & !< Diameter separating the cloud and precipitation parts of the DSD.
     k_1 = 4.0e2,      & !< k_1 + k_2: coefficient for phi function in autoconversion rate SB2006.
     k_2 = 0.7,        & !< See k_1.
@@ -60,7 +61,8 @@ module bulkmicro_sb
     sig_gr = 1.5,     & !< GSD of rain drop DSD.
     wfallmax = 9.9,   & !< Terminal velocity (?)
     xcmin = 4.2e-15,  & !< Min mean mass of cw (D = 2.0e-6 m).
-    xcmax = 2.6e-10,  & !< Max mean mass of cw.
+    xcmax = 2.6E-10,  & !< Max mean mass of cw.
+    !xcmax = 6.5E-11,  & !< Max mean mass of cw.
     xrmin = xcmax,    & !< Min mean mass of pw.
     xrmax = 5.0e-6,   & !< Max mean maxx of pw.
     x_s = xcmax         !< Drop mass separating the cloud and precipitation parts of the DSD.
@@ -245,8 +247,8 @@ contains
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
 
     logical,      optional, intent(in)    :: laerosol
-    type(mode_t), optional, intent(inout) :: m_inc
-    type(mode_t), optional, intent(inout) :: m_inr
+    type(mode_t), optional, target, intent(inout) :: m_inc
+    type(mode_t), optional, target, intent(inout) :: m_inr
 
     character(*), parameter :: routine = modname//"::autoconversion"
 
@@ -261,6 +263,12 @@ contains
       k_au, & !< Coefficient for autoconversion rate
       sc      !< Selfcollection rate
 
+    real(field_r), pointer :: Ncp(:,:,:)
+    real(field_r), pointer :: qap_inc(:,:,:,:)
+    real(field_r), pointer :: qap_inr(:,:,:,:)
+    real(field_r), pointer :: qa0_inc(:,:,:,:)
+    real(field_r), pointer :: qa0_inr(:,:,:,:)
+
     if (qcbase > qcroof) return
 
     call timer_tic('bulkmicro_sb01/autoconversion', 1)
@@ -273,17 +281,19 @@ contains
 
     k_au = k_c / (20 * x_s)
 
-    associate(Ncp => m_inc % tend(:,:,:,1), &
-              qap_inc => m_inc % tend(:,:,:,2:), &
-              qap_inr => m_inc % tend(:,:,:,2:), &
-              qa0_inc => m_inc % conc(:,:,:,2:), &
-              qa0_inr => m_inr % conc(:,:,:,2:))
+    if (laerosol) then
+      Ncp(2:,2:,1:) => m_inc % tend(:,:,:,1)
+      qap_inc(2:,2:,1:,1:) => m_inc % tend(:,:,:,2:)
+      qap_inr(2:,2:,1:,1:) => m_inc % tend(:,:,:,2:)
+      qa0_inc(2:,2:,1:,1:) => m_inc % conc(:,:,:,2:)
+      qa0_inr(2:,2:,1:,1:) => m_inr % conc(:,:,:,2:)
+    end if
 
     !$acc parallel loop collapse(3) default(present)
     do k = qcbase, qcroof
       do j = 2, j1
         do i = 2, i1
-           if (qcmask(i,j,k)) then
+           if (qcmask(i,j,k) .and. Nc(i,j,k) > 1E3) then
               nuc = 1.58_field_r * (rhof(k) * ql0(i,j,k) * 1000.0_field_r) &
                     + 0.72_field_r - 1.0_field_r !G09a
               xc = rhof(k) * ql0(i,j,k) / (Nc(i,j,k) + eps0)
@@ -308,20 +318,17 @@ contains
                 sc = -k_cc * ((nuc + 2) / (nuc + 1)) * rho0 / rhof(k) &
                      * (ql0(i,j,k) * rhof(k))**2
 
-                Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) + sc - au / xc
+                Ncp(i,j,k) = Ncp(i,j,k) + sc - au / xc
 
                 do s = 1, m_inc % nspecies
-                  qap_inc(i-1,j-1,k,s) = qap_inc(i-1,j-1,k,s) - au / ql0(i,j,k) * qa0_inc(i-1,j-1,k,s)
-                  qap_inr(i-1,j-1,k,s) = qap_inr(i-1,j-1,k,s) + au / ql0(i,j,k) * qa0_inr(i-1,j-1,k,s)
+                  qap_inc(i,j,k,s) = qap_inc(i,j,k,s) - au / ql0(i,j,k) * qa0_inc(i,j,k,s)
+                  qap_inr(i,j,k,s) = qap_inr(i,j,k,s) + au / ql0(i,j,k) * qa0_inr(i,j,k,s)
                 end do
               end if
            end if
         end do
       end do
     end do
-
-    end associate
-
 
     call timer_toc('bulkmicro_sb01/autoconversion')
 
@@ -405,7 +412,7 @@ contains
     do k = max(qrbase,qcbase), min(qrroof, qcroof)
       do j = 2, j1
         do i = 2, i1
-          if (qrmask(i,j,k) .and. qcmask(i,j,k)) then
+          if (qrmask(i,j,k) .and. qcmask(i,j,k) .and. Nc(i,j,k) > 1E3) then
             tau = qr(i,j,k) / (ql0(i,j,k) + qr(i,j,k))
             phi = (tau / (tau + k_l))**4
             ac = k_r * rhof(k) * ql0(i,j,k) * qr(i,j,k) * phi &
@@ -417,7 +424,7 @@ contains
 
 
             if (laerosol_) then
-              xc = rhof(k) * ql0(i,j,k) / (Nc(i1,j1,k) + eps0)
+              xc = rhof(k) * ql0(i,j,k) / (Nc(i,j,k) + eps0)
               Ncp(i-1,j-1,k) = Ncp(i-1,j-1,k) - ac / xc
 
               do s = 1, m_inc % nspecies 
@@ -621,20 +628,22 @@ contains
               Dm = Dn * exp(3 * log(1.5_field_r)**2)
 
               if (Dn > 0) then
-              Fn = 0.5_field_r * erfc(-log(Dc/Dn) / log(1.5_field_r) * inv_sqrt_two)
-              Fm = 0.5_field_r * erfc(-log(Dc/Dm) / log(1.5_field_r) * inv_sqrt_two)
+              !Fn = 0.5_field_r * erfc(-log(Dc/Dn) / log(1.5_field_r) * inv_sqrt_two)
+              !Fm = 0.5_field_r * erfc(-log(Dc/Dm) / log(1.5_field_r) * inv_sqrt_two)
 
-              Nap_acs(i-1,j-1,k) = Nap_acs(i-1,j-1,k) + Fn * Nevap
-              Nap_cos(i-1,j-1,k) = Nap_cos(i-1,j-1,k) + (1 - Fn) * Nevap
+              Nap_acs(i-1,j-1,k) = Nap_acs(i-1,j-1,k) + Nevap
+              !Nap_acs(i-1,j-1,k) = Nap_acs(i-1,j-1,k) + Fn * Nevap
+              !Nap_cos(i-1,j-1,k) = Nap_cos(i-1,j-1,k) + (1 - Fn) * Nevap
 
              ! Redistribute over ACS and COS modes
               do l = 1, m_inr % nspecies
                 evapt = eps * f_evp * qa0_inr(i-1,j-1,k,l) / delt
                 src_idx = m_inr % aero_idx(l)
                 target_idx = idx_tab(iACS,src_idx)
-                qap_acs(i-1,j-1,k,target_idx) = qap_acs(i-1,j-1,k,target_idx) + Fm * evapt
-                target_idx = idx_tab(iCOS,src_idx)
-                qap_cos(i-1,j-1,k,target_idx) = qap_cos(i-1,j-1,k,target_idx) + (1 - Fm) * evapt
+                qap_acs(i-1,j-1,k,target_idx) = qap_acs(i-1,j-1,k,target_idx) + evapt
+                !qap_acs(i-1,j-1,k,target_idx) = qap_acs(i-1,j-1,k,target_idx) + Fm * evapt
+                !target_idx = idx_tab(iCOS,src_idx)
+                !qap_cos(i-1,j-1,k,target_idx) = qap_cos(i-1,j-1,k,target_idx) + (1 - Fm) * evapt
               end do
             end if
             end if

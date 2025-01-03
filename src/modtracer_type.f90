@@ -31,6 +31,8 @@ module modtracer_type
       ! Boolean if in aerosol microphysics
       logical           :: laero=.false.
       ! ! Static tracer properties:
+      logical           :: lsurfsource = .false.
+      real(field_r)     :: surface_source = 0
       ! real :: diffusivity
 
   contains

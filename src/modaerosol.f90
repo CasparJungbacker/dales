@@ -23,7 +23,7 @@
 !! \see https://gmd.copernicus.org/articles/12/5177/2019/
 module modaerosol
   use modglobal,      only: ifnamopt, fname_options, checknamelisterror, &
-                            cexpnr, i1, j1, k1, ih, jh, pi, nsv, rhow
+                            cexpnr, i1, j1, k1, ih, jh, pi, nsv, rhow, kmax
   use modmath,        only: erfcinv, inv_sqrt_two
   use modmpi,         only: myid, D_MPI_BCAST, commwrld, mpierr
   use modprecision,   only: field_r
@@ -249,6 +249,7 @@ contains
       end do
     end do
 
+
     ! Finally, allocate memory
     do imod = 1, maxmodes
       call modes(imod) % allocate
@@ -459,9 +460,12 @@ contains
 
   subroutine activation
     use modfields,    only: w0
-    use modmicrodata, only: delt
-    call activation_pn15(modes(iAIS), modes(iACS), modes(iCOS), modes(iINC), &
-                         w0, delt)
+    use modmicrodata, only: delt, qcmask
+
+    !call activation_pn15(modes(iAIS), modes(iACS), modes(iCOS), modes(iINC), &
+    !                     w0, delt)
+    call activation_pn15_acs_only(modes(iACS), modes(iINC), &
+                         w0, qcmask, delt)
   end subroutine activation
 
   !> \brief Aerosol activation based on updraft velocity
@@ -607,7 +611,7 @@ contains
           Ncp(i,j,k) = Ncp(i,j,k) + tend_n
           
           do s = 1, m_ais % nspecies - 1
-            tend_m = fm * qa_ais(i,j,k,s) / delt
+              tend_m = fm * qa_ais(i,j,k,s) / delt
             tend_m = max(0.0_field_r, tend_m)
             my_number = m_ais % aero_idx(s)
             my_target = idx_tab(iINC, my_number)
@@ -624,6 +628,68 @@ contains
     call timer_toc(routine)
             
   end subroutine activation_pn15
+
+  subroutine activation_pn15_acs_only(m_acs, m_inc, w, qcmask, delt)
+    type(mode_t),  intent(inout) :: m_acs
+    type(mode_t),  intent(inout) :: m_inc
+    real(field_r), intent(in)    :: w(2-ih:i1+ih,2-jh:j1+jh,1:k1)
+    logical,       intent(in)    :: qcmask(2:i1,2:j1,1:k1)
+    real(field_r), intent(in)    :: delt
+
+    integer :: i, j, k, s
+    integer :: imod, iaer
+
+    character(*),  parameter :: routine = modname//"::activation_pn15_acs_only"
+    real(field_r), parameter :: r_crit = 35E-9
+
+    real(field_r) :: &
+      N_activated, &
+      dNcdt
+    real(field_r) :: fn, fm, tend_n, tend_m
+    real(field_r) :: w0
+
+    associate(qa_acs => m_acs % conc(:,:,:,2:),  N_acs => m_acs % conc(:,:,:,1), &
+              qap_acs => m_acs % tend(:,:,:,2:), Np_acs => m_acs % tend(:,:,:,1), &
+              qa_inc => m_inc % conc(:,:,:,2:), Nc => m_inc % conc(:,:,:,1), &
+              qap_inc => m_inc % tend(:,:,:,2:), Ncp => m_inc % tend(:,:,:,1))
+    
+    do k = 1, kmax
+      do j = 1, j1 - 1
+        do i = 1, i1 - 1
+          if (qcmask(i+1,j+1,k)) then
+            N_activated = 1E-6 * N_acs(i,j,k) 
+            w0 = max(0.0_field_r, w(i+1,j+1,k))
+            N_activated = max(0.0_field_r, N_activated)
+            dNcdt = 1E6 / delt * (0.1 * (w0 * 100 * N_activated / (w0 * 100 + &
+                    0.023_field_r * N_activated + eps0)))**1.27_field_r &
+                    - 1E-6 * Nc(i,j,k)
+            dNcdt = max(dNcdt, 0.0_field_r)
+
+            fn = dNcdt * delt / (N_acs(i,j,k) + eps0)
+            fn = max(min(fn, 1.0_field_r), 0.0_field_r)
+            fm = 1 - 0.5_field_r * &
+              erfc(erfcinv(2 * fn) - 3 * m_acs % log_sigma_g * inv_sqrt_two)
+            fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
+
+            tend_n = fn * N_acs(i,j,k) / delt
+            tend_n = max(0.0_field_r, tend_n)
+            Np_acs(i,j,k) = Np_acs(i,j,k) - tend_n
+            Ncp(i,j,k) = Ncp(i,j,k) + tend_n
+          
+            do s = 1, m_acs % nspecies - 1
+              tend_m = fm * qa_acs(i,j,k,s) / delt
+              tend_m = max(0.0_field_r, tend_m)
+              qap_acs(i,j,k,s) = qap_acs(i,j,k,s) - tend_m
+              qap_inc(i,j,k,s) = qap_inc(i,j,k,s) + tend_m
+            end do
+          end if
+        end do
+      end do
+    end do
+
+    end associate
+
+  end subroutine activation_pn15_acs_only  
 
   !> \brief Computes aerosol scavenging by rain and cloud droplets.
   !!
@@ -688,7 +754,7 @@ contains
               ! Compute mean cloud droplet size and rain rate.
               ! Make sure both stay within the bounds of the lookup table
               mean_cloud_droplet_size = max( &
-                1E6 * (ql(i,j,k) * rhof(k) / &
+                1E6 * (3 * ql(i+1,j+1,k) * rhof(k) / &
                        (4 * pi * Nc(i+1,j+1,k) * rhow + eps0)), &
                 5.001 &
               )
@@ -696,7 +762,7 @@ contains
 
               ! Compute mean aerosol radius in this mode
               mean_aerosol_radius = 0.5 * (6 * mode_mean_mass &
-                / (pi * Na(i,j,k) * 1E9 * mode_mean_rho + eps0)) &
+                / (pi * Na(i,j,k) * mode_mean_rho + eps0)) &
                 **(1.0_field_r / 3) &
                 * exp((-3 * m % log_sigma_g * m % log_sigma_g) / 2)
 
@@ -754,16 +820,15 @@ contains
               if (mode_mean_mass > 0 .and. mode_mean_rho > 0) then
                 ! Compute mean cloud droplet size and rain rate.
                 ! Make sure both stay within the bounds of the lookup table
-                mean_cloud_droplet_size = max( &
-                  1E6 * (ql(i,j,k) * rhof(k) / &
-                         (4 * pi * Nc(i+1,j+1,k) * rhow + eps0)), &
-                  5.001 &
-                )
+                mean_cloud_droplet_size = (3 * ql(i+1,j+1,k) * rhof(k) / &
+                  (4 * pi * Nc(i+1,j+1,k) * rhow)) * 1E6
+                mean_cloud_droplet_size = min(max(mean_cloud_droplet_size, 0.01), 99.99)
+
                 rainrate = min(max(sed_qr(i+1,j+1,k) * 3600, 0.01001), 99.999)
 
                 ! Compute mean aerosol radius in this mode
                 mean_aerosol_radius = 0.5 * (6 * mode_mean_mass / &
-                  (pi * Na(i,j,k) * 1E9 * mode_mean_rho + eps0)) &
+                  (pi * Na(i,j,k) * mode_mean_rho + eps0)) &
                   **(1.0_field_r / 3) &
                   * exp((-3 * m % log_sigma_g * m % log_sigma_g) / 2)
 

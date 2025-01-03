@@ -760,6 +760,9 @@ contains
     implicit none
 
     call timer_tic('modsurface/surface', 0)
+
+    call surface_sources
+
     select case (isurf)
       case (1) ! Interactive land surface model
         call calc_mean_wind
@@ -2442,5 +2445,22 @@ contains
     call qtsurf
 
   end subroutine do_lsm
+
+  subroutine surface_sources
+    use modtracers, only: tracer_prop
+    use modglobal,  only: nsv, i1, j1, dx, dy
+    use modfields,  only: svp
+
+    integer :: i, j, k, n
+
+    do n = 1, nsv
+      if (.not. tracer_prop(n) % lsurfsource) cycle
+      do j = 2, j1
+        do i = 2, i1 
+          svp(i,j,1,n) = svp(i,j,1,n) + tracer_prop(n) % surface_source * dx * dy
+        end do
+      end do
+    end do
+  end subroutine surface_sources
 
 end module modsurface
