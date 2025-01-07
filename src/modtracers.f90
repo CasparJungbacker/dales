@@ -395,6 +395,8 @@ contains
                          start=1, count=kmax, fillvalue=0._field_r)
     end do
 
+    call nchandle_error(nf90_close(ncid))
+
   end subroutine tracer_profs_from_netcdf
 
   !> Get a tracer by ID in tracer_props
