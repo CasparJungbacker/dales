@@ -60,6 +60,7 @@ module modnudge
   real(field_r) :: tnudgefac = 1.
   ! Number of nudging time steps
   integer       :: ntnudge = 10000
+  real(field_r), allocatable :: gamma_n(:)
 
   public :: initnudge
   public :: nudge
@@ -317,9 +318,12 @@ contains
       call D_MPI_BCAST(tsvnudge, nsv * k1 * ntnudge, 0, comm3d, mpierr)
     end if
 
+    allocate(gamma_n(kmax))
+
     !$acc enter data copyin(timenudge, unudge, vnudge, wnudge, thlnudge, &
     !$acc&                  qtnudge, tunudge, tvnudge, twnudge, tthlnudge, &
     !$acc&                  tqtnudge, svnudge, tsvnudge)
+    !$acc enter data create(gamma_n)
 
     call timer_toc(routine)
   end subroutine initnudge
@@ -339,7 +343,6 @@ contains
     integer       :: i, j, k, n, t
     real(field_r) :: dtm, dtp, currtnudge
     real(field_r) :: z_rlx = 1100, z_rlx_p = 1300
-    real(field_r), allocatable :: gamma_n(:), grad(:)
     integer       :: location
 
     if (.not. (lnudge)) return
@@ -359,25 +362,6 @@ contains
     dtm = (rtimee - timenudge(t)) / (timenudge(t + 1) - timenudge(t))
     dtp = (timenudge(t + 1) - rtimee) / (timenudge(t + 1) - timenudge(t))
 
-    allocate(gamma_n(kmax))!, grad(k1))
-
-    !grad(1) = 0
-    !location = 1
-
-    !do j = 2, j1
-    !  do i = 2, i1
-    !    grad(1:kmax) = (thl0(i,j,2:k1) - thl0(i,j,1:kmax)) / dzh(2:k1)
-    !    location = max(location, maxloc(grad, 1))
-    !  end do
-    !end do
-
-    !z_rlx = zh(location) + 100
-    !z_rlx_p = z_rlx + 200
-
-    !if (myid == 0 .and. rk3step == 1) then
-    !  write(6,*) "Nudging ramp-up from ", z_rlx, " to ", z_rlx_p
-    !end if
-
     if (rtimee > dtav_zi) then
       z_rlx = zi + 100
       z_rlx_p = z_rlx + 200
@@ -387,6 +371,7 @@ contains
       write(6,*) "Nudging ramp-up from ", z_rlx, " to ", z_rlx_p
     end if
 
+    !$acc parallel loop gang(static: 1)
     do k = 1, kmax
       if (zh(k) < z_rlx) then
         gamma_n(k) = 0
