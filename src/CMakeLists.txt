@@ -50,6 +50,7 @@ set( dales_srcs
 	modlookuptable.f90
 	modlsm.f90
 	modlsmcrosssection.f90
+  modlsmdata.f90
 	modlsmstat.f90
 	modmath.f90
 	modmicrodata.f90
@@ -68,7 +69,7 @@ set( dales_srcs
 	modquadrant.f90
 	modraddata.f90
 	modradfield.f90
-	modradfull.f90
+   	modradfull.f90
 	modradiation.f90
 	modradrrtmg.f90
 	modradrte_rrtmgp.f90

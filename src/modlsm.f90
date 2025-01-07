@@ -20,6 +20,7 @@
 module modlsm
     use netcdf
     use modprecision, only : field_r
+    use modlsmdata
     implicit none
 
     public :: initlsm, lsm, exitlsm, init_lsm_tiles, lags, llsm
@@ -38,7 +39,7 @@ module modlsm
     ! Soil grid
     integer :: kmax_soil = -1
     real :: z_size_soil = -1
-    real, allocatable :: z_soil(:), zh_soil(:)
+    !real, allocatable :: z_soil(:), zh_soil(:) ! Ad hoc fix, moved to lsmdata
     real, allocatable :: dz_soil(:), dzh_soil(:)
     real, allocatable :: dzi_soil(:), dzhi_soil(:)
 
