@@ -88,7 +88,7 @@ contains
     !$acc&              qvsl, qvsi, esl, qsat, qth, qlh, &
     !$acc&              esatmtab, esatitab, esatltab, &
     !$acc&              th0av, thv0, thetah, qth, qlh, &
-    !$acc&              Nr, qr, Nrp, qrp, Dvr, precep, thlpmcr, &
+    !$acc&              Nrp, qrp, Dvr, precep, thlpmcr, &
     !$acc&              qtpmcr, xr, mur, lbdr, qrmask, qcmask, &
     !$acc&              thlprad, lwd, lwu, swd, swu, lwc, swdir, swdif, &
     !$acc&              lwdca, lwuca, swdca, swuca, &
@@ -163,7 +163,7 @@ contains
     !$acc&            qvsl, qvsi, esl, qsat, qth, qlh, &
     !$acc&            esatmtab, esatitab, esatltab, &
     !$acc&            th0av, thv0, thetah, qth, qlh, &
-    !$acc&            Nr, qr, Nrp, qrp, Dvr, precep, thlpmcr, &
+    !$acc&            Nrp, qrp, Dvr, precep, thlpmcr, &
     !$acc&            qtpmcr, xr, mur, lbdr, qrmask, qcmask, &
     !$acc&            thlprad, lwd, lwu, swd, swu, lwc, swdir, swdif, &
     !$acc&            lwdca, lwuca, swdca, swuca, &
