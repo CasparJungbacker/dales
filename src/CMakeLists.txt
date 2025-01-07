@@ -229,25 +229,25 @@ endif()
 
 # Stand-alone DALES program
 ecbuild_add_executable( TARGET dales
-						SOURCES
-							${dales_srcs}
-							${rrtmg_lw_srcs}
-							${rrtmg_sw_srcs}
-							${rrtmgp_srcs}
-							${CMAKE_CURRENT_BINARY_DIR}/modversion.f90
-						DEPENDS tag_git_version
-						INCLUDES
-							${NETCDF_INCLUDE_DIR}
-							$<$<BOOL:${ENABLE_FFTW}>:${FFTW_INCLUDE_DIRS}>
-						LIBS
-							NetCDF::NetCDF_Fortran
-                            NetCDF::NetCDF_C
-                            $<$<BOOL:${ENABLE_ACC}>:OpenACC::OpenACC_Fortran>
-                            $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3>
-                            $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3f>
-                            $<$<BOOL:${ENABLE_HYPRE}>:${HYPRE_LIB}> 
-                            $<$<BOOL:${ENABLE_ACC}>:CUDA::cufft> 
-                            $<$<BOOL:${ENABLE_NVTX}>:CUDA::nvToolsExt>
+                        SOURCES
+                          ${dales_srcs}
+                          ${rrtmg_lw_srcs}
+                          ${rrtmg_sw_srcs}
+                          ${rrtmgp_srcs}
+                          ${CMAKE_CURRENT_BINARY_DIR}/modversion.f90
+                        DEPENDS tag_git_version
+                        INCLUDES
+                          ${NetCDF_Fortran_INCLUDE_DIR}
+                          $<$<BOOL:${ENABLE_FFTW}>:${FFTW_INCLUDE_DIRS}>
+                        LIBS
+                          NetCDF::NetCDF_Fortran
+                          NetCDF::NetCDF_C
+                          $<$<BOOL:${ENABLE_ACC}>:OpenACC::OpenACC_Fortran>
+                          $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3>
+                          $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3f>
+                          $<$<BOOL:${ENABLE_HYPRE}>:${HYPRE_LIB}> 
+                          $<$<BOOL:${ENABLE_ACC}>:CUDA::cufft> 
+                          $<$<BOOL:${ENABLE_NVTX}>:CUDA::nvToolsExt>
 )
 # Temporary
 if( ENABLE_ACC )
@@ -256,20 +256,20 @@ endif()
 
 # DALES library, e.g. for use with OMUSE. Only built if -DENABLE_DALESLIB is turned on.
 ecbuild_add_library( TARGET libdales
-					 SOURCES
-     				   ${dales_srcs}
-					   ${rrtmg_lw_srcs}
-				       ${rrtmg_sw_srcs}
-					   ${rrtmgp_srcs}
-					   ${CMAKE_CURRENT_BINARY_DIR}/modversion.f90
-					 DEPENDS tag_git_version
-					 PUBLIC_INCLUDES
-					   ${NETCDF_INCLUDE_DIR}
-					   $<$<BOOL:${ENABLE_FFTW}>:${FFTW_INCLUDE_DIRS}>
-					 PUBLIC_LIBS
-					   NetCDF::NetCDF_Fortran
-					   $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3>
-     				   $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3f>
-					   $<$<BOOL:${ENABLE_HYPRE}>:${HYPRE_LIB}>
-					 CONDITION ENABLE_DALESLIB
+                     SOURCES
+                       ${dales_srcs}
+                       ${rrtmg_lw_srcs}
+                       ${rrtmg_sw_srcs}
+                       ${rrtmgp_srcs}
+                       ${CMAKE_CURRENT_BINARY_DIR}/modversion.f90
+                     DEPENDS tag_git_version
+                     PUBLIC_INCLUDES
+                       ${NetCDF_Fortran_INCLUDE_DIR}
+                       $<$<BOOL:${ENABLE_FFTW}>:${FFTW_INCLUDE_DIRS}>
+                     PUBLIC_LIBS
+                       NetCDF::NetCDF_Fortran
+                       $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3>
+                       $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3f>
+                       $<$<BOOL:${ENABLE_HYPRE}>:${HYPRE_LIB}>
+                     CONDITION ENABLE_DALESLIB
 )

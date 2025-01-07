@@ -592,7 +592,7 @@ contains
       end do
     end if
 
-    if (imicro > 0) then
+    if (imicro > 1) then
       !$acc parallel loop collapse(2) default(present) reduction(+:qrintavl) &
       !$acc& private(qrint) async
       do j = 2, j1
