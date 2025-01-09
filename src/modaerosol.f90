@@ -671,6 +671,7 @@ contains
     character(*), parameter :: routine = modname//"::scavenging"
 
     integer       :: i, j, k, s, imod
+    type(mode_t)  :: mode
     integer       :: my_numb, target_idx
     real(field_r) :: mode_mean_mass, mode_mean_rho
     real(field_r) :: mean_cloud_droplet_size, rain_rate
@@ -683,24 +684,20 @@ contains
     call timer_tic(routine, 1)
 
     do imod = 1, maxmodes - 2 ! Exclude in-cloud and in-rain modes
-      if (modes(imod) % nspecies == 0) cycle
-      associate(Na => modes(imod) % conc(:,:,:,1), &
-                qa => modes(imod) % conc(:,:,:,2:), &
-                Nap => modes(imod) % tend(:,:,:,1), &
-                qap => modes(imod) % tend(:,:,:,2:), &
-                m => modes(imod) &
-      )
-      do k = 1, k1
-        do j = 1, j1-1
-          do i = 1, i1-1 
-            if (qcmask(i+1,j+1,k) .and. Nc(i+1,j+1,k) > 1E3) then
+      mode = modes(imod)
+      if (.not. mode%enabled) cycle
+      do k = 1, kmax
+        do j = 2, j1
+          do i = 2, i1 
+            if (qcmask(i,j,k) .and. Nc(i,j,k) > 1E3) then
             ! Mode mean properties
             mode_mean_mass = 0
             mode_mean_rho = 0
 
-            do s = 1, m % nspecies
-              mode_mean_mass = mode_mean_mass + qa(i,j,k,s)
-              mode_mean_rho = mode_mean_rho + (qa(i,j,k,s) / m % rho(s))
+            do s = 1, mode%nspecies
+              mode_mean_mass = mode_mean_mass + mode%conc(i,j,k,s+1)
+              mode_mean_rho = mode_mean_rho + &
+                (mode%conc(i,j,k,s+1) / mode%rho(s))
             end do
 
             mode_mean_rho = mode_mean_mass / (mode_mean_rho + eps0)
@@ -709,17 +706,17 @@ contains
               ! Compute mean cloud droplet size and rain rate.
               ! Make sure both stay within the bounds of the lookup table
               mean_cloud_droplet_size = max( &
-                1E6 * (3 * ql(i+1,j+1,k) * rhof(k) / &
-                       (4 * pi * Nc(i+1,j+1,k) * rhow + eps0)), &
+                1E6 * (3 * ql(i,j,k) * rhof(k) / &
+                       (4 * pi * Nc(i,j,k) * rhow + eps0)), &
                 5.001 &
               )
               mean_cloud_droplet_size = min(mean_cloud_droplet_size, 49.999)
 
               ! Compute mean aerosol radius in this mode
               mean_aerosol_radius = 0.5 * (6 * mode_mean_mass &
-                / (pi * Na(i,j,k) * mode_mean_rho + eps0)) &
+                / (pi * mode%conc(i,j,k,1) * mode_mean_rho + eps0)) &
                 **(1.0_field_r / 3) &
-                * exp((-3 * m % log_sigma_g * m % log_sigma_g) / 2)
+                * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
               mean_aerosol_radius = min(100 * mean_aerosol_radius, 8E-3)
               mean_aerosol_radius = max(mean_aerosol_radius, 1E-8)
@@ -728,12 +725,12 @@ contains
               f_scav_inc_m = LT2_get_col(inc_tab_m, 1, &
                                          log(mean_cloud_droplet_size), &
                                          log(mean_aerosol_radius))
-              f_scav_inc_m = 1E-6 * Nc(i+1,j+1,k) * f_scav_inc_m
+              f_scav_inc_m = 1E-6 * Nc(i,j,k) * f_scav_inc_m
 
               f_scav_inc_n = LT2_get_col(inc_tab_n, 1, &
                                          log(mean_cloud_droplet_size), &
                                          log(mean_aerosol_radius))
-              f_scav_inc_n = 1E-6 * Nc(i+1,j+1,k) * f_scav_inc_n
+              f_scav_inc_n = 1E-6 * Nc(i1,j1,k) * f_scav_inc_n
 
               f_scav_inc_m = merge(1 / delt, f_scav_inc_m, &
                 f_scav_inc_m * delt > 1 .or. f_scav_inc_n * delt > 1)
@@ -741,15 +738,15 @@ contains
                 f_scav_inc_m * delt > 1 .or. f_scav_inc_n * delt > 1)
 
               ! Remove aerosol from the free modes
-              tend_n = f_scav_inc_n * max(0.0_field_r, Na(i,j,k))
-              Nap(i,j,k) = Nap(i,j,k) - tend_n
-              do s = 1, m % nspecies
-                tend_m  = f_scav_inc_m * max(0.0_field_r, qa(i,j,k,s))
-                qap(i,j,k,s) = qap(i,j,k,s) - tend_m
-                my_numb = m % aero_idx(s) 
-                target_idx = idx_tab(iINR,my_numb)
-                modes(iINR) % tend(i+1,j+1,k,target_idx) = &
-                  modes(iINR) % tend(i+1,j+1,k,target_idx) + tend_m
+              tend_n = f_scav_inc_n * max(0.0_field_r, mode%conc(i,j,k,1))
+              mode%conc(i,j,k,1) = mode%conc(i,j,k,1) - tend_n
+              do s = 1, mode%nspecies
+                tend_m  = f_scav_inc_m * max(0.0_field_r, mode%conc(i,j,k,s+1))
+                mode%tend(i,j,k,s+1) = mode%tend(i,j,k,s+1) - tend_m
+                my_numb = mode%aero_idx(s) 
+                target_idx = idx_tab(iINC,my_numb)
+                modes(iINC)%tend(i,j,k,target_idx) = &
+                  modes(iINC)%tend(i,j,k,target_idx) + tend_m
               end do
             end if
           end if
@@ -757,17 +754,18 @@ contains
         end do
       end do
       ! Below-cloud
-      do k = 1, k1
-        do j = 1, j1-1
-          do i = 1, i1-1 
-            if (qrmask(i+1,j+1,k) .and. sed_qr(i+1,j+1,k)*3600 > 0.01_field_r) then
+      do k = 1, kmax
+        do j = 2, j1
+          do i = 2, i1 
+            if (qrmask(i,j,k) .and. sed_qr(i,j,k)*3600 > 0.01_field_r) then
               ! Mode mean properties
               mode_mean_mass = 0
               mode_mean_rho = 0
 
-              do s = 1, m % nspecies
-                mode_mean_mass = mode_mean_mass + qa(i,j,k,s)
-                mode_mean_rho = mode_mean_rho + (qa(i,j,k,s) / m % rho(s))
+              do s = 1, mode%nspecies
+                mode_mean_mass = mode_mean_mass + mode%conc(i,j,k,s+1)
+                mode_mean_rho = mode_mean_rho + (mode%conc(i,j,k,s+1) / &
+                                                 mode%rho(s))
               end do
 
               mode_mean_rho = mode_mean_mass / (mode_mean_rho + eps0)
@@ -775,17 +773,17 @@ contains
               if (mode_mean_mass > 0 .and. mode_mean_rho > 0) then
                 ! Compute mean cloud droplet size and rain rate.
                 ! Make sure both stay within the bounds of the lookup table
-                mean_cloud_droplet_size = (3 * ql(i+1,j+1,k) * rhof(k) / &
-                  (4 * pi * Nc(i+1,j+1,k) * rhow)) * 1E6
+                mean_cloud_droplet_size = (3 * ql(i,j,k) * rhof(k) / &
+                  (4 * pi * Nc(i,j,k) * rhow)) * 1E6
                 mean_cloud_droplet_size = min(max(mean_cloud_droplet_size, 0.01), 99.99)
 
-                rainrate = min(max(sed_qr(i+1,j+1,k) * 3600, 0.01001), 99.999)
+                rainrate = min(max(sed_qr(i,j,k) * 3600, 0.01001), 99.999)
 
                 ! Compute mean aerosol radius in this mode
                 mean_aerosol_radius = 0.5 * (6 * mode_mean_mass / &
-                  (pi * Na(i,j,k) * mode_mean_rho + eps0)) &
+                  (pi * mode%conc(i,j,k,1) * mode_mean_rho + eps0)) &
                   **(1.0_field_r / 3) &
-                  * exp((-3 * m % log_sigma_g * m % log_sigma_g) / 2)
+                  * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
                 mean_aerosol_radius = min(0.9999E3_field_r, &
                                           mean_aerosol_radius * 1E6)
@@ -806,22 +804,21 @@ contains
                   f_scav_blc_m * delt > 1 .or. f_scav_blc_n * delt > 1)
 
                 ! Remove aerosol from the free modes
-                tend_n = f_scav_blc_n * max(0.0_field_r, Na(i,j,k))
-                Nap(i,j,k) = Nap(i,j,k) - tend_n
-                do s = 1, m % nspecies
-                  tend_m  = f_scav_blc_m * max(0.0_field_r, qa(i,j,k,s))
-                  qap(i,j,k,s) = qap(i,j,k,s) - tend_m
-                  my_numb = m % aero_idx(s) 
-                  target_idx = idx_tab(iINC,my_numb)
-                  modes(iINC) % tend(i+1,j+1,k,target_idx) = &
-                    modes(iINC) % tend(i+1,j+1,k,target_idx) + tend_m
+                tend_n = f_scav_blc_n * max(0.0_field_r, mode%conc(i,j,k,1))
+                mode%tend(i,j,k,1) = mode%tend(i,j,k,1) - tend_n
+                do s = 1, mode%nspecies
+                  tend_m  = f_scav_blc_m * max(0.0_field_r, mode%conc(i,j,k,s+1))
+                  mode%tend(i,j,k,s+1) = mode%tend(i,j,k,s+1) - tend_m
+                  my_numb = mode%aero_idx(s) 
+                  target_idx = idx_tab(iINR,my_numb)
+                  modes(iINR) % tend(i,j,k,target_idx) = &
+                    modes(iINR) % tend(i,j,k,target_idx) + tend_m
                 end do
               end if
             end if
           end do
         end do
       end do
-      end associate
     end do
 
     call timer_toc(routine)
