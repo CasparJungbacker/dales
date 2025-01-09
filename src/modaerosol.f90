@@ -512,10 +512,12 @@ contains
       N_activated, &
       dNcdt
     real(field_r) :: fn, fm, tend_n, tend_m
+    real(field_r) :: mass, num, rho
     real(field_r) :: w0
 
     call timer_tic(routine, 1)
 
+    !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -528,20 +530,23 @@ contains
               mode_mean_rho = 0
 
               do s = 1, m_ais % nspecies
-                mode_total_mass = mode_total_mass + m_ais%conc(i,j,k,s)
-                mode_mean_rho = mode_mean_rho &
-                                + m_ais%conc(i,j,k,s) / m_ais % rho(s)
+                mass = m_ais%conc(i,j,k,s+1)
+                rho = m_ais % rho(s)
+                mode_total_mass = mode_total_mass + mass
+                mode_mean_rho = mode_mean_rho + mass / rho
               end do
 
               mode_mean_rho = mode_total_mass / (mode_mean_rho + eps0)
 
+              num = m_ais%conc(i,j,k,1)
+
               mode_median_diameter = ((6 * mode_total_mass) / (pi * &
-                                     m_ais%conc(i,j,k,1) * mode_mean_rho * 1E9 + &
-                                     eps0)) **(1.0_field_r/3) &
+                                     num * mode_mean_rho * 1E9 + &
+                                     eps0))**(1.0_field_r/3) &
                                      * exp((-3 * m_ais % log_sigma_g**2) / 2)
               f_activated = 1 - 0.5_field_r * erfc(-log(2 * r_crit / &
                             mode_median_diameter) * inv_sqrt_two) * m_ais % sigma_g
-              N_activated = 1E-6 * f_activated * m_ais%conc(i,j,k,1)
+              N_activated = 1E-6 * f_activated * num
             end if
 
             ! Step 2: compute tendency of CCN
@@ -564,19 +569,21 @@ contains
             !         mode, starting from the largest mode
             ! COS mode
             if (m_cos % enabled) then
-              fn = dNcdt * delt / (m_cos%conc(i,j,k,1) + eps0)
+              num = m_cos%conc(i,j,k,1)
+              fn = dNcdt * delt / (num + eps0)
               fn = max(min(fn, 1.0_field_r), 0.0_field_r)
               fm = 1 - 0.5_field_r * erfc(erfcinv(2 * fn) &
                    - 3 * m_cos % log_sigma_g * inv_sqrt_two)
               fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
 
-              tend_n = fn * m_cos%conc(i,j,k,1) / delt
+              tend_n = fn * num / delt
               tend_n = max(0.0_field_r, tend_n)
               m_cos%tend(i,j,k,1) = m_cos%tend(i,j,k,1) - tend_n
               m_inc%tend(i,j,k,1) = m_inc%tend(i,j,k,1) + tend_n
               
               do s = 1, m_cos % nspecies
-                tend_m = fm * m_cos%conc(i,j,k,s+1) / delt
+                mass = m_cos%conc(i,j,k,s+1)
+                tend_m = fm * mass / delt
                 tend_m = max(0.0_field_r, tend_m)
                 my_number = m_cos % aero_idx(s)
                 my_target = idx_tab(iINC, my_number)
@@ -584,25 +591,28 @@ contains
                 m_inc%tend(i,j,k,my_target) = m_inc%tend(i,j,k,my_target) + tend_m
               end do
 
-              dNcdt = merge(dNcdt - m_cos%conc(i,j,k,1) / delt, 0.0_field_r, &
-                            dNcdt * delt > m_cos%conc(i,j,k,1))
+              ! dNcdt = dNcdt - tend_n?
+              dNcdt = merge(dNcdt - num / delt, 0.0_field_r, &
+                            dNcdt * delt > num)
             end if
 
             ! ACS mode
             if (m_acs % enabled) then
-              fn = dNcdt * delt / (m_acs%conc(i,j,k,1) + eps0)
+              num = m_acs%conc(i,j,k,1)
+              fn = dNcdt * delt / (num + eps0)
               fn = max(min(fn, 1.0_field_r), 0.0_field_r)
               fm = 1 - 0.5_field_r * &
                 erfc(erfcinv(2 * fn) - 3 * m_acs % log_sigma_g * inv_sqrt_two)
               fm = merge(1.0_field_r, fm, fn > 1.0_field_r)
 
-              tend_n = fn * m_acs%conc(i,j,k,1) / delt
+              tend_n = fn * num / delt
               tend_n = max(0.0_field_r, tend_n)
               m_acs%tend(i,j,k,1) = m_acs%tend(i,j,k,1) - tend_n
               m_inc%tend(i,j,k,1) = m_inc%tend(i,j,k,1) + tend_n
               
               do s = 1, m_acs % nspecies
-                tend_m = fm * m_acs%conc(i,j,k,s+1) / delt
+                mass = m_acs%conc(i,j,k,s+1)
+                tend_m = fm * mass / delt
                 tend_m = max(0.0_field_r, tend_m)
                 my_number = m_acs % aero_idx(s)
                 my_target = idx_tab(iINC, my_number)
@@ -610,13 +620,14 @@ contains
                 m_inc%tend(i,j,k,my_target) = m_inc%tend(i,j,k,my_target) + tend_m
               end do
 
-              dNcdt = merge(dNcdt - m_acs%conc(i,j,k,1) / delt, 0.0_field_r, &
-                            dNcdt * delt > m_acs%conc(i,j,k,1))
+              dNcdt = merge(dNcdt - num / delt, 0.0_field_r, &
+                            dNcdt * delt > num)
             end if
 
             ! AIS mode
             if (m_ais%enabled) then
-              fn = dNcdt * delt / (m_ais%conc(i,j,k,1) + eps0)
+              num = m_ais%conc(i,j,k,1)
+              fn = dNcdt * delt / (num + eps0)
               fn = max(min(fn, 1.0_field_r), 0.0_field_r)
               fm = 1 - 0.5_field_r * &
                 erfc(erfcinv(2 * fn) - 3 * m_ais % log_sigma_g * inv_sqrt_two)
@@ -628,7 +639,8 @@ contains
               m_inc%tend(i,j,k,1) = m_inc%tend(i,j,k,1) + tend_n
               
               do s = 1, m_ais % nspecies - 1
-                tend_m = fm * m_ais%conc(i,j,k,s) / delt
+                mass = m_ais%conc(i,j,k,s+1)
+                tend_m = fm * mass / delt
                 tend_m = max(0.0_field_r, tend_m)
                 my_number = m_ais % aero_idx(s)
                 my_target = idx_tab(iINC, my_number)
@@ -673,6 +685,7 @@ contains
     integer       :: i, j, k, s, imod
     type(mode_t)  :: mode
     integer       :: my_numb, target_idx
+    real(field_r) :: mass, num
     real(field_r) :: mode_mean_mass, mode_mean_rho
     real(field_r) :: mean_cloud_droplet_size, rain_rate
     real(field_r) :: mean_aerosol_radius
@@ -695,9 +708,10 @@ contains
             mode_mean_rho = 0
 
             do s = 1, mode%nspecies
-              mode_mean_mass = mode_mean_mass + mode%conc(i,j,k,s+1)
-              mode_mean_rho = mode_mean_rho + &
-                (mode%conc(i,j,k,s+1) / mode%rho(s))
+              ! Mass in shared mem?
+              mass = mode%conc(i,j,k,s+1)
+              mode_mean_mass = mode_mean_mass + mass
+              mode_mean_rho = mode_mean_rho + (mass / mode%rho(s))
             end do
 
             mode_mean_rho = mode_mean_mass / (mode_mean_rho + eps0)
@@ -713,8 +727,9 @@ contains
               mean_cloud_droplet_size = min(mean_cloud_droplet_size, 49.999)
 
               ! Compute mean aerosol radius in this mode
+              num = mode%conc(i,j,k,1)
               mean_aerosol_radius = 0.5 * (6 * mode_mean_mass &
-                / (pi * mode%conc(i,j,k,1) * mode_mean_rho + eps0)) &
+                / (pi * num * mode_mean_rho + eps0)) &
                 **(1.0_field_r / 3) &
                 * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
@@ -738,10 +753,11 @@ contains
                 f_scav_inc_m * delt > 1 .or. f_scav_inc_n * delt > 1)
 
               ! Remove aerosol from the free modes
-              tend_n = f_scav_inc_n * max(0.0_field_r, mode%conc(i,j,k,1))
-              mode%conc(i,j,k,1) = mode%conc(i,j,k,1) - tend_n
+              tend_n = f_scav_inc_n * max(0.0_field_r, num)
+              mode%tend(i,j,k,1) = mode%tend(i,j,k,1) - tend_n
               do s = 1, mode%nspecies
-                tend_m  = f_scav_inc_m * max(0.0_field_r, mode%conc(i,j,k,s+1))
+                mass = mode%conc(i,j,k,s+1)
+                tend_m  = f_scav_inc_m * max(0.0_field_r, mass)
                 mode%tend(i,j,k,s+1) = mode%tend(i,j,k,s+1) - tend_m
                 my_numb = mode%aero_idx(s) 
                 target_idx = idx_tab(iINC,my_numb)
@@ -763,9 +779,9 @@ contains
               mode_mean_rho = 0
 
               do s = 1, mode%nspecies
-                mode_mean_mass = mode_mean_mass + mode%conc(i,j,k,s+1)
-                mode_mean_rho = mode_mean_rho + (mode%conc(i,j,k,s+1) / &
-                                                 mode%rho(s))
+                mass = mode%conc(i,j,k,s+1)
+                mode_mean_mass = mode_mean_mass + mass
+                mode_mean_rho = mode_mean_rho + (mass / mode%rho(s))
               end do
 
               mode_mean_rho = mode_mean_mass / (mode_mean_rho + eps0)
@@ -780,8 +796,9 @@ contains
                 rainrate = min(max(sed_qr(i,j,k) * 3600, 0.01001), 99.999)
 
                 ! Compute mean aerosol radius in this mode
+                num = mode%conc(i,j,k,1)
                 mean_aerosol_radius = 0.5 * (6 * mode_mean_mass / &
-                  (pi * mode%conc(i,j,k,1) * mode_mean_rho + eps0)) &
+                  (pi * num * mode_mean_rho + eps0)) &
                   **(1.0_field_r / 3) &
                   * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
@@ -804,10 +821,11 @@ contains
                   f_scav_blc_m * delt > 1 .or. f_scav_blc_n * delt > 1)
 
                 ! Remove aerosol from the free modes
-                tend_n = f_scav_blc_n * max(0.0_field_r, mode%conc(i,j,k,1))
+                tend_n = f_scav_blc_n * max(0.0_field_r, num)
                 mode%tend(i,j,k,1) = mode%tend(i,j,k,1) - tend_n
                 do s = 1, mode%nspecies
-                  tend_m  = f_scav_blc_m * max(0.0_field_r, mode%conc(i,j,k,s+1))
+                  mass = mode%conc(i,j,k,s+1)
+                  tend_m  = f_scav_blc_m * max(0.0_field_r, mass)
                   mode%tend(i,j,k,s+1) = mode%tend(i,j,k,s+1) - tend_m
                   my_numb = mode%aero_idx(s) 
                   target_idx = idx_tab(iINR,my_numb)
