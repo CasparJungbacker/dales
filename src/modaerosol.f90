@@ -111,7 +111,7 @@ module modaerosol
 
   ! Variables
   logical,      public, protected :: laerosol = .false. !< Switch for enabling/disabling interactive aerosols.
-  type(mode_t), public            :: modes(maxmodes)   !< List of modes.
+  type(mode_t), public, target    :: modes(maxmodes)   !< List of modes.
 
   type(aerosol_t), allocatable                    :: aerosols(:)
   integer,         allocatable, public, protected :: idx_tab(:,:)
@@ -129,6 +129,7 @@ module modaerosol
   public :: scavenging
 
 contains
+
   !> Read input files and setup aerosols and M7 modes.
   subroutine initaerosol
     integer       :: imod, ierr, ncid, nvars, iaer, mode_loc
@@ -158,10 +159,6 @@ contains
     call d_mpi_bcast(laerosol, 1, 0, commwrld, mpierr)
 
     if (.not. laerosol) return
-
-#ifdef DALES_GPU
-    call dales_error("Aerosol microphysics are not supported on GPU!")
-#endif
 
     ! Setup the modes
     do imod = 1, maxmodes
@@ -251,7 +248,6 @@ contains
       end do
     end do
 
-
     ! Finally, allocate memory
     do imod = 1, maxmodes
       call modes(imod) % allocate
@@ -287,6 +283,15 @@ contains
     call LT2_set_col(blc_tab_n, 1, rainrate, aerrad_blc, &
                      scavenging_eff_belowcloud_n)
 
+    !$acc enter data copyin(inc_tab_m, inc_tab_m%x1(1:10), inc_tab_m%x2(1:60), &
+    !$acc                   inc_tab_m%rows_cols(1:10,1:60,1), &
+    !$acc                   inc_tab_n, inc_tab_n%x1(1:10), inc_tab_n%x2(1:60), &
+    !$acc                   inc_tab_n%rows_cols(1:10,1:60,1), &
+    !$acc                   blc_tab_m, blc_tab_m%x1(1:5), blc_tab_m%x2(1:100), &
+    !$acc                   blc_tab_m%rows_cols(1:5,1:100,1), &
+    !$acc                   blc_tab_n, blc_tab_n%x1(1:5), blc_tab_n%x2(1:100), &
+    !$acc                   blc_tab_n%rows_cols(1:5,1:100,1))
+    !$acc enter data copyin(idx_tab)
 
   end subroutine initaerosol
 
@@ -397,6 +402,9 @@ contains
   subroutine mode_allocate(self)
     class(mode_t), intent(inout) :: self 
 
+    ! Make sure static data is available on GPU, even if we don't use this mode
+    !$acc enter data copyin(self)
+
     if (self % nspecies < 1) return
 
     allocate(self % conc(2:i1,2:j1,1:k1,self % nspecies + 1), &
@@ -405,8 +413,11 @@ contains
     self % conc(:,:,:,:) = 0.0_field_r
     self % tend(:,:,:,:) = 0.0_field_r
 
-    !$acc enter data copyin(self%conc(2:i1,2:j1,1:k1,self%nspecies + 1), &
-    !$acc&                  self%tend(2:i1,2:j1,1:k1,self%nspecies + 1))
+    !$acc enter data copyin(self%rho(1:self%nspecies), &
+    !$acc                   self%trac_idx(1:self%nspecies+1), &
+    !$acc                   self%aero_idx(1:self%nspecies), &
+    !$acc                   self%conc(2:i1,2:j1,1:k1,1:self%nspecies + 1), &
+    !$acc                   self%tend(2:i1,2:j1,1:k1,1:self%nspecies + 1))
 
   end subroutine mode_allocate
 
@@ -423,10 +434,9 @@ contains
     if (self % nspecies < 1) return
 
     ! And the mass concentrations
-    !$acc parallel loop gang vector default(present) private(sv_idx)
     do iaer = 1, self % nspecies + 1
       sv_idx = self % trac_idx(iaer)
-      !$acc loop collapse(3)
+      !$acc parallel loop gang vector collapse(3) default(present) async
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -435,6 +445,8 @@ contains
         end do
       end do
     end do
+
+    !$acc wait
 
   end subroutine mode_copy_in
 
@@ -453,10 +465,9 @@ contains
     
     if (self % nspecies < 1) return
 
-    !$acc parallel loop gang vector default(present) private(sv_idx)
     do iaer = 1, self % nspecies + 1
       sv_idx = self % trac_idx(iaer)
-      !$acc loop collapse(3)
+      !$acc parallel loop collapse(3) default(present) async
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -467,6 +478,8 @@ contains
         end do
       end do
     end do
+
+    !$acc wait
 
   end subroutine mode_copy_out
 
@@ -517,7 +530,10 @@ contains
 
     call timer_tic(routine, 1)
 
-    !$acc parallel loop collapse(3) default(present)
+    !$acc parallel loop collapse(3) default(present) &
+    !$acc private(N_activated, mode_total_mass, mode_mean_rho, &
+    !$acc         mode_median_diameter, f_activated, N_activated, dNcdt, fn, &
+    !$acc         fm, tend_n, tend_m, mass, num, rho, w0, my_number, my_target)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -670,7 +686,7 @@ contains
   !! \param rhof Density of full levels.
   !! \param delt Time step size.
   !! \param modes List of aerosol modes.
-  subroutine scavenging(ql, sed_qr, Nc, qrmask, rhof, delt, modes)
+  subroutine scavenging(ql, sed_qr, Nc, qrmask, rhof, delt, modes1)
     use modmicrodata, only: qcmask
     real(field_r), intent(in)    :: ql(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: sed_qr(2:i1,2:j1,1:k1)
@@ -678,12 +694,12 @@ contains
     logical,       intent(in)    :: qrmask(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
     real(field_r), intent(in)    :: delt
-    type(mode_t),  intent(inout) :: modes(maxmodes)
+    type(mode_t),  intent(inout), target :: modes1(maxmodes)
 
     character(*), parameter :: routine = modname//"::scavenging"
 
     integer       :: i, j, k, s, imod
-    type(mode_t)  :: mode
+    type(mode_t), pointer  :: mode
     integer       :: my_numb, target_idx
     real(field_r) :: mass, num
     real(field_r) :: mode_mean_mass, mode_mean_rho
@@ -697,8 +713,15 @@ contains
     call timer_tic(routine, 1)
 
     do imod = 1, maxmodes - 2 ! Exclude in-cloud and in-rain modes
-      mode = modes(imod)
+      mode => modes(imod)
+      !$acc enter data attach(mode)
       if (.not. mode%enabled) cycle
+      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc private(mode_mean_mass, mode_mean_rho, mass, num, &
+      !$acc         mean_cloud_droplet_size, mean_aerosol_radius, &
+      !$acc         f_scav_inc_m, f_scav_inc_n, tend_m, tend_n, my_numb, &
+      !$acc         target_idx) &
+      !$acc async(1)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1 
@@ -720,11 +743,12 @@ contains
               ! Compute mean cloud droplet size and rain rate.
               ! Make sure both stay within the bounds of the lookup table
               mean_cloud_droplet_size = max( &
-                1E6 * (3 * ql(i,j,k) * rhof(k) / &
+                1E6_field_r * (3 * ql(i,j,k) * rhof(k) / &
                        (4 * pi * Nc(i,j,k) * rhow + eps0)), &
-                5.001 &
+                5.001_field_r &
               )
-              mean_cloud_droplet_size = min(mean_cloud_droplet_size, 49.999)
+              mean_cloud_droplet_size = min(mean_cloud_droplet_size, &
+                                           49.999_field_r)
 
               ! Compute mean aerosol radius in this mode
               num = mode%conc(i,j,k,1)
@@ -733,8 +757,8 @@ contains
                 **(1.0_field_r / 3) &
                 * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
-              mean_aerosol_radius = min(100 * mean_aerosol_radius, 8E-3)
-              mean_aerosol_radius = max(mean_aerosol_radius, 1E-8)
+              mean_aerosol_radius = min(100 * mean_aerosol_radius, 8E-3_field_r)
+              mean_aerosol_radius = max(mean_aerosol_radius, 1E-8_field_r)
 
               ! Compute how much aerosol is washed out (number and mass)
               f_scav_inc_m = LT2_get_col(inc_tab_m, 1, &
@@ -770,6 +794,12 @@ contains
         end do
       end do
       ! Below-cloud
+      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc private(mode_mean_mass, mode_mean_rho, mass, num, &
+      !$acc         rainrate, mean_aerosol_radius, &
+      !$acc         f_scav_blc_m, f_scav_blc_n, tend_m, tend_n, my_numb, &
+      !$acc         target_idx) &
+      !$acc async(2)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1 
@@ -791,9 +821,12 @@ contains
                 ! Make sure both stay within the bounds of the lookup table
                 mean_cloud_droplet_size = (3 * ql(i,j,k) * rhof(k) / &
                   (4 * pi * Nc(i,j,k) * rhow)) * 1E6
-                mean_cloud_droplet_size = min(max(mean_cloud_droplet_size, 0.01), 99.99)
+                mean_cloud_droplet_size = min(max(mean_cloud_droplet_size, &
+                                                  0.01_field_r), &
+                                              99.99_field_r)
 
-                rainrate = min(max(sed_qr(i,j,k) * 3600, 0.01001), 99.999)
+                rainrate = min(max(sed_qr(i,j,k) * 3600, 0.01001_field_r), &
+                               99.999_field_r)
 
                 ! Compute mean aerosol radius in this mode
                 num = mode%conc(i,j,k,1)
@@ -803,7 +836,7 @@ contains
                   * exp((-3 * mode%log_sigma_g * mode%log_sigma_g) / 2)
 
                 mean_aerosol_radius = min(0.9999E3_field_r, &
-                                          mean_aerosol_radius * 1E6)
+                                          mean_aerosol_radius * 1E6_field_r)
                 mean_aerosol_radius = max(mean_aerosol_radius, 1.001E-3_field_r)
 
                 ! Compute how much aerosol is washed out (number and mass)
@@ -816,7 +849,7 @@ contains
                                            log(mean_aerosol_radius))
 
                 f_scav_blc_m = merge(1 / delt, f_scav_blc_m, &
-                  f_scav_blc_m * delt > 1 .or. f_scav_blc_n * delt > 1)
+                f_scav_blc_m * delt > 1 .or. f_scav_blc_n * delt > 1)
                 f_scav_blc_n = merge(1 / delt, f_scav_blc_n, &
                   f_scav_blc_m * delt > 1 .or. f_scav_blc_n * delt > 1)
 

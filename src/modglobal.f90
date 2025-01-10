@@ -65,7 +65,7 @@ save
       integer, parameter :: ifoutput   = 2
       integer, parameter :: ifnamopt   = 3
 
-      real,parameter :: pi       = 3.141592653589793116
+      real(field_r),parameter :: pi       = 3.141592653589793116
       real(field_r),parameter :: grav     = 9.81             !<    *gravity acceleration.
       real(field_r),parameter :: rd       = 287.04           !<    *gas constant for dry air.
       real(field_r),parameter :: rv       = 461.5            !<    *gas constant for water vapor.
@@ -81,7 +81,7 @@ save
       real,parameter :: cpr      = cp/rd            !<    3.50
       real,parameter :: rlvocp   = rlv/cp           !<    2.49
       real,parameter :: mair     = 28.967           !< Molar mass of air
-      real,parameter :: rhow     = 0.998e3          !<    * Density of water
+      real(field_r),parameter :: rhow     = 0.998e3          !<    * Density of water
       real,parameter :: pref0    = 1.e5             !<    *standard pressure used in exner function.
       real,parameter :: tmelt    = 273.16           !<    *temperature of melting of ice.
       real,parameter :: es0      = 610.78           !<    * constants used for computation

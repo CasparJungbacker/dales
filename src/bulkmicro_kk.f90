@@ -28,6 +28,8 @@ module bulkmicro_kk
 
   private
 
+  character(*), parameter :: modname = "bulkmicro_kk"
+
   real(field_r), parameter :: &
     c_evap = 0.87,  & !< Coefficient for evaporation.
     D0 = 50e-6,     & !< Diameter separating cloud and precipitation parts of the DSD.
@@ -159,6 +161,8 @@ contains
     type(mode_t), optional, intent(inout) :: m_inc
     type(mode_t), optional, intent(inout) :: m_inr
 
+    character(*), parameter :: routine = modname//"autoconversion"
+
     integer       :: i, j, k, s, naer
     logical       :: laerosol_
     real(field_r) :: au, xc
@@ -171,7 +175,7 @@ contains
       laerosol_ = .false.
     end if
 
-    call timer_tic('bulkmicro_kk/autoconversion', 1)
+    call timer_tic(routine, 1)
 
     !$acc parallel loop collapse(3) default(present) private(au, xc)
     do k = qcbase, qcroof
@@ -202,7 +206,7 @@ contains
       enddo
     enddo
 
-    call timer_toc('bulkmicro_kk/autoconversion')
+    call timer_toc(routine)
 
   end subroutine autoconversion
 
@@ -240,6 +244,8 @@ contains
     logical,       optional, intent(in)    :: laerosol
     type(mode_t),  optional, intent(inout) :: m_inc
     type(mode_t),  optional, intent(inout) :: m_inr
+
+    character(*), parameter :: routine = modname//"accretion"
     
     integer       :: i, j, k, s
     logical       :: laerosol_
@@ -247,7 +253,7 @@ contains
 
     if (max(qrbase, qcbase) > min(qcroof, qcroof)) return
 
-    call timer_tic('bulkmicro_kk/accretion', 1)
+    call timer_tic(routine, 1)
 
     if (present(laerosol)) then
       laerosol_ = laerosol
@@ -280,7 +286,7 @@ contains
       enddo
     enddo
 
-    call timer_toc('bulkmicro_kk/accretion')
+    call timer_toc(routine)
 
   end subroutine accretion
 
@@ -342,6 +348,7 @@ contains
     real(field_r), optional, intent(in)   :: qr0(2:i1,2:j1,1:k1)
     real(field_r), optional, intent(in)   :: svm(2-ih:i1+ih,2-jh:j1+jh,1:k1,nsv)
 
+    character(*), parameter :: routine = modname//"evaporation"
 
     integer       :: i, j, k 
     logical       :: laerosol_
@@ -354,7 +361,7 @@ contains
 
     if (qrbase > qrroof) return
 
-    call timer_tic('bulkmicro_kk/evaporation', 1)
+    call timer_tic(routine, 1)
 
     if (present(laerosol)) then
       laerosol_ = laerosol
@@ -458,7 +465,7 @@ contains
       enddo
     enddo
 
-    call timer_toc('bulkmicro_kk/evaporation')
+    call timer_toc(routine)
 
   end subroutine evaporation
 
@@ -501,6 +508,8 @@ contains
     type(mode_t),  intent(inout), optional :: m_inr
     real(field_r), intent(out),   optional :: sed_qr_(2:i1,2:j1,1:k1)
 
+    character(*), parameter :: routine = modname//"sedimentation_rain"
+
     integer       :: i, j, k, jn, s
     integer       :: n_spl      !<  sedimentation time splitting loop
     real(field_r) :: sed_qr
@@ -516,7 +525,7 @@ contains
 
     if (qrbase > qrroof) return
 
-    call timer_tic('bulkmicro_kk/sedimentation_rain', 1)
+    call timer_tic(modname, 1)
 
     if (present(laerosol)) then
       laerosol_ = laerosol
@@ -608,7 +617,7 @@ contains
       deallocate(qa_spl)
     end if
 
-    call timer_toc('bulkmicro_kk/sedimentation_rain')
+    call timer_toc(routine)
 
   end subroutine sedimentation_rain
 
@@ -653,6 +662,8 @@ contains
     type(mode_t),  intent(inout) :: m_inr
     real(field_r), intent(out)   :: sed_qr_(2:i1,2:j1,1:k1)
 
+    character(*), parameter :: routine = modname//"sedimentation_rain"
+
     integer       :: i, j, k, jn, sedimbase, s
     integer       :: n_spl      !<  sedimentation time splitting loop
     real(field_r) :: sed_qr
@@ -675,7 +686,7 @@ contains
 
     if (qrbase > qrroof) return
 
-    call timer_tic('bulkmicro_kk/sedimentation_rain', 1)
+    call timer_tic(routine, 1)
 
     allocate(qr_spl(2:i1,2:j1,1:k1))
     allocate(Nr_spl(2:i1,2:j1,1:k1))
@@ -840,7 +851,7 @@ contains
 
     deallocate(qr_spl, Nr_spl, qr_tmp, Nr_tmp)
 
-    call timer_toc('bulkmicro_kk/sedimentation_rain')
+    call timer_toc(routine)
 
   end subroutine sedimentation_rain_gpu
 #endif
