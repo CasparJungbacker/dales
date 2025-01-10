@@ -493,6 +493,7 @@ contains
        my_lt%rows_cols(ix, :, col_ix) = &
             LT_get_spaced_data(x2, tmp(ix, :), my_lt%x2)
     end do
+
   end subroutine LT2_set_col
 
   !> Fill the column with index col_ix with y data
@@ -510,6 +511,7 @@ contains
 
   !> Get a location in the lookup table
   elemental function LT2_get_loc(my_lt, x1, x2) result(my_loc)
+    !$acc routine seq
     type(LT2_t), intent(in) :: my_lt
     real(dp), intent(in)    :: x1, x2
     type(LT2_loc_t)         :: my_loc
@@ -533,6 +535,7 @@ contains
 
   !> Get the value of a single column at x
   pure function LT2_get_col(my_lt, col_ix, x1, x2) result(col_value)
+    !$acc routine seq
     type(LT2_t), intent(in) :: my_lt
     integer, intent(in)     :: col_ix
     real(dp), intent(in)    :: x1, x2
@@ -545,6 +548,7 @@ contains
 
   !> Get the value of a single column at a location
   pure function LT2_get_col_at_loc(my_lt, col_ix, loc) result(col_value)
+    !$acc routine seq
     type(LT2_t), intent(in)     :: my_lt
     integer, intent(in)         :: col_ix
     type(LT2_loc_t), intent(in) :: loc

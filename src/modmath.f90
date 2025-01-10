@@ -26,7 +26,8 @@ module modmath
 
 contains
 
-    elemental function erfinv_r4(x) result(p)
+    elemental function erfinv_r4(x) result(p) 
+      !$acc routine seq
       real(4), intent(in) :: x
       real(4) :: w, p
 
@@ -69,6 +70,7 @@ contains
     end function erfinv_r4
 
     elemental function erfinv_r8(x) result(p)
+      !$acc routine seq
       real(8), intent(in) :: x
       real(8) :: w, p
 
@@ -153,6 +155,7 @@ contains
     end function erfinv_r8
 
     elemental function erfcinv_r4(x) result(r)
+      !$acc routine seq
       real(4), intent(in) :: x
       real(4) :: r
       r = erfinv_r4(1 - x)
@@ -160,7 +163,7 @@ contains
 
 
     elemental function erfcinv_r8(x) result(r)
-      use iso_fortran_env, only: real64
+      !$acc routine seq
       real(8), intent(in) :: x
       real(8) :: r
       r = erfinv_r8(1 - x)

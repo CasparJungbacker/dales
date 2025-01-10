@@ -102,7 +102,7 @@ module modbulkmicro
     gamma3=2.
     gamma35=lacz_gamma(3.5)
 
-    !$acc enter data copyin(Nrp, qrp, Dvr, precep, &
+    !$acc enter data copyin(Nrp, qrp, Dvr, precep, sed_qr, &
     !$acc&                  thlpmcr, qtpmcr, xr, mur, lbdr, qrmask, qcmask)
 
   end subroutine initbulkmicro
@@ -149,9 +149,7 @@ module modbulkmicro
     Nr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNr)
     Nc(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNc)
 
-    if (.not. laerosol) then
-      Nc(:,:,:) = Nc_0
-    end if
+    !$acc enter data attach(qr, Nr, Nc)
 
     !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
@@ -161,6 +159,9 @@ module modbulkmicro
           qrp(i,j,k)     = 0.0
           thlpmcr(i,j,k) = 0.0
           qtpmcr(i,j,k)  = 0.0
+          if (.not. laerosol) then
+            Nc(i,j,k) = Nc_0
+          end if
         enddo
       enddo
     enddo
@@ -321,7 +322,7 @@ module modbulkmicro
     end if
 
     if (laerosol) then
-      call scavenging(ql0, sed_qr, Nc, qrmask, rhof, delt, modes)
+      call scavenging(ql0, sed_qr, sv0(:,:,:,iNc), qrmask, rhof, delt, modes)
     end if
 
     if (laerosol) then
