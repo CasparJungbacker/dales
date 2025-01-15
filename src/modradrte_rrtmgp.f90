@@ -27,13 +27,14 @@ module modradrte_rrtmgp
   use modprecision, only : field_r
   use modtimer
   ! RTE-RRTMGP modules
-  use mo_optical_props,      only: ty_optical_props, &
-                                   ty_optical_props_arry, ty_optical_props_1scl, ty_optical_props_2str
-  use mo_gas_optics_rrtmgp,  only: ty_gas_optics_rrtmgp
-  use mo_cloud_optics,       only: ty_cloud_optics
-  use mo_source_functions,   only: ty_source_func_lw
-  use mo_fluxes,             only: ty_fluxes_broadband
-  use mo_gas_concentrations, only: ty_gas_concs
+  use mo_optical_props,       only: ty_optical_props, &
+                                    ty_optical_props_arry, &
+                                    ty_optical_props_1scl, ty_optical_props_2str
+  use mo_gas_optics_rrtmgp,   only: ty_gas_optics_rrtmgp
+  use mo_cloud_optics_rrtmgp, only: ty_cloud_optics_rrtmgp
+  use mo_source_functions,    only: ty_source_func_lw
+  use mo_fluxes,              only: ty_fluxes_broadband
+  use mo_gas_concentrations,  only: ty_gas_concs
 
   implicit none
 
@@ -42,7 +43,7 @@ module modradrte_rrtmgp
   type(ty_gas_concs)                        :: gas_concs
   type(ty_source_func_lw), save             :: sources_lw
   type(ty_gas_optics_rrtmgp)                :: k_dist_lw, k_dist_sw
-  type(ty_cloud_optics)                     :: cloud_optics_lw, cloud_optics_sw
+  type(ty_cloud_optics_rrtmgp)              :: cloud_optics_lw, cloud_optics_sw
   class(ty_optical_props_arry), allocatable :: atmos_lw, atmos_sw, clouds_lw, clouds_sw
   type(ty_fluxes_broadband)                 :: fluxes_lw, fluxes_sw, fluxes_cs_lw, fluxes_cs_sw
   real(kind=kind_rb), dimension(:,:), allocatable :: inc_sw_flux, sfc_alb_dir, sfc_alb_dif
@@ -73,6 +74,7 @@ contains
     use mo_load_coefficients,  only: load_and_init
     use mo_load_cloud_coefficients, &
                                only: load_cld_lutcoeff, load_cld_padecoeff
+    use mo_rte_config,         only: rte_config_checks
 
     ! DALES modules
     use modradrrtmg,           only: readSounding, readTraceProfs
@@ -82,10 +84,10 @@ contains
     implicit none
 
     integer                 :: k, npatch, ierr(3)=0
-    character(len=256)      :: k_dist_file_lw = "rrtmgp-data-lw-g128-210809.nc"
-    character(len=256)      :: k_dist_file_sw = "rrtmgp-data-sw-g112-210809.nc"
-    character(len=256)      :: cloud_optics_file_lw = "rrtmgp-cloud-optics-coeffs-lw.nc"
-    character(len=256)      :: cloud_optics_file_sw = "rrtmgp-cloud-optics-coeffs-reordered-sw.nc"
+    character(len=256)      :: k_dist_file_lw = "rrtmgp-gas-lw-g128.nc"
+    character(len=256)      :: k_dist_file_sw = "rrtmgp-gas-sw-g112.nc"
+    character(len=256)      :: cloud_optics_file_lw = "rrtmgp-clouds-lw.nc"
+    character(len=256)      :: cloud_optics_file_sw = "rrtmgp-clouds-sw.nc"
 
     ! Reading sounding (patch above Dales domain), only once
     call readSounding(initial_presh(k1)/100.,npatch_start,npatch_end)
@@ -264,8 +266,8 @@ contains
       allocate(emis(nbndlw,ncol))
       emis=0.95
       !$acc enter data copyin(emis, sources_lw)
-      !$acc enter data create(sources_lw%lay_source, sources_lw%lev_source_inc, &
-      !$acc&                  sources_lw%lev_source_dec, sources_lw%sfc_source, sources_lw%sfc_source_Jac)
+      !$acc enter data create(sources_lw%lay_source, sources_lw%lev_source, &
+      !$acc&                  sources_lw%sfc_source, sources_lw%sfc_source_Jac)
 
       ! Define lw fluxes pointers
       fluxes_lw%flux_up => lwUp_slice(:,:)
@@ -324,6 +326,8 @@ contains
         fluxes_cs_sw%flux_dn => swDownCS_slice(:,:)
       endif
     endif
+
+    call rte_config_checks(.false.)
 
     initialized = .true.
 

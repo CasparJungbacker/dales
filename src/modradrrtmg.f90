@@ -1,14 +1,20 @@
 module modradrrtmg
-  use modprecision, only : field_r
+  use modprecision, only : field_r, kind_im
   use modraddata
   implicit none
 
   private
-  public :: radrrtmg, readSounding, readTraceProfs
+
+  public :: radrrtmg
+  public :: readSounding
+  public :: readTraceProfs
 
 contains
 
   subroutine radrrtmg
+
+#ifdef USE_RRTMG
+
     use modglobal,     only : cp,dzf,&
                               imax,kmax,i1,j1,k1,&
                               kind_rb,SHR_KIND_R4,boltz
@@ -34,7 +40,7 @@ contains
                                                      !LWP_slice, &
                                                      !IWP_slice
 
-
+! Disable RRTMG when RRTMGP is compiled in single precision
 
     if(.not.isReadSounding) then
       call readSounding(initial_presh(k1)/100.,npatch_start,npatch_end)
@@ -275,12 +281,20 @@ contains
       end do
     end do
 
+#else
+    use modmpi, only: myid
+    if (myid == 0) then
+      write(6,*) "RRTMG is disabled when compiling with -DENABLE_FP32_RAD=ON"
+      stop
+    end if
+#endif
     !if(myid==0) write(*,*) 'RadiationDone'
 !    stop 'FINISHED radrrtmg!!'
   end subroutine radrrtmg
 
 ! ==============================================================================;
 ! ==============================================================================;
+
 
   subroutine readSounding(ptop_model,npatch_start,npatch_end)
     use modglobal, only     : cexpnr
@@ -416,7 +430,6 @@ contains
   subroutine readTraceProfs        ! original tracesini subroutine in rad_driver
     use modglobal, only : kind_rb, grav
     use modmpi, only    : myid
-    use rrlw_ncpar, only: getAbsorberIndex
     use netcdf
     implicit none
 
@@ -612,6 +625,8 @@ contains
 
 ! ==============================================================================;
 ! ==============================================================================;
+
+#ifdef USE_RRTMG
 
   subroutine setupSlicesFromProfiles(j,npatch_start, &
            LWP_slice,IWP_slice,cloudFrac,liquidRe,iceRe)
@@ -972,5 +987,41 @@ contains
     endif
 
   end subroutine albedo
+
+#endif
+
+  ! CJ: copied from rrtmg_lw, so we can compile without rrtmg
+	subroutine getAbsorberIndex(AbsorberName, AbsorberIndex)
+		character(*),          intent(in)  :: AbsorberName
+		integer(kind=kind_im), intent(out) :: AbsorberIndex
+
+    integer(kind=kind_im), parameter :: Absorber = 12
+    character(*),          parameter :: AbsorberNames(Absorber) = (/ &
+      'N2   ',  &
+      'CCL4 ',  &
+      'CFC11',  &
+      'CFC12',  &
+      'CFC22',  &
+      'H2O  ',  &
+      'CO2  ',  &
+      'O3   ',  &
+      'N2O  ',  & 
+      'CO   ',  &
+      'CH4  ',  &
+      'O2   '  /)
+		
+		integer(kind=kind_im) :: m
+	
+		AbsorberIndex = -1
+		do m = 1, Absorber
+			if (trim(AbsorberNames(m)) == trim(AbsorberName)) then
+				AbsorberIndex = m
+			end if
+		end do
+		
+		if (AbsorberIndex == -1) then
+			print*, "Absorber name index lookup failed."
+		end if
+	end subroutine getAbsorberIndex
 
 end module modradrrtmg
