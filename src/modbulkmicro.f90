@@ -151,6 +151,10 @@ module modbulkmicro
 
     !$acc enter data attach(qr, Nr, Nc)
 
+    if (.not. laerosol) then
+      Nc(:,:,:) = Nc_0
+    end if
+
     !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
       do j = 2, j1

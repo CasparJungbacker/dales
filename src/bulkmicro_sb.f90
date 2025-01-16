@@ -101,6 +101,7 @@ contains
                      m_acs=modes(iACS), m_cos=modes(iCOS))
     call bulkmicrotend
 #ifdef DALES_GPU
+<<<<<<< Updated upstream
     call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
                                 l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
                                 lbdr, mur, xr, qrp, Nrp, precep, &

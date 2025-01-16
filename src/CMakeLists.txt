@@ -50,7 +50,7 @@ set( dales_srcs
 	modlookuptable.f90
 	modlsm.f90
 	modlsmcrosssection.f90
-  modlsmdata.f90
+    modlsmdata.f90
 	modlsmstat.f90
 	modmath.f90
 	modmicrodata.f90

@@ -160,6 +160,10 @@ contains
 
     if (.not. laerosol) return
 
+#ifdef DALES_GPU
+    call dales_error("Aerosol microphysics are not supported on GPU!")
+#endif
+
     ! Setup the modes
     do imod = 1, maxmodes
       call modes(imod) % construct(name=modenames(imod), &
