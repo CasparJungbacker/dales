@@ -184,12 +184,11 @@ contains
            if (qcmask(i,j,k) .and. Nc(i,j,k) > 1E3) then
               au = 1350 * ql0(i,j,k)**(2.47_field_r) &
                    * (Nc(i,j,k) / 1E6)**(-1.79_field_r)
+              au = min(ql0(i,j,k) / delt, au)
               qrp(i,j,k) = qrp(i,j,k) + au
               qtpmcr(i,j,k) = qtpmcr(i,j,k) - au
               thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * au
               Nrp(i,j,k) = Nrp(i,j,k) + au * rhof(k) / (pirhow * D0**3)
-
-              au = min(ql0(i,j,k) / delt, au)
 
               if (laerosol_) then
                 xc = rhof(k) * ql0(i,j,k) / (Nc(i,j,k) + eps0)
