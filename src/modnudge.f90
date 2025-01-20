@@ -367,10 +367,6 @@ contains
       z_rlx_p = z_rlx + 200
     end if
 
-    if (myid == 0 .and. rk3step == 1) then
-      write(6,*) "Nudging ramp-up from ", z_rlx, " to ", z_rlx_p
-    end if
-
     !$acc parallel loop gang(static: 1)
     do k = 1, kmax
       if (zh(k) < z_rlx) then
