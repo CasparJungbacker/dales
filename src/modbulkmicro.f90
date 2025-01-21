@@ -149,8 +149,6 @@ module modbulkmicro
     Nr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNr)
     Nc(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNc)
 
-    !$acc enter data attach(qr, Nr, Nc)
-
     if (.not. laerosol) then
       Nc(:,:,:) = Nc_0
     end if
@@ -233,7 +231,7 @@ module modbulkmicro
         do i = 2, i1
           ! Update mask prior to using it
           qrmask(i,j,k) = (qr(i,j,k) > qrmin .and. Nr(i,j,k) > 0.0)
-          qcmask(i,j,k) = (ql0(i,j,k) > qcmin .and. Nc(i,j,k) > 0.0)
+          qcmask(i,j,k) = (ql0(i,j,k) > qcmin)
           if (qrmask(i,j,k)) then
             qrbase = min(k, qrbase)
           endif
