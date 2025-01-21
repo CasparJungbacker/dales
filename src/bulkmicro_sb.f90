@@ -101,7 +101,6 @@ contains
                      m_acs=modes(iACS), m_cos=modes(iCOS))
     call bulkmicrotend
 #ifdef DALES_GPU
-<<<<<<< Updated upstream
     call sedimentation_rain_gpu(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
                                 l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
                                 lbdr, mur, xr, qrp, Nrp, precep, &
@@ -574,9 +573,9 @@ contains
               f_evp = max(min(-evap / (qr0(i,j,k) + eps0) * delt, 1.0_field_r), 0.0_field_r)
               ! Correction factor from Gong et al. (2006)
               eps = (1 - exp(-2 * sqrt(f_evp)) * (1 + 2 * sqrt(f_evp) + 2 * f_evp + (4.0_field_r/3) * f_evp**(3.0_field_r/2))) * (1 - f_evp) + f_evp * f_evp
-              do l = 2, m_inr % nspecies + 1
-                evapt = eps * f_evp * m_inr%conc(i,j,k,l) / delt
-                m_inr%tend(i,j,k,l) = m_inr%tend(i,j,k,l) - evapt
+              do l = 1, m_inr % nspecies
+                evapt = eps * f_evp * m_inr%conc(i,j,k,l+1) / delt
+                m_inr%tend(i,j,k,l) = m_inr%tend(i,j,k,l+1) - evapt
 
                 ! TODO: maybe limit to available aerosol
                 idx = m_inr % trac_idx(l)
@@ -596,7 +595,7 @@ contains
               ! If both ACS and COS modes are enabled, distribute the evaporation aerosol
               ! tendency accordingly. If not, just put all aerosol into one mode
               if (m_acs%enabled .and. m_cos%enabled) then
-                Dn = 1e6 * (6 * E / (pi * Nevap * rho * 1e9 + eps0))**(1.0_field_r / 3) &
+                Dn = 1e6 * (6 * E / (pi * Nevap * rho + eps0))**(1.0_field_r / 3) &
                      * exp(-(3.0_field_r / 2) * m_inr % log_sigma_g**2)
                 Dm = Dn * exp(3 * log(1.5_field_r)**2)
 
@@ -607,7 +606,7 @@ contains
                 m_cos%tend(i,j,k,1) = m_cos%tend(i,j,k,1) + (1 - Fn) * Nevap
 
                 do l = 1, m_inr % nspecies
-                  evapt = eps * f_evp * m_inr%conc(i,j,k,l) / delt
+                  evapt = eps * f_evp * m_inr%conc(i,j,k,l+1) / delt
                   src_idx = m_inr % aero_idx(l)
                   target_idx = idx_tab(iACS,src_idx)
                   m_acs%tend(i,j,k,target_idx) = m_acs%tend(i,j,k,target_idx) + Fm * evapt
@@ -618,7 +617,7 @@ contains
                 m_acs%tend(i,j,k,1) = m_acs%tend(i,j,k,1) + Nevap   
                 
                 do l = 1, m_inr % nspecies
-                  evapt = eps * f_evp * m_inr%conc(i,j,k,l) / delt
+                  evapt = eps * f_evp * m_inr%conc(i,j,k,l+1) / delt
                   src_idx = m_inr % aero_idx(l)
                   target_idx = idx_tab(iACS,src_idx)
                   m_acs%tend(i,j,k,target_idx) = m_acs%tend(i,j,k,target_idx) + evapt
@@ -627,7 +626,7 @@ contains
                 m_cos%tend(i,j,k,1) = m_cos%tend(i,j,k,1) + Nevap   
                 
                 do l = 1, m_inr % nspecies
-                  evapt = eps * f_evp * m_inr%conc(i,j,k,l) / delt
+                  evapt = eps * f_evp * m_inr%conc(i,j,k,l+1) / delt
                   src_idx = m_inr % aero_idx(l)
                   target_idx = idx_tab(iCOS,src_idx)
                   m_cos%tend(i,j,k,target_idx) = m_cos%tend(i,j,k,target_idx) + evapt
@@ -1263,6 +1262,7 @@ contains
   end function sed_flux
 
   real function liq_cont(Nin,Din,sig2,Ddiv,nnn)
+  !$acc routine seq
   !*********************************************************************
   ! Function to calculate numerically the analytical solution of the
   ! liq. water content between Dmin and Dmax based on
@@ -1296,7 +1296,7 @@ contains
   end function liq_cont
 
   real function erfint(beta, D, D_min, D_max, sig2,nnn )
-
+  !$acc routine seq
   !*********************************************************************
   ! Function to calculate erf(x) approximated by a polynomial as
   ! specified in 7.1.27 in Abramowitz and Stegun
