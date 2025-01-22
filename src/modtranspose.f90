@@ -348,8 +348,8 @@ contains
         end do
       end do
     else
-      !$acc parallel loop gang collapse(4) default(present)
-      !$acc& private(shmem(1:NY,1:NX)) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(4) default(present) &
+      !$acc private(shmem(1:NY,1:NX)) vector_length(NX*NY)
       do n = 0, nprocy - 1
         do k = 1, konx_me
           do i = 0, iony_me - 1, NX
@@ -405,8 +405,8 @@ contains
     integer      :: i, j, k, n, ii, iB, jB
   
     if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present)
-      !$acc& private(shmem(1:NY,1:NX)) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(3) default(present) &
+      !$acc private(shmem(1:NY,1:NX)) vector_length(NX*NY)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -458,8 +458,8 @@ contains
   
       call D_MPI_ALLTOALL(buffer, iony_me*jonx_me*konx_me, commrow, mpierr, ondevice=.true.)
   
-      !$acc parallel loop gang collapse(4) default(present) private(ii)
-      !$acc& private(shmem(1:NY,1:NX)) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(4) default(present) private(ii) &
+      !$acc private(shmem(1:NY,1:NX)) vector_length(NX*NY)
       do n = 0, nprocx-1
         do k = 1, konx_me
           do j = 0, jonx_me - 1, NY
@@ -500,8 +500,8 @@ contains
     integer      :: i, j, k, n, ii, iB, jB
   
     if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present)
-      !$acc& private(shmem(1:NX,1:NY)) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(3) default(present) &
+      !$acc private(shmem(1:NX,1:NY)) vector_length(NX*NY)
       do k = 1, kmax
         do j = 0, jtot - 1, NY
           do i = 0, itot - 1, NX
@@ -537,8 +537,8 @@ contains
         end do
       end do
     else
-      !$acc parallel loop gang collapse(4) default(present) private(ii)
-      !$acc& private(shmem(1:NX,1:NY)) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(4) default(present) private(ii) &
+      !$acc private(shmem(1:NX,1:NY)) vector_length(NX*NY)
       do n = 0, nprocx-1
         do k = 1, konx_me
           do j = 0, jonx_me - 1, NY
