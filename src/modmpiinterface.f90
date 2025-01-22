@@ -49,13 +49,16 @@ contains
     !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ISEND_REAL64_R1
-  subroutine D_MPI_ISEND_LOGICAL_R1(buf, count, dest, tag, comm, request, ierror)
+  subroutine D_MPI_ISEND_LOGICAL_R1(buf, count, dest, tag, comm, request, ierror, ondevice)
     implicit none
     logical, contiguous, asynchronous, intent(inout) ::   buf(:)
     integer       ::   count, dest, tag, ierror
     type(MPI_COMM):: comm
     type(MPI_REQUEST) :: request
+    logical, optional :: ondevice
+    !$acc host_data use_device(buf) if(present(ondevice))
     call MPI_ISEND(buf,count,MPI_LOGICAL,dest,tag,comm,request,ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ISEND_LOGICAL_R1
 
@@ -84,277 +87,373 @@ contains
     !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_IRECV_REAL64_R1
-  subroutine D_MPI_IRECV_LOGICAL_R1(buf, count, source, tag, comm, request, ierror)
+  subroutine D_MPI_IRECV_LOGICAL_R1(buf, count, source, tag, comm, request, ierror, ondevice)
     implicit none
     logical, contiguous, asynchronous, intent(inout)  ::   buf(:)
     integer        :: count, source, tag, ierror
     type(MPI_COMM) :: comm
     type(MPI_REQUEST) :: request
+    logical, optional :: ondevice
+    !$acc host_data use_device(buf) if(present(ondevice))
     call MPI_IRECV(buf,count,MPI_LOGICAL,source,tag,comm,request,ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_IRECV_LOGICAL_R1
   
 !>D_MPI_RECV
-  subroutine D_MPI_RECV_REAL32_R1(buf, count, source, tag, comm, status, ierror)
+  subroutine D_MPI_RECV_REAL32_R1(buf, count, source, tag, comm, status, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)  ::   buf(:)
     integer        :: count, source, tag, ierror
     type(MPI_COMM) :: comm
     type(MPI_STATUS) :: status
+    logical, optional :: ondevice
+    !$acc host_data use_device(buf) if(present(ondevice))
     call MPI_RECV(buf,count,MPI_REAL4,source,tag,comm,status,ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_RECV_REAL32_R1
-  subroutine D_MPI_RECV_REAL64_R1(buf, count, source, tag, comm, status, ierror)
+  subroutine D_MPI_RECV_REAL64_R1(buf, count, source, tag, comm, status, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  ::   buf(:)
     integer        :: count, source, tag, ierror
     type(MPI_COMM) :: comm
     type(MPI_STATUS) :: status
+    logical, optional :: ondevice
+    !$acc host_data use_device(buf) if(present(ondevice))
     call MPI_RECV(buf,count,MPI_REAL8,source,tag,comm,status,ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_RECV_REAL64_R1
 
 !>D_MPI_BCAST
-  subroutine D_MPI_BCAST_REAL32_S(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL32_S(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real32), intent(inout)  ::  buffer
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL4, root, comm, ierror)
+    !$acc end host_data
   end subroutine D_MPI_BCAST_REAL32_S
-  subroutine D_MPI_BCAST_REAL64_S(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL64_S(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real64), intent(inout)  ::  buffer
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL8, root, comm, ierror)
+    !$acc end host_data
   end subroutine D_MPI_BCAST_REAL64_S
-  subroutine D_MPI_BCAST_INT32_S(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_INT32_S(buffer, count, root, comm, ierror, ondevice)
     implicit none
     integer(int32), intent(inout) ::  buffer
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_INTEGER4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_INT32_S
-  subroutine D_MPI_BCAST_LOGICAL_S(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_LOGICAL_S(buffer, count, root, comm, ierror, ondevice)
     implicit none
     logical, intent(inout)        :: buffer
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_LOGICAL, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_LOGICAL_S
-  subroutine D_MPI_BCAST_REAL32_R1(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL32_R1(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   ::  buffer(:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_REAL32_R1
-  subroutine D_MPI_BCAST_REAL32_R2(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL32_R2(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   ::  buffer(:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_REAL32_R2
-  subroutine D_MPI_BCAST_REAL32_R3(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL32_R3(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   ::  buffer(:,:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_REAL32_R3
-  subroutine D_MPI_BCAST_REAL64_R1(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL64_R1(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  ::  buffer(:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL8, root, comm, ierror)
+    !$acc end host_data
   end subroutine D_MPI_BCAST_REAL64_R1
-  subroutine D_MPI_BCAST_REAL64_R2(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL64_R2(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  ::  buffer(:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL8, root, comm, ierror)
+    !$acc end host_data
   end subroutine D_MPI_BCAST_REAL64_R2
-  subroutine D_MPI_BCAST_REAL64_R3(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_REAL64_R3(buffer, count, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  ::  buffer(:,:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_REAL8, root, comm, ierror)
+    !$acc end host_data
   end subroutine D_MPI_BCAST_REAL64_R3
-  subroutine D_MPI_BCAST_INT32_R1(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_INT32_R1(buffer, count, root, comm, ierror, ondevice)
     implicit none
     integer(int32), contiguous, intent(inout) ::  buffer(:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_INTEGER4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_INT32_R1
-  subroutine D_MPI_BCAST_INT32_R2(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_INT32_R2(buffer, count, root, comm, ierror, ondevice)
     implicit none
     integer(int32), contiguous, intent(inout) ::  buffer(:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_INTEGER4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_INT32_R2
-  subroutine D_MPI_BCAST_INT32_R3(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_INT32_R3(buffer, count, root, comm, ierror, ondevice)
     implicit none
     integer(int32), contiguous, intent(inout) ::  buffer(:,:,:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_INTEGER4, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_INT32_R3
-  subroutine D_MPI_BCAST_LOGICAL_R1(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_LOGICAL_R1(buffer, count, root, comm, ierror, ondevice)
     implicit none
     logical, contiguous, intent(inout)        :: buffer(:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_LOGICAL, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_LOGICAL_R1
-  subroutine D_MPI_BCAST_STRING(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_STRING(buffer, count, root, comm, ierror, ondevice)
     implicit none
     character(len = *) :: buffer
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_CHARACTER, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_STRING
-  subroutine D_MPI_BCAST_STRING_R1(buffer, count, root, comm, ierror)
+  subroutine D_MPI_BCAST_STRING_R1(buffer, count, root, comm, ierror, ondevice)
     implicit none
     character(len = *),contiguous, intent(inout):: buffer(:)
     integer        :: count, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(buffer) if(present(ondevice))
     call MPI_BCAST(buffer, count, MPI_CHARACTER, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_BCAST_STRING_R1
 
 !>D_MPI_ALLREDUCE
-  subroutine D_MPI_ALLREDUCE_REAL32_S(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL32_S(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real32), intent(inout)   :: sendbuf, recvbuf
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL32_S
-  subroutine D_MPI_ALLREDUCE_REAL64_S(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL64_S(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real64), intent(inout)   :: sendbuf, recvbuf
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL64_S
-  subroutine D_MPI_ALLREDUCE_INT32_S(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_INT32_S(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     integer(int32), intent(inout) :: sendbuf, recvbuf
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_INTEGER4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_INT32_S
-  subroutine D_MPI_ALLREDUCE_REAL32_R1(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL32_R1(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL32_R1
-  subroutine D_MPI_ALLREDUCE_REAL32_R2(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL32_R2(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:,:), recvbuf(:,:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL32_R2
-  subroutine D_MPI_ALLREDUCE_REAL32_R3(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL32_R3(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:,:,:), recvbuf(:,:,:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf,recvbuf, count, MPI_REAL4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL32_R3
-  subroutine D_MPI_ALLREDUCE_REAL64_R1(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL64_R1(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL64_R1
-  subroutine D_MPI_ALLREDUCE_REAL64_R2(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL64_R2(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:,:), recvbuf(:,:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL64_R2
-  subroutine D_MPI_ALLREDUCE_REAL64_R3(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL64_R3(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:,:,:), recvbuf(:,:,:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL64_R3
-  subroutine D_MPI_ALLREDUCE_INT32_R2(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_INT32_R2(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     integer(int32), contiguous, intent(inout) :: sendbuf(:,:), recvbuf(:,:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_INTEGER4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_INT32_R2
-  subroutine D_MPI_ALLREDUCE_INT32_R1(sendbuf, recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_INT32_R1(sendbuf, recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     integer(int32), contiguous, intent(inout) :: sendbuf(:), recvbuf(:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(sendbuf, recvbuf, count, MPI_INTEGER4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_INT32_R1
-  subroutine D_MPI_ALLREDUCE_REAL32_IP(recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL32_IP(recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: recvbuf(:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL4, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL32_IP
-  subroutine D_MPI_ALLREDUCE_REAL64_IP(recvbuf, count, op, comm, ierror)
+  subroutine D_MPI_ALLREDUCE_REAL64_IP(recvbuf, count, op, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: recvbuf(:)
     integer        :: count, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_ALLREDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL8, op, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_ALLREDUCE_REAL64_IP
 
@@ -405,116 +504,152 @@ contains
   end subroutine D_MPI_ALLTOALL_REAL64_R1_IP
 
 !>D_MPI_REDUCE
-  subroutine D_MPI_REDUCE_REAL32_R1(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL32_R1(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL32_R1
-  subroutine D_MPI_REDUCE_REAL32_R2(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL32_R2(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:,:), recvbuf(:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL32_R2
-  subroutine D_MPI_REDUCE_REAL32_R3(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL32_R3(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:,:,:), recvbuf(:,:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL4, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL32_R3
-  subroutine D_MPI_REDUCE_REAL64_R1(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL64_R1(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL64_R1
-  subroutine D_MPI_REDUCE_REAL64_R2(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL64_R2(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:,:), recvbuf(:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL64_R2
-  subroutine D_MPI_REDUCE_REAL64_R3(sendbuf, recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL64_R3(sendbuf, recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:,:,:), recvbuf(:,:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_REDUCE(sendbuf, recvbuf, count, MPI_REAL8, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL64_R3
-  subroutine D_MPI_REDUCE_REAL32_IP_R1(recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL32_IP_R1(recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: recvbuf(:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_REDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL4, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL32_IP_R1
-  subroutine D_MPI_REDUCE_REAL32_IP_R2(recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL32_IP_R2(recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: recvbuf(:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_REDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL4, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL32_IP_R2
-  subroutine D_MPI_REDUCE_REAL64_IP_R1(recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL64_IP_R1(recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  :: recvbuf(:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_REDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL8, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL64_IP_R1
-  subroutine D_MPI_REDUCE_REAL64_IP_R2(recvbuf, count, op, root, comm, ierror)
+  subroutine D_MPI_REDUCE_REAL64_IP_R2(recvbuf, count, op, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)  :: recvbuf(:,:)
     integer        :: count, root, ierror
     type(MPI_OP)   :: op
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(recvbuf) if(present(ondevice))
     call MPI_REDUCE(MPI_IN_PLACE, recvbuf, count, MPI_REAL8, op, root, comm, ierror)
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_REDUCE_REAL64_IP_R2
 
 !>D_MPI_GATHER
-  subroutine D_MPI_GATHER_REAL32_R1(sendbuf, sendcount, recvbuf, recvcount, root, comm, ierror)
+  subroutine D_MPI_GATHER_REAL32_R1(sendbuf, sendcount, recvbuf, recvcount, root, comm, ierror, ondevice)
     implicit none
     real(real32), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: sendcount, recvcount, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_GATHER( sendbuf, sendcount, MPI_REAL4 &
                    , recvbuf, recvcount, MPI_REAL4 &
                    , root, comm, ierror )
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_GATHER_REAL32_R1
-  subroutine D_MPI_GATHER_REAL64_R1(sendbuf, sendcount, recvbuf, recvcount, root, comm, ierror)
+  subroutine D_MPI_GATHER_REAL64_R1(sendbuf, sendcount, recvbuf, recvcount, root, comm, ierror, ondevice)
     implicit none
     real(real64), contiguous, intent(inout)   :: sendbuf(:), recvbuf(:)
     integer        :: sendcount, recvcount, root, ierror
     type(MPI_COMM) :: comm
+    logical, optional :: ondevice
+    !$acc host_data use_device(sendbuf, recvbuf) if(present(ondevice))
     call MPI_GATHER( sendbuf, sendcount, MPI_REAL8 &
                    , recvbuf, recvcount, MPI_REAL8 &
                    , root, comm, ierror )
+    !$acc end host_data
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_GATHER_REAL64_R1
 
