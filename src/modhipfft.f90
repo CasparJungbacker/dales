@@ -9,7 +9,7 @@ module modhipfft
 
   implicit none
 
-#if defined(_OPENACC)
+#ifdef USE_HIP
 
   save
     real :: norm_fac !< Normalization factor
