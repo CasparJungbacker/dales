@@ -151,13 +151,18 @@ module modlsm
 contains
 
 subroutine lsm
-    implicit none
+  use modglobal, only : ldrydep
+  implicit none
 
     if (.not. llsm) return
 
     ! Calculate dynamic tile fractions,
     ! based on the amount of liquid water on vegetation.
-    call calc_tile_fractions
+    ! For now only do this when dry deposition is on
+    ! warning: the wet surface tile has no z0h, z0m - will break in Obukhov length calculation
+    if (ldrydep) then
+       call calc_tile_fractions
+    end if
 
     ! Calculate root fraction weighted mean soil water content.
     do ilu=1,nlu
@@ -201,7 +206,7 @@ end subroutine lsm
 ! Calculate dynamic tile fractions, based on liquid water on vegetation
 !
 subroutine calc_tile_fractions
-    use modglobal, only : i1, j1, eps1
+    use modglobal, only : i1, j1
     use modsurfdata, only : wl
     implicit none
 
@@ -266,7 +271,7 @@ subroutine calc_liquid_reservoir
     implicit none
 
     integer :: i, j
-    real :: tend, rk3coef, rainrate, wl_tend_max, wl_tend_min
+    real :: rk3coef, rainrate, wl_tend_max, wl_tend_min
     real :: wl_tend_liq, wl_tend_dew, wl_tend_precip, wl_tend_sum, wl_tend_lim
 
     real, parameter :: intercept_eff = 0.5
@@ -301,7 +306,7 @@ subroutine calc_liquid_reservoir
             end do
 
             ! Tendency due to interception of precipitation by vegetation
-            if (imicro == 0) then
+            if (imicro == 0 .or. imicro == 1) then
                 rainrate = 0.
             else
                !rainrate = -sed_qr(i,j,1)/rhow
@@ -442,7 +447,7 @@ subroutine calc_stability
   use modfields, only : u0, v0, thl0, qt0
   implicit none
 
-  real, parameter :: du_min = 0.1
+!  real, parameter :: du_min = 0.1
   real :: du, dv
   integer :: i, j
 
@@ -468,7 +473,6 @@ end subroutine calc_stability
 !
 subroutine calc_obuk_ustar_ra(tile)
     use modglobal, only : i1, j1, rd, rv, grav, zf
-    use modfields, only : u0, v0
     implicit none
 
     type(T_lsm_tile), intent(inout) :: tile
@@ -481,6 +485,10 @@ subroutine calc_obuk_ustar_ra(tile)
                 ! Buoyancy difference surface - atmosphere
                 thvs = tile%thlskin(i,j) * (1.+(rv/rd-1.)*tile%qtskin(i,j))
                 tile%db(i,j) = grav/thvs * (thv_1(i,j) - thvs)
+
+                if (tile%z0m(i,j) < 1e-6 .or. tile%z0h(i,j) < 1e-6) then
+                   write (*,*) 'z0 warning:', tile%lushort, i, j, tile%z0m(i,j), tile%z0h(i,j)
+                end if
 
                 ! Iteratively find Obukhov length
                 tile%obuk(i,j) = calc_obuk_dirichlet( &
@@ -507,14 +515,14 @@ end subroutine calc_obuk_ustar_ra
 !
 subroutine calc_tile_bcs(tile)
     use modglobal,   only : i1, j1, cp, rlv, boltz
-    use modfields,   only : exnh, exnf, presh, thl0, qt0, rhof
+    use modfields,   only : exnh, exnf, thl0, qt0, rhof
     use modraddata,  only : swd, swu, lwd, lwu
     use modsurfdata, only : ps, tsoil
     implicit none
 
     type(T_lsm_tile), intent(inout) :: tile
     integer :: i, j
-    real :: Ts, thvs, esats, qsats, desatdTs, dqsatdTs, &
+    real :: Ts, esats, qsats, desatdTs, dqsatdTs, &
         rs_lim, fH, fLE, fG, num, denom, Ta, qsat_new, &
         rhocp_i, rholv_i, Qnet
 
@@ -638,8 +646,8 @@ end subroutine calc_water_bcs
 ! the diffusion scheme, thermodynamics, ...
 !
 subroutine calc_bulk_bcs
-    use modglobal,   only : i1, j1, i2, j2, cp, rlv, fkar, zf, cu, cv, grav, rv, rd, lopenbc,lboundary,lperiodic, eps1
-    use modfields,   only : rhof, thl0, qt0, u0, v0, thvh
+    use modglobal,   only : i1, j1, i2, j2, cp, rlv, fkar, zf, cu, cv, grav, rv, rd, lopenbc,lboundary,lperiodic
+    use modfields,   only : rhof, thl0, u0, v0, thvh
     use modsurface,  only : phim, phih
     use modmpi,      only : excjs
     use modopenboundary, only : openboundary_excjs
@@ -999,7 +1007,7 @@ subroutine integrate_theta_soil
     use modsurfdata, only : phiw, phiwm, lambdash, gammash
     use modmpi, only : myidx, myidy
     implicit none
-    integer :: i, j, k, si
+    integer :: i, j, k
     real :: tend, rk3coef, flux_top, fac
 
     rk3coef = rdt / (4. - dble(rk3step))
@@ -1062,7 +1070,7 @@ end subroutine integrate_theta_soil
 ! Initialise the land-surface model
 !
 subroutine initlsm
-    use modglobal,   only : ifnamopt, fname_options, checknamelisterror, lwarmstart
+    use modglobal,   only : ifnamopt, fname_options, checknamelisterror
     use modmpi,      only : myid, comm3d, mpierr, D_MPI_BCAST
     use modsurfdata, only : isurf
     use modemisdata, only : l_emission
@@ -1102,7 +1110,7 @@ subroutine initlsm
         ! check if nlu_file==nlu-1 ('wet skin' is not in file)
         if (.not. lheterogeneous) then
           write(6,"(A100, i3)") "Homogeneous land use; Note that 1 additional LU type (ws) is added on runtime. &
-                                    Include it in nlu  ", nlu
+                                &Include it in nlu  ", nlu
         end if
 
         allocate(tile(nlu), stat=ierr)
@@ -1697,7 +1705,7 @@ subroutine init_heterogeneous_nc
     use modglobal,   only : i1, j1, lwarmstart, iexpnr, eps1
     use modglobal,   only : i2, j2
     use modmpi,      only : myid, myidx, myidy
-    use modglobal,   only : imax, jmax, itot, jtot
+    use modglobal,   only : imax, jmax, itot, jtot, ldrydep
 
     use modsurfdata, only : tsoil, phiw, wl, wlm, wmax
     implicit none
@@ -1788,8 +1796,34 @@ subroutine init_heterogeneous_nc
     tile(nlu)%lveg    = .false.
     tile(nlu)%laqu    = .false.
 
+    ! initialize to 0 to avoid un-initialized values in the halo or elsewhere
+    tile(nlu)%base_frac = 0
+    tile(nlu)%z0m = 0
+    tile(nlu)%z0h = 0
+    tile(nlu)%lambda_stable = 0
+    tile(nlu)%lambda_unstable = 0
+    tile(nlu)%rs_min = 0
+    tile(nlu)%lai = 0
+    tile(nlu)%a_r = 0
+    tile(nlu)%b_r = 0
+    tile(nlu)%gD = 0
+    tile(nlu)%tskin = 0
+
     ! 2D surface fields
     do ilu=1,nlu-1
+       ! initialize to 0 to avoid un-initialized values in the halo
+      tile(ilu)%base_frac = 0
+      tile(ilu)%z0m = 0
+      tile(ilu)%z0h = 0
+      tile(ilu)%lambda_stable = 0
+      tile(ilu)%lambda_unstable = 0
+      tile(ilu)%rs_min = 0
+      tile(ilu)%lai = 0
+      tile(ilu)%a_r = 0
+      tile(ilu)%b_r = 0
+      tile(ilu)%gD = 0
+      tile(ilu)%tskin = 0
+
       write(*,*) 'reading variables for LU type: ', trim(tile(ilu)%lushort)
       ! LU cover
       call check( nf90_inq_varid( ncid, 'cover_'//trim(tile(ilu)%lushort), varid) )
@@ -1848,7 +1882,7 @@ subroutine init_heterogeneous_nc
                               count = (/imax, jmax/) ) )
 
     !!! deposition parameters
-    !!! TODO: read only if ldep=True
+    if (ldrydep) then
       ! ! R_inc_b
       ! call check( nf90_inq_varid( ncid, 'R_inc_b_'//trim(tile(ilu)%lushort), varid) )
       ! call check( nf90_get_var(ncid, varid, tile(ilu)%R_inc_b(2:i1, 2:j1) , &
@@ -1924,6 +1958,7 @@ subroutine init_heterogeneous_nc
      !  call check( nf90_get_var(ncid, varid, tile(ilu)%gamma_soil_default(2:i1, 2:j1) , &
      !                            start = (/1 + myidx * imax, 1 + myidy * jmax/), &
      !                            count = (/imax, jmax/) ))
+      end if
     end do
 
     ! 3D soil fields
@@ -1974,6 +2009,7 @@ subroutine init_heterogeneous_nc
     end do
 
     ! Calculate vegetation fraction, and limit to prevent div/0's
+    cveg = 0
     do ilu=1,nlu
       if (tile(ilu)%lveg) then
         cveg(:,:) = cveg(:,:) + tile(ilu)%base_frac(:,:)
@@ -1982,6 +2018,7 @@ subroutine init_heterogeneous_nc
     where (cveg == 0) cveg = eps1
 
     ! Calculate land fraction, and limit to prevent div/0's
+    land_frac = 0
     do ilu=1,nlu
       if (tile(ilu)%laqu) then
         land_frac(:,:) = 1.-tile(ilu)%base_frac(:,:)
@@ -2004,6 +2041,11 @@ subroutine init_heterogeneous_nc
     enddo
     wl_max(:,:) = wl_max(:,:) * wmax/land_frac(:,:)
     where (wl_max == 0) wl_max = eps1
+
+    ! initialize frac to base_frac (for now the dynamic wet skin is not done unless ldrydep is true)
+    do ilu=1,nlu
+        tile(ilu)%frac(:,:) = tile(ilu)%base_frac(:,:)
+    end do
 
     ! !! debugging: some checks
     ! write(*,*) '...checking LU inputs: mean, min and max, accounting for ghost cells'
@@ -2188,12 +2230,11 @@ end subroutine calc_root_fractions
 ! Iterative Rib -> Obukhov length solver
 !
 function calc_obuk_dirichlet(L_in, du, db_in, zsl, z0m, z0h) result(res)
-    use modglobal, only : fkar
     implicit none
     real, intent(in) :: L_in, du, db_in, zsl, z0m, z0h
 
     integer :: m, n, nlim
-    real :: res, L, db, Lmax, Ri, L0, Lstart, Lend, fx0, fxdif
+    real :: res, L, db, Lmax, L0, Lstart, Lend, fx0, fxdif
 
     m = 0
     nlim = 10

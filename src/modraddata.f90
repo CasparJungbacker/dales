@@ -31,8 +31,8 @@
 module modraddata
 
 ! implicit none
-  use modglobal, only : longint,kind_rb,SHR_KIND_IN,SHR_KIND_R4,kind_im
-  use modprecision, only : field_r
+  use modprecision, only: field_r, longint, SHR_KIND_IN, SHR_KIND_R4, &
+                          kind_im, kind_rb
 SAVE
 
   integer, parameter :: irad_none  = 0   !< 0=no radiation
@@ -155,12 +155,14 @@ SAVE
                                                      ssaaersw, &
                                                      asmaersw, &
                                                      ecaersw
-  real(SHR_KIND_R4)                             :: eccen,     &  ! Eccentricity
-                                                   obliqr,    &  ! Earths obliquity in radians
-                                                   lambm0,    &  ! Mean long of perihelion at the vernal equinox (radians)
-                                                   mvelpp,    &  ! moving vernal equinox longitude of perihelion plus pi (radians)
-                                                   delta,     &  ! Solar declination angle in rad
-                                                   eccf          ! Earth-sun distance factor (ie. (1/r)**2)
+  real(SHR_KIND_R4) :: eccen,   &  ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
+                       obliq,   &  ! Earth's obliquity angle (deg) (-90 to +90) (typically 22-26)
+                       obliqr,  &  ! Earths obliquity in radians
+                       lambm0,  &  ! Mean long of perihelion at the vernal equinox (radians)
+                       mvelp,   &  ! Earth's moving vernal equinox at perhelion (deg)(0 to 360.0)
+                       mvelpp,  &  ! moving vernal equinox longitude of perihelion plus pi (radians) 
+                       delta,   &  ! Solar declination angle in rad
+                       eccf        ! Earth-sun distance factor (ie. (1/r)**2)
 
   real,parameter :: mwdry = 28.966, &
                     mwh2o = 18.016, &
@@ -170,9 +172,9 @@ SAVE
   real  :: mu0_cgils
   integer :: cgils_case_nr
   real, parameter :: tmelt = 273.16
-  real,allocatable,dimension(:)   :: presf_input,     &   ! Full-level pressure (sounding patched to domain)
+  real(kind_rb),allocatable,dimension(:)   :: presf_input,     &   ! Full-level pressure (sounding patched to domain)
                                      presh_input          ! Halflevel  pressure (sounding patched to domain)
-  real,allocatable,dimension(:)   :: tg_slice             ! Sea surface temperature of a 2D slice
+  real(kind_rb),allocatable,dimension(:)   :: tg_slice             ! Sea surface temperature of a 2D slice
 
   real(kind_rb),allocatable,dimension(:)   :: &
        o3, co2, ch4, n2o, o2, cfc11, cfc12, cfc22, ccl4   ! Profiles of trace gases

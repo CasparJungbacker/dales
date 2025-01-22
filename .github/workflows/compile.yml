@@ -22,8 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         toolchain: ["gnu", "intel"]
-        fftw:    ["", "-DUSE_FFTW=T"]
-        hypre:   ["", "-DUSE_HYPRE=T"]
+        hypre:   ["On", "Off"]
         
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -55,10 +54,6 @@ jobs:
 
           sudo apt install -y intel-oneapi-mpi-devel intel-oneapi-compiler-fortran
 
-          # localpc_ifort uses mpif90, which breaks, therefore we use CARTESIUS,
-          # which utilizes mpiifort which works
-          echo "SYST=CARTESIUS" >> $GITHUB_ENV 
-
       - name: Checkout NetCdf-Fortran for Intel
         if: matrix.toolchain == 'intel'
         uses: actions/checkout@v2
@@ -87,10 +82,11 @@ jobs:
         run: |
           if [[ -f /opt/intel/oneapi/setvars.sh ]]; then
             source /opt/intel/oneapi/setvars.sh
+            export FC=mpiifx
           fi
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=DEBUG ${{ matrix.fftw }} ${{ matrix.hypre }} ../
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DENABLE_HYPRE=${{ matrix.hypre }} ../
 
       - name : Build
         run: |

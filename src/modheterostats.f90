@@ -106,7 +106,7 @@ contains
     call D_MPI_BCAST(ncklimit    ,1,0,comm3d,mpierr)
 
     if(.not.(lheterostats)) return
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext = idtav+btime
     dt_lim = min(dt_lim,tnext)
 
@@ -356,7 +356,7 @@ contains
     end do
 
     do n=1,nsv
-      if (iadv_sv(n)==iadv_kappa) then
+      if (iadv_sv==iadv_kappa) then
          call halflev_kappa(sv0(2-ih:i1+ih,2-jh:j1+jh,1:k1,n),sv0h(:,:,:,n))
       else
         do  k=2,k1

@@ -70,7 +70,7 @@ contains
     call D_MPI_BCAST(dtav    ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lcape   ,1,0,comm3d,mpierr)
 
-    idtav = int(dtav/tres, kind=longint)
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext   = idtav+btime
     if(.not.(lcape)) return
     dt_lim = min(dt_lim,tnext)

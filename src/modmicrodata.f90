@@ -43,14 +43,14 @@
              l_rain      = .true. , & !<  rain formation / evolution flag              (in namelist NAMMICROPHYSICS)
              l_mur_cst   = .false. ! false = no constant value of mur (mur=f(Dv)) (in namelist NAMMICROPHYSICS)
 
-  real    :: mur_cst     = 5        & !<  mur value if l_mur_cst=T                     (in namelist NAMMICROPHYSICS)
+  real(field_r)    :: mur_cst     = 5        & !<  mur value if l_mur_cst=T                     (in namelist NAMMICROPHYSICS)
                  ,Nc_0 = 70e6       & !<  initial cloud droplet number (#/m3)
                  ,sig_g = 1.34      & !<  geom. std dev of cloud droplet DSD
                  ,sig_gr = 1.5        !<  geometric std dev of rain drop DSD
 
   logical :: l_lognormal = .false.    !<  log param of rain terminal velocities for rain sedim
 
-  integer :: inr = 1, iqr=2
+  integer :: inr = -1, iqr = -1
 
   real(field_r), parameter ::  D0_kk = 50e-6     & !<  diameter sep. cloud and prec. in KK00 scheme
                      ,qcmin = 1.0e-7     & !<  Cloud specific mixing ratio treshold for calculations
@@ -162,9 +162,11 @@
    real(field_r),allocatable,dimension(:,:,:) :: Nrp,qrp
    real(field_r),allocatable,dimension(:,:,:) :: precep !< precipitation (m/s)
 
-  real :: delt
+  real(field_r) :: delt
 
   logical ,allocatable,dimension(:,:,:):: qcmask,qrmask
+
+  integer :: qrbase, qrroof, qcbase, qcroof
 
 ! Parameters for simple ice microphysics (Grabowski, JAS, 1998)
 ! With extension to graupel class if l_graupel=.true.

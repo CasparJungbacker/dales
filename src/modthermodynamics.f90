@@ -176,10 +176,10 @@ contains
     implicit none
 
     integer i, j, k
-    real    qs
-    real    a_surf,b_surf,dq,dth,dthv,temp
-    real    a_dry, b_dry, a_moist, b_moist, c_liquid, epsilon, eps_I, chi_sat, chi
-    real    del_thv_sat, del_thv_dry
+    real(field_r)    qs
+    real(field_r)    a_surf,b_surf,dq,dth,dthv,temp
+    real(field_r)    a_dry, b_dry, a_moist, b_moist, c_liquid, epsilon, eps_I, chi_sat, chi
+    real(field_r)    del_thv_sat, del_thv_dry
 
     call timer_tic('modthermodynamics/calthv', 1)
 
@@ -207,9 +207,9 @@ contains
 !         default thv jump computed unsaturated
 !
             epsilon = rd/rv
-            eps_I = 1/epsilon - 1.  !cstep approx 0.608
+            eps_I = 1/epsilon - 1  !cstep approx 0.608
 
-            a_dry = 1. + eps_I * qt0(i,j,k)
+            a_dry = 1 + eps_I * qt0(i,j,k)
             b_dry = eps_I * thl0(i,j,k)
 
             dth = thl0(i,j,k+1)-thl0(i,j,k-1)
@@ -224,8 +224,8 @@ contains
                temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
                qs   = qt0(i,j,k) - ql0(i,j,k)
 
-               a_moist = (1.-qt0(i,j,k)+qs/epsilon*(1.+rlv/(rv*temp))) &
-                        /(1.+rlv**2*qs/(cp*rv*temp**2))
+               a_moist = (1-qt0(i,j,k)+qs/epsilon*(1+rlv/(rv*temp))) &
+                        /(1+rlv**2*qs/(cp*rv*temp**2))
                b_moist = a_moist*rlv/cp-temp
                c_liquid = a_dry * rlv / cp - thl0(i,j,k) / epsilon
 
@@ -250,12 +250,12 @@ contains
           if(ql0(i,j,1)>0) then
             temp = thl0(i,j,1)*exnf(1)+(rlv/cp)*ql0(i,j,1)
             qs   = qt0(i,j,1) - ql0(i,j,1)
-            a_surf   = (1.-qt0(i,j,1)+rv/rd*qs*(1.+rlv/(rv*temp))) &
-                      /(1.+rlv**2*qs/(cp*rv*temp**2))
-            b_surf   = a_surf*rlv/(temp*cp)-1.
+            a_surf   = (1-qt0(i,j,1)+rv/rd*qs*(1+rlv/(rv*temp))) &
+                      /(1+rlv**2*qs/(cp*rv*temp**2))
+            b_surf   = a_surf*rlv/(temp*cp)-1
 
           else
-            a_surf = 1.+(rv/rd-1)*qt0(i,j,1)
+            a_surf = 1+(rv/rd-1)*qt0(i,j,1)
             b_surf = rv/rd-1
 
           end if
@@ -314,8 +314,7 @@ contains
   subroutine diagfld
   use modglobal, only : i1,ih,j1,jh,k1,nsv,zh,zf,cu,cv,ijtot,grav,rlv,cp,rd,rv,pref0,timee,lconstexner
   use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
-                        presf,presh,exnf,exnh,rhof,thvf, &
-                        initial_presf,initial_presh
+                        presf,presh,exnf,exnh,rhof,thvf
   use modsurfdata,only : thls,ps
   use modmpi,    only : slabsum, slabsum_multi
   implicit none
@@ -410,7 +409,7 @@ contains
 !  3.2 determine rho
    !$acc parallel loop default(present) async wait(1, 2)
    do k=1,k1
-     thvf(k) = th0av(k)*exnf(k)*(1.+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
+     thvf(k) = th0av(k)*exnf(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
      rhof(k) = presf(k)/(rd*thvf(k))
    end do
    !$acc wait
@@ -439,7 +438,7 @@ contains
   implicit none
 
   integer   k
-  real      rdocp
+  real(field_r)  rdocp
 
   call timer_tic('modthermodynamics/fromztop', 1)
 
@@ -467,7 +466,7 @@ contains
 
   thvh(1) = th0av(1)*(1+(rv/rd-1)*qt0av(1)-rv/rd*ql0av(1))
   presf(1) = ps**rdocp - grav*(pref0**rdocp)*zf(1) /(cp*thvh(1))
-  presf(1) = presf(1)**(1./rdocp)
+  presf(1) = presf(1)**(1/rdocp)
 
 !     2: higher levels
 
@@ -475,7 +474,7 @@ contains
     thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
     presf(k) = presf(k-1)**rdocp - &
                    grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
-    presf(k) = presf(k)**(1./rdocp)
+    presf(k) = presf(k)**(1/rdocp)
   end do
 
 !**************************************************
@@ -490,7 +489,7 @@ contains
     thvf(k)  = th0av(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
     presh(k) = presh(k-1)**rdocp - &
                    grav*(pref0**rdocp)*dzf(k-1) / (cp*thvf(k-1))
-    presh(k) = presh(k)**(1./rdocp)
+    presh(k) = presh(k)**(1/rdocp)
   end do
 
   !$acc update device(thvh, presf, thvf, presh)
@@ -543,7 +542,7 @@ contains
                       (rv*cp*Tnr**2))
             end do
             nitert =max(nitert,niter)
-            niter = 0.0
+            niter = 0
 
             ql(i,j,k) = dim(qt(i,j,k)-qsatur,0.)
 
@@ -560,7 +559,7 @@ contains
             es  = es0*exp(at*(tl-tmelt)/(tl-bt))
             qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
             b1  = rlv**2/(tl**2*cp*rv)
-            qs  = qsl*(1.+b1*qt(i,j,k))/(1.+b1*qsl)
+            qs  = qsl*(1+b1*qt(i,j,k))/(1.+b1*qsl)
             ql(i,j,k) = dim(qt(i,j,k)-qs,0.)
           end do
         end do
@@ -577,20 +576,20 @@ contains
   pure function qsat_magnus(T, p) result(qsat)
     use modglobal, only : rd,rv,tup,tdn
     implicit none
-    real, intent(in) :: T, p
+    real(field_r), intent(in) :: T, p
     real :: qsat
     real ilratio, TC, esl, esi, es
-    ilratio = max(0.,min(1.,(T-tdn)/(tup-tdn)))
+    ilratio = max(0._field_r,min(1._field_r,(T-tdn)/(tup-tdn)))
 
     TC = T - 273.15 ! in Celcius
-    esl = 610.94 * exp( (17.625*TC) / (TC+243.04) ) ! Magnus
-    esi = 611.21 * exp( (22.587*TC) / (TC+273.86) ) ! Magnus
+    esl = 610.94_field_r * exp( (17.625_field_r*TC) / (TC+243.04_field_r) ) ! Magnus
+    esi = 611.21_field_r * exp( (22.587_field_r*TC) / (TC+273.86_field_r) ) ! Magnus
 
     ! interpolated saturation vapor pressure
     es = ilratio*esl + (1-ilratio)*esi
 
     ! convert saturation vapor pressure to saturation humidity
-    qsat = (rd/rv) * es / (p - (1.-rd/rv)*es)
+    qsat = (rd/rv) * es / (p - (1-rd/rv)*es)
   end function qsat_magnus
 
 !> Huang's formulas for q_sat over liquid and ice
@@ -600,25 +599,24 @@ contains
   pure function qsat_huang(T, p) result(qsat)
     use modglobal, only : rd,rv,tup,tdn
     implicit none
-    real, intent(in) :: T, p
+    real(field_r), intent(in) :: T, p
     real :: qsat
     real ilratio, TC, esl, esi, es
-    ilratio = max(0.,min(1.,(T-tdn)/(tup-tdn)))
+    ilratio = max(0._field_r,min(1._field_r,(T-tdn)/(tup-tdn)))
 
-    TC = T - 273.15 ! in Celcius
-    esl = exp(34.494 - 4924.99 / (TC  + 237.1)) /  (TC+105)**1.57  ! Huang
-    esi = exp(43.494 - 6545.8/(TC+278)) / (TC+868)**2              ! Huang
+    TC = T - 273.15_field_r ! in Celcius
+    esl = exp(34.494_field_r - 4924.99_field_r / (TC  + 237.1_field_r)) /  (TC+105)**1.57_field_r  ! Huang
+    esi = exp(43.494_field_r - 6545.8_field_r/(TC+278)) / (TC+868)**2              ! Huang
 
     ! interpolated saturation vapor pressure
     es = ilratio*esl + (1-ilratio)*esi
 
     ! convert saturation vapor pressure to saturation humidity
-    qsat = (rd/rv) * es / (p - (1.-rd/rv)*es)
+    qsat = (rd/rv) * es / (p - (1-rd/rv)*es)
   end function qsat_huang
 
   ! return esat for ice-liquid mix using table
   pure function esat_tab(T) result(es)
-    use modglobal, only : rd,rv
     use modglobal, only : esatmtab
 
     implicit none
@@ -629,10 +627,10 @@ contains
 
     ! interpolated ice-liquid saturation vapor pressure from table
     ! note if imicto==imicro_bulk3, the table is for liquid only
-    tlonr=int((T-150.)*5.)
-    tlo = 150. + 0.2*tlonr
-    thi = tlo + 0.2
-    es = (thi-T)*5.*esatmtab(tlonr)+(T-tlo)*5.*esatmtab(tlonr+1)
+    tlonr=int((T-150)*5)
+    tlo = 150 + 0.2_field_r*tlonr
+    thi = tlo + 0.2_field_r
+    es = (thi-T)*5*esatmtab(tlonr)+(T-tlo)*5*esatmtab(tlonr+1)
   end function esat_tab
 
 !> q_sat over liquid and ice, using interpolation in a table created in modglobal.
@@ -649,13 +647,13 @@ contains
     real(field_r) :: tlo, thi, es
 
     ! interpolated ice-liquid saturation vapor pressure from table
-    tlonr=int((T-150.)*5.)
-    tlo = 150. + 0.2*tlonr
-    thi = tlo + 0.2
-    es = (thi-T)*5.*esatmtab(tlonr)+(T-tlo)*5.*esatmtab(tlonr+1)
+    tlonr=int((T-150)*5)
+    tlo = 150 + 0.2_field_r*tlonr
+    thi = tlo + 0.2_field_r
+    es = (thi-T)*5*esatmtab(tlonr)+(T-tlo)*5*esatmtab(tlonr+1)
 
     ! convert saturation vapor pressure to saturation humidity
-    qsat = (rd/rv) * es / (p - (1.-rd/rv)*es)
+    qsat = (rd/rv) * es / (p - (1-rd/rv)*es)
   end function qsat_tab
 
   subroutine icethermo0_fast
@@ -754,13 +752,13 @@ contains
                 tmp0(i,j,k) = T
 
                 ! use the separate e_sat tables for liquid and ice to calculate and store esl, qvsl, qvsi
-                tlonr=int((T-150.)*5.)
-                tlo = 150. + 0.2*tlonr
-                thi = tlo + 0.2
-                esl(i,j,k) = (thi-T)*5.*esatltab(tlonr)+(T-tlo)*5.*esatltab(tlonr+1) ! saturation vapor pressure liquid
-                esi1       = (thi-T)*5.*esatitab(tlonr)+(T-tlo)*5.*esatitab(tlonr+1) ! saturation vapor pressure ice
-                qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1.-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
-                qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1.-rd/rv)*esi1)              ! saturation humidity ice
+                tlonr=int((T-150)*5)
+                tlo = 150 + 0.2_field_r*tlonr
+                thi = tlo + 0.2_field_r
+                esl(i,j,k) = (thi-T)*5*esatltab(tlonr)+(T-tlo)*5*esatltab(tlonr+1) ! saturation vapor pressure liquid
+                esi1       = (thi-T)*5*esatitab(tlonr)+(T-tlo)*5*esatitab(tlonr+1) ! saturation vapor pressure ice
+                qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
+                qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1-rd/rv)*esi1)              ! saturation humidity ice
                 !!!!!!!!!!!
              end do
           end do
@@ -775,13 +773,13 @@ contains
                 qsat(i,j,k) = qsat_tab(T, presf(k))
 
                 ! use the separate e_sat tables for liquid and ice to calculate and store esl, qvsl, qvsi
-                tlonr=int((T-150.)*5.)
-                tlo = 150. + 0.2*tlonr
-                thi = tlo + 0.2
-                esl(i,j,k) = (thi-T)*5.*esatltab(tlonr)+(T-tlo)*5.*esatltab(tlonr+1) ! saturation vapor pressure liquid
-                esi1       = (thi-T)*5.*esatitab(tlonr)+(T-tlo)*5.*esatitab(tlonr+1) ! saturation vapor pressure ice
-                qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1.-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
-                qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1.-rd/rv)*esi1)              ! saturation humidity ice
+                tlonr=int((T-150)*5)
+                tlo = 150 + 0.2_field_r*tlonr
+                thi = tlo + 0.2_field_r
+                esl(i,j,k) = (thi-T)*5*esatltab(tlonr)+(T-tlo)*5*esatltab(tlonr+1) ! saturation vapor pressure liquid
+                esi1       = (thi-T)*5*esatitab(tlonr)+(T-tlo)*5*esatitab(tlonr+1) ! saturation vapor pressure ice
+                qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
+                qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1-rd/rv)*esi1)              ! saturation humidity ice
              end do
           end do
        end if
@@ -830,15 +828,15 @@ contains
     implicit none
     integer :: i, j, k
     real(field_r) :: Tl, qsat_, qt, ql, b, T
-    real(field_r) :: Tl_min, Tl_max, PrDiff_min
+    real(field_r) :: Tl_min, PrDiff_min
     real(field_r) :: esi1, tlo, thi
     integer       :: tlonr
 
     call timer_tic('modthermodynamics/icethermo0_fast', 1)
 
     ! Sanity checks
-    Tl_min = 400.0
-    PrDiff_min = 100.0
+    Tl_min = 400
+    PrDiff_min = 100
     !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min)
     do k = 1, k1
       do j = 2, j1
@@ -849,7 +847,7 @@ contains
       end do
     end do
     if (Tl_min < 150) stop 'icethermo0_fast: Tl_min below limit 150K'
-    if (PrDiff_min < 0.0) stop 'icethermo0_fast: Tl_max too close to boiling point'
+    if (PrDiff_min < 0) stop 'icethermo0_fast: Tl_max too close to boiling point'
 
     !$acc parallel loop collapse(3) private(Tl, qsat_, qt, ql, b, T, esi1, tlo, thi, tlonr) default(present)
     do k = 1, k1
@@ -888,13 +886,13 @@ contains
           tmp0(i,j,k) = T
 
           ! use the separate e_sat tables for liquid and ice to calculate and store esl, qvsl, qvsi
-          tlonr=int((T-150.)*5.)
-          tlo = 150. + 0.2*tlonr
-          thi = tlo + 0.2
-          esl(i,j,k) = (thi-T)*5.*esatltab(tlonr)+(T-tlo)*5.*esatltab(tlonr+1) ! saturation vapor pressure liquid
-          esi1       = (thi-T)*5.*esatitab(tlonr)+(T-tlo)*5.*esatitab(tlonr+1) ! saturation vapor pressure ice
-          qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1.-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
-          qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1.-rd/rv)*esi1)              ! saturation humidity ice
+          tlonr=int((T-150)*5)
+          tlo = 150 + 0.2_field_r*tlonr
+          thi = tlo + 0.2_field_r
+          esl(i,j,k) = (thi-T)*5*esatltab(tlonr)+(T-tlo)*5*esatltab(tlonr+1) ! saturation vapor pressure liquid
+          esi1       = (thi-T)*5*esatitab(tlonr)+(T-tlo)*5*esatitab(tlonr+1) ! saturation vapor pressure ice
+          qvsl(i,j,k)=rd/rv*esl(i,j,k)/(presf(k)-(1-rd/rv)*esl(i,j,k))        ! saturation humidity liquid
+          qvsi(i,j,k)=rd/rv*esi1      /(presf(k)-(1-rd/rv)*esi1)              ! saturation humidity ice
           !!!!!!!!!!!
         end do
       end do
@@ -991,12 +989,12 @@ contains
     implicit none
     integer :: i, j, k
     real(field_r) :: Tl, qsat, qt, ql, b
-    real(field_r) :: Tl_min, Tl_max, PrDiff_min
+    real(field_r) :: Tl_min, PrDiff_min
 
     call timer_tic('modthermodynamics/icethermoh_fast', 1)
 
-    Tl_min = 400.0
-    PrDiff_min = 100.0
+    Tl_min = 400
+    PrDiff_min = 100
     !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min)
     do k = 1, k1
       do j = 2, j1

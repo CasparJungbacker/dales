@@ -52,7 +52,7 @@ module modstattend
 contains
 !> Initialization routine, reads namelists and inits variables
 subroutine initstattend
-    use modmpi,   only : mpierr,mpi_logical,comm3d,myid,D_MPI_BCAST
+    use modmpi,   only : mpierr,comm3d,myid,D_MPI_BCAST
     use modglobal,only : cexpnr,dtmax,ifnamopt,fname_options,k1,dtav_glob,timeav_glob,&
     ladaptive, dt_lim,btime,tres,ifoutput,lwarmstart,checknamelisterror
     use modstat_nc, only : lnetcdf, open_nc,define_nc,ncinfo,nctiminfo,writestat_dims_nc
@@ -79,12 +79,12 @@ subroutine initstattend
     call D_MPI_BCAST(timeav     ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(ltend      ,1,0,comm3d,mpierr)
 
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
-    nsamples = itimeav/idtav
+    nsamples = int(itimeav / idtav)
     if(.not.(ltend)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -122,12 +122,12 @@ subroutine initstattend
     endif
 
     if (lnetcdf) then
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
-    nsamples = itimeav/idtav
+    nsamples = int(itimeav / idtav)
      if (myid==0) then
         fname(10:12) = cexpnr
         call nctiminfo(tncname(1,:))

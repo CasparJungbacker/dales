@@ -17,20 +17,20 @@ MODULE shr_orb_mod
    ! PUBLIC: Interfaces and global data
    !----------------------------------------------------------------------------
    public shr_orb_cosz, shr_orb_params, shr_orb_decl, shr_orb_print
-   real   (SHR_KIND_R4),public, parameter :: SHR_ORB_UNDEF_REAL = 1.e36      ! undefined real
+   real   (SHR_KIND_R4),public, parameter :: SHR_ORB_UNDEF_REAL = 1.e36_SHR_KIND_R4 ! undefined real
    integer(SHR_KIND_IN),public, parameter :: SHR_ORB_UNDEF_INT  = 2000000000 ! undefined int
    !----------------------------------------------------------------------------
    ! PRIVATE: by default everything else is private to this module
    !----------------------------------------------------------------------------
    private
 !bloss   real   (SHR_KIND_R4),parameter :: pi = SHR_CONST_PI
-   real   (SHR_KIND_R4), parameter :: pi = 3.14159265358979
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_ECCEN_MIN  =   0.0 ! min value for eccen
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_ECCEN_MAX  =   0.1 ! max value for eccen
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_OBLIQ_MIN  = -90.0 ! min value for obliq
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_OBLIQ_MAX  = +90.0 ! max value for obliq
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_MVELP_MIN  =   0.0 ! min value for mvelp
-   real   (SHR_KIND_R4),parameter :: SHR_ORB_MVELP_MAX  = 360.0 ! max value for mvelp
+   real   (SHR_KIND_R4),parameter :: pi = 3.14159265358979_SHR_KIND_R4
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_ECCEN_MIN  =   0.0_SHR_KIND_R4 ! min value for eccen
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_ECCEN_MAX  =   0.1_SHR_KIND_R4 ! max value for eccen
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_OBLIQ_MIN  = -90.0_SHR_KIND_R4 ! min value for obliq
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_OBLIQ_MAX  = +90.0_SHR_KIND_R4 ! max value for obliq
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_MVELP_MIN  =   0.0_SHR_KIND_R4 ! min value for mvelp
+   real   (SHR_KIND_R4),parameter :: SHR_ORB_MVELP_MAX  = 360.0_SHR_KIND_R4 ! max value for mvelp
 
 CONTAINS
 
@@ -59,7 +59,7 @@ elemental real(SHR_KIND_R4) FUNCTION shr_orb_cosz(jday,lat,lon,declin)
    !----------------------------------------------------------------------------
 
    shr_orb_cosz = sin(lat)*sin(declin) - &
-   &              cos(lat)*cos(declin)*cos(jday*2.0*pi + lon)
+   &              cos(lat)*cos(declin)*cos(jday*2*pi + lon)
 
 END FUNCTION shr_orb_cosz
 
@@ -98,185 +98,185 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
    integer(SHR_KIND_IN),parameter :: poblen =47 ! # of elements in series wrt obliquity
    integer(SHR_KIND_IN),parameter :: pecclen=19 ! # of elements in series wrt eccentricity
    integer(SHR_KIND_IN),parameter :: pmvelen=78 ! # of elements in series wrt vernal equinox
-   real   (SHR_KIND_R4),parameter :: psecdeg = 1.0/3600.0 ! arc sec to deg conversion
+   real   (SHR_KIND_R4),parameter :: psecdeg = 1.0_SHR_KIND_R4/3600.0_SHR_KIND_R4 ! arc sec to deg conversion
 
-   real   (SHR_KIND_R4) :: degrad = pi/180.   ! degree to radian conversion factor
+   real   (SHR_KIND_R4) :: degrad = pi/180    ! degree to radian conversion factor
    real   (SHR_KIND_R4) :: yb4_1950AD         ! number of years before 1950 AD
 
    ! Cosine series data for computation of obliquity: amplitude (arc seconds),
    ! rate (arc seconds/year), phase (degrees).
 
    real   (SHR_KIND_R4), parameter :: obamp(poblen) =  & ! amplitudes for obliquity cos series
-   &      (/   -2462.2214466, -857.3232075, -629.3231835,   &
-   &            -414.2804924, -311.7632587,  308.9408604,   &
-   &            -162.5533601, -116.1077911,  101.1189923,   &
-   &             -67.6856209,   24.9079067,   22.5811241,   &
-   &             -21.1648355,  -15.6549876,   15.3936813,   &
-   &              14.6660938,  -11.7273029,   10.2742696,   &
-   &               6.4914588,    5.8539148,   -5.4872205,   &
-   &              -5.4290191,    5.1609570,    5.0786314,   &
-   &              -4.0735782,    3.7227167,    3.3971932,   &
-   &              -2.8347004,   -2.6550721,   -2.5717867,   &
-   &              -2.4712188,    2.4625410,    2.2464112,   &
-   &              -2.0755511,   -1.9713669,   -1.8813061,   &
-   &              -1.8468785,    1.8186742,    1.7601888,   &
-   &              -1.5428851,    1.4738838,   -1.4593669,   &
-   &               1.4192259,   -1.1818980,    1.1756474,   &
-   &              -1.1316126,    1.0896928/)
+   &      (/   -2462.2214466_SHR_KIND_R4, -857.3232075_SHR_KIND_R4, -629.3231835_SHR_KIND_R4,   &
+   &            -414.2804924_SHR_KIND_R4, -311.7632587_SHR_KIND_R4,  308.9408604_SHR_KIND_R4,   &
+   &            -162.5533601_SHR_KIND_R4, -116.1077911_SHR_KIND_R4,  101.1189923_SHR_KIND_R4,   &
+   &             -67.6856209_SHR_KIND_R4,   24.9079067_SHR_KIND_R4,   22.5811241_SHR_KIND_R4,   &
+   &             -21.1648355_SHR_KIND_R4,  -15.6549876_SHR_KIND_R4,   15.3936813_SHR_KIND_R4,   &
+   &              14.6660938_SHR_KIND_R4,  -11.7273029_SHR_KIND_R4,   10.2742696_SHR_KIND_R4,   &
+   &               6.4914588_SHR_KIND_R4,    5.8539148_SHR_KIND_R4,   -5.4872205_SHR_KIND_R4,   &
+   &              -5.4290191_SHR_KIND_R4,    5.1609570_SHR_KIND_R4,    5.0786314_SHR_KIND_R4,   &
+   &              -4.0735782_SHR_KIND_R4,    3.7227167_SHR_KIND_R4,    3.3971932_SHR_KIND_R4,   &
+   &              -2.8347004_SHR_KIND_R4,   -2.6550721_SHR_KIND_R4,   -2.5717867_SHR_KIND_R4,   &
+   &              -2.4712188_SHR_KIND_R4,    2.4625410_SHR_KIND_R4,    2.2464112_SHR_KIND_R4,   &
+   &              -2.0755511_SHR_KIND_R4,   -1.9713669_SHR_KIND_R4,   -1.8813061_SHR_KIND_R4,   &
+   &              -1.8468785_SHR_KIND_R4,    1.8186742_SHR_KIND_R4,    1.7601888_SHR_KIND_R4,   &
+   &              -1.5428851_SHR_KIND_R4,    1.4738838_SHR_KIND_R4,   -1.4593669_SHR_KIND_R4,   &
+   &               1.4192259_SHR_KIND_R4,   -1.1818980_SHR_KIND_R4,    1.1756474_SHR_KIND_R4,   &
+   &              -1.1316126_SHR_KIND_R4,    1.0896928_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: obrate(poblen) = & ! rates for obliquity cosine series
-   &        (/  31.609974, 32.620504, 24.172203,   &
-   &            31.983787, 44.828336, 30.973257,   &
-   &            43.668246, 32.246691, 30.599444,   &
-   &            42.681324, 43.836462, 47.439436,   &
-   &            63.219948, 64.230478,  1.010530,   &
-   &             7.437771, 55.782177,  0.373813,   &
-   &            13.218362, 62.583231, 63.593761,   &
-   &            76.438310, 45.815258,  8.448301,   &
-   &            56.792707, 49.747842, 12.058272,   &
-   &            75.278220, 65.241008, 64.604291,   &
-   &             1.647247,  7.811584, 12.207832,   &
-   &            63.856665, 56.155990, 77.448840,   &
-   &             6.801054, 62.209418, 20.656133,   &
-   &            48.344406, 55.145460, 69.000539,   &
-   &            11.071350, 74.291298, 11.047742,   &
-   &             0.636717, 12.844549/)
+   &        (/  31.609974_SHR_KIND_R4, 32.620504_SHR_KIND_R4, 24.172203_SHR_KIND_R4,   &
+   &            31.983787_SHR_KIND_R4, 44.828336_SHR_KIND_R4, 30.973257_SHR_KIND_R4,   &
+   &            43.668246_SHR_KIND_R4, 32.246691_SHR_KIND_R4, 30.599444_SHR_KIND_R4,   &
+   &            42.681324_SHR_KIND_R4, 43.836462_SHR_KIND_R4, 47.439436_SHR_KIND_R4,   &
+   &            63.219948_SHR_KIND_R4, 64.230478_SHR_KIND_R4,  1.010530_SHR_KIND_R4,   &
+   &             7.437771_SHR_KIND_R4, 55.782177_SHR_KIND_R4,  0.373813_SHR_KIND_R4,   &
+   &            13.218362_SHR_KIND_R4, 62.583231_SHR_KIND_R4, 63.593761_SHR_KIND_R4,   &
+   &            76.438310_SHR_KIND_R4, 45.815258_SHR_KIND_R4,  8.448301_SHR_KIND_R4,   &
+   &            56.792707_SHR_KIND_R4, 49.747842_SHR_KIND_R4, 12.058272_SHR_KIND_R4,   &
+   &            75.278220_SHR_KIND_R4, 65.241008_SHR_KIND_R4, 64.604291_SHR_KIND_R4,   &
+   &             1.647247_SHR_KIND_R4,  7.811584_SHR_KIND_R4, 12.207832_SHR_KIND_R4,   &
+   &            63.856665_SHR_KIND_R4, 56.155990_SHR_KIND_R4, 77.448840_SHR_KIND_R4,   &
+   &             6.801054_SHR_KIND_R4, 62.209418_SHR_KIND_R4, 20.656133_SHR_KIND_R4,   &
+   &            48.344406_SHR_KIND_R4, 55.145460_SHR_KIND_R4, 69.000539_SHR_KIND_R4,   &
+   &            11.071350_SHR_KIND_R4, 74.291298_SHR_KIND_R4, 11.047742_SHR_KIND_R4,   &
+   &             0.636717_SHR_KIND_R4, 12.844549_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: obphas(poblen) = & ! phases for obliquity cosine series
-   &      (/    251.9025, 280.8325, 128.3057,   &
-   &            292.7252,  15.3747, 263.7951,   &
-   &            308.4258, 240.0099, 222.9725,   &
-   &            268.7809, 316.7998, 319.6024,   &
-   &            143.8050, 172.7351,  28.9300,   &
-   &            123.5968,  20.2082,  40.8226,   &
-   &            123.4722, 155.6977, 184.6277,   &
-   &            267.2772,  55.0196, 152.5268,   &
-   &             49.1382, 204.6609,  56.5233,   &
-   &            200.3284, 201.6651, 213.5577,   &
-   &             17.0374, 164.4194,  94.5422,   &
-   &            131.9124,  61.0309, 296.2073,   &
-   &            135.4894, 114.8750, 247.0691,   &
-   &            256.6114,  32.1008, 143.6804,   &
-   &             16.8784, 160.6835,  27.5932,   &
-   &            348.1074,  82.6496/)
+   &      (/    251.9025_SHR_KIND_R4, 280.8325_SHR_KIND_R4, 128.3057_SHR_KIND_R4,   &
+   &            292.7252_SHR_KIND_R4,  15.3747_SHR_KIND_R4, 263.7951_SHR_KIND_R4,   &
+   &            308.4258_SHR_KIND_R4, 240.0099_SHR_KIND_R4, 222.9725_SHR_KIND_R4,   &
+   &            268.7809_SHR_KIND_R4, 316.7998_SHR_KIND_R4, 319.6024_SHR_KIND_R4,   &
+   &            143.8050_SHR_KIND_R4, 172.7351_SHR_KIND_R4,  28.9300_SHR_KIND_R4,   &
+   &            123.5968_SHR_KIND_R4,  20.2082_SHR_KIND_R4,  40.8226_SHR_KIND_R4,   &
+   &            123.4722_SHR_KIND_R4, 155.6977_SHR_KIND_R4, 184.6277_SHR_KIND_R4,   &
+   &            267.2772_SHR_KIND_R4,  55.0196_SHR_KIND_R4, 152.5268_SHR_KIND_R4,   &
+   &             49.1382_SHR_KIND_R4, 204.6609_SHR_KIND_R4,  56.5233_SHR_KIND_R4,   &
+   &            200.3284_SHR_KIND_R4, 201.6651_SHR_KIND_R4, 213.5577_SHR_KIND_R4,   &
+   &             17.0374_SHR_KIND_R4, 164.4194_SHR_KIND_R4,  94.5422_SHR_KIND_R4,   &
+   &            131.9124_SHR_KIND_R4,  61.0309_SHR_KIND_R4, 296.2073_SHR_KIND_R4,   &
+   &            135.4894_SHR_KIND_R4, 114.8750_SHR_KIND_R4, 247.0691_SHR_KIND_R4,   &
+   &            256.6114_SHR_KIND_R4,  32.1008_SHR_KIND_R4, 143.6804_SHR_KIND_R4,   &
+   &             16.8784_SHR_KIND_R4, 160.6835_SHR_KIND_R4,  27.5932_SHR_KIND_R4,   &
+   &            348.1074_SHR_KIND_R4,  82.6496_SHR_KIND_R4/)
 
    ! Cosine/sine series data for computation of eccentricity and fixed vernal
    ! equinox longitude of perihelion (fvelp): amplitude,
    ! rate (arc seconds/year), phase (degrees).
 
    real   (SHR_KIND_R4), parameter :: ecamp (pecclen) = & ! ampl for eccen/fvelp cos/sin series
-   &      (/   0.01860798,  0.01627522, -0.01300660,   &
-   &           0.00988829, -0.00336700,  0.00333077,   &
-   &          -0.00235400,  0.00140015,  0.00100700,   &
-   &           0.00085700,  0.00064990,  0.00059900,   &
-   &           0.00037800, -0.00033700,  0.00027600,   &
-   &           0.00018200, -0.00017400, -0.00012400,   &
-   &           0.00001250/)
+   &      (/   0.01860798_SHR_KIND_R4,  0.01627522_SHR_KIND_R4, -0.01300660_SHR_KIND_R4,   &
+   &           0.00988829_SHR_KIND_R4, -0.00336700_SHR_KIND_R4,  0.00333077_SHR_KIND_R4,   &
+   &          -0.00235400_SHR_KIND_R4,  0.00140015_SHR_KIND_R4,  0.00100700_SHR_KIND_R4,   &
+   &           0.00085700_SHR_KIND_R4,  0.00064990_SHR_KIND_R4,  0.00059900_SHR_KIND_R4,   &
+   &           0.00037800_SHR_KIND_R4, -0.00033700_SHR_KIND_R4,  0.00027600_SHR_KIND_R4,   &
+   &           0.00018200_SHR_KIND_R4, -0.00017400_SHR_KIND_R4, -0.00012400_SHR_KIND_R4,   &
+   &           0.00001250_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: ecrate(pecclen) = & ! rates for eccen/fvelp cos/sin series
-   &      (/    4.2072050,  7.3460910, 17.8572630,  &
-   &           17.2205460, 16.8467330,  5.1990790,  &
-   &           18.2310760, 26.2167580,  6.3591690,  &
-   &           16.2100160,  3.0651810, 16.5838290,  &
-   &           18.4939800,  6.1909530, 18.8677930,  &
-   &           17.4255670,  6.1860010, 18.4174410,  &
-   &            0.6678630/)
+   &      (/    4.2072050_SHR_KIND_R4,  7.3460910_SHR_KIND_R4, 17.8572630_SHR_KIND_R4,  &
+   &           17.2205460_SHR_KIND_R4, 16.8467330_SHR_KIND_R4,  5.1990790_SHR_KIND_R4,  &
+   &           18.2310760_SHR_KIND_R4, 26.2167580_SHR_KIND_R4,  6.3591690_SHR_KIND_R4,  &
+   &           16.2100160_SHR_KIND_R4,  3.0651810_SHR_KIND_R4, 16.5838290_SHR_KIND_R4,  &
+   &           18.4939800_SHR_KIND_R4,  6.1909530_SHR_KIND_R4, 18.8677930_SHR_KIND_R4,  &
+   &           17.4255670_SHR_KIND_R4,  6.1860010_SHR_KIND_R4, 18.4174410_SHR_KIND_R4,  &
+   &            0.6678630_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: ecphas(pecclen) = & ! phases for eccen/fvelp cos/sin series
-   &      (/    28.620089, 193.788772, 308.307024,  &
-   &           320.199637, 279.376984,  87.195000,  &
-   &           349.129677, 128.443387, 154.143880,  &
-   &           291.269597, 114.860583, 332.092251,  &
-   &           296.414411, 145.769910, 337.237063,  &
-   &           152.092288, 126.839891, 210.667199,  &
-   &            72.108838/)
+   &      (/    28.620089_SHR_KIND_R4, 193.788772_SHR_KIND_R4, 308.307024_SHR_KIND_R4,  &
+   &           320.199637_SHR_KIND_R4, 279.376984_SHR_KIND_R4,  87.195000_SHR_KIND_R4,  &
+   &           349.129677_SHR_KIND_R4, 128.443387_SHR_KIND_R4, 154.143880_SHR_KIND_R4,  &
+   &           291.269597_SHR_KIND_R4, 114.860583_SHR_KIND_R4, 332.092251_SHR_KIND_R4,  &
+   &           296.414411_SHR_KIND_R4, 145.769910_SHR_KIND_R4, 337.237063_SHR_KIND_R4,  &
+   &           152.092288_SHR_KIND_R4, 126.839891_SHR_KIND_R4, 210.667199_SHR_KIND_R4,  &
+   &            72.108838_SHR_KIND_R4/)
 
    ! Sine series data for computation of moving vernal equinox longitude of
    ! perihelion: amplitude (arc seconds), rate (arc sec/year), phase (degrees).
 
    real   (SHR_KIND_R4), parameter :: mvamp (pmvelen) = & ! amplitudes for mvelp sine series
-   &      (/   7391.0225890, 2555.1526947, 2022.7629188,  &
-   &          -1973.6517951, 1240.2321818,  953.8679112,  &
-   &           -931.7537108,  872.3795383,  606.3544732,  &
-   &           -496.0274038,  456.9608039,  346.9462320,  &
-   &           -305.8412902,  249.6173246, -199.1027200,  &
-   &            191.0560889, -175.2936572,  165.9068833,  &
-   &            161.1285917,  139.7878093, -133.5228399,  &
-   &            117.0673811,  104.6907281,   95.3227476,  &
-   &             86.7824524,   86.0857729,   70.5893698,  &
-   &            -69.9719343,  -62.5817473,   61.5450059,  &
-   &            -57.9364011,   57.1899832,  -57.0236109,  &
-   &            -54.2119253,   53.2834147,   52.1223575,  &
-   &            -49.0059908,  -48.3118757,  -45.4191685,  &
-   &            -42.2357920,  -34.7971099,   34.4623613,  &
-   &            -33.8356643,   33.6689362,  -31.2521586,  &
-   &            -30.8798701,   28.4640769,  -27.1960802,  &
-   &             27.0860736,  -26.3437456,   24.7253740,  &
-   &             24.6732126,   24.4272733,   24.0127327,  &
-   &             21.7150294,  -21.5375347,   18.1148363,  &
-   &            -16.9603104,  -16.1765215,   15.5567653,  &
-   &             15.4846529,   15.2150632,   14.5047426,  &
-   &            -14.3873316,   13.1351419,   12.8776311,  &
-   &             11.9867234,   11.9385578,   11.7030822,  &
-   &             11.6018181,  -11.2617293,  -10.4664199,  &
-   &             10.4333970,  -10.2377466,   10.1934446,  &
-   &            -10.1280191,   10.0289441,  -10.0034259/)
+   &      (/   7391.0225890_SHR_KIND_R4, 2555.1526947_SHR_KIND_R4, 2022.7629188_SHR_KIND_R4,  &
+   &          -1973.6517951_SHR_KIND_R4, 1240.2321818_SHR_KIND_R4,  953.8679112_SHR_KIND_R4,  &
+   &           -931.7537108_SHR_KIND_R4,  872.3795383_SHR_KIND_R4,  606.3544732_SHR_KIND_R4,  &
+   &           -496.0274038_SHR_KIND_R4,  456.9608039_SHR_KIND_R4,  346.9462320_SHR_KIND_R4,  &
+   &           -305.8412902_SHR_KIND_R4,  249.6173246_SHR_KIND_R4, -199.1027200_SHR_KIND_R4,  &
+   &            191.0560889_SHR_KIND_R4, -175.2936572_SHR_KIND_R4,  165.9068833_SHR_KIND_R4,  &
+   &            161.1285917_SHR_KIND_R4,  139.7878093_SHR_KIND_R4, -133.5228399_SHR_KIND_R4,  &
+   &            117.0673811_SHR_KIND_R4,  104.6907281_SHR_KIND_R4,   95.3227476_SHR_KIND_R4,  &
+   &             86.7824524_SHR_KIND_R4,   86.0857729_SHR_KIND_R4,   70.5893698_SHR_KIND_R4,  &
+   &            -69.9719343_SHR_KIND_R4,  -62.5817473_SHR_KIND_R4,   61.5450059_SHR_KIND_R4,  &
+   &            -57.9364011_SHR_KIND_R4,   57.1899832_SHR_KIND_R4,  -57.0236109_SHR_KIND_R4,  &
+   &            -54.2119253_SHR_KIND_R4,   53.2834147_SHR_KIND_R4,   52.1223575_SHR_KIND_R4,  &
+   &            -49.0059908_SHR_KIND_R4,  -48.3118757_SHR_KIND_R4,  -45.4191685_SHR_KIND_R4,  &
+   &            -42.2357920_SHR_KIND_R4,  -34.7971099_SHR_KIND_R4,   34.4623613_SHR_KIND_R4,  &
+   &            -33.8356643_SHR_KIND_R4,   33.6689362_SHR_KIND_R4,  -31.2521586_SHR_KIND_R4,  &
+   &            -30.8798701_SHR_KIND_R4,   28.4640769_SHR_KIND_R4,  -27.1960802_SHR_KIND_R4,  &
+   &             27.0860736_SHR_KIND_R4,  -26.3437456_SHR_KIND_R4,   24.7253740_SHR_KIND_R4,  &
+   &             24.6732126_SHR_KIND_R4,   24.4272733_SHR_KIND_R4,   24.0127327_SHR_KIND_R4,  &
+   &             21.7150294_SHR_KIND_R4,  -21.5375347_SHR_KIND_R4,   18.1148363_SHR_KIND_R4,  &
+   &            -16.9603104_SHR_KIND_R4,  -16.1765215_SHR_KIND_R4,   15.5567653_SHR_KIND_R4,  &
+   &             15.4846529_SHR_KIND_R4,   15.2150632_SHR_KIND_R4,   14.5047426_SHR_KIND_R4,  &
+   &            -14.3873316_SHR_KIND_R4,   13.1351419_SHR_KIND_R4,   12.8776311_SHR_KIND_R4,  &
+   &             11.9867234_SHR_KIND_R4,   11.9385578_SHR_KIND_R4,   11.7030822_SHR_KIND_R4,  &
+   &             11.6018181_SHR_KIND_R4,  -11.2617293_SHR_KIND_R4,  -10.4664199_SHR_KIND_R4,  &
+   &             10.4333970_SHR_KIND_R4,  -10.2377466_SHR_KIND_R4,   10.1934446_SHR_KIND_R4,  &
+   &            -10.1280191_SHR_KIND_R4,   10.0289441_SHR_KIND_R4,  -10.0034259_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: mvrate(pmvelen) = & ! rates for mvelp sine series
-   &      (/    31.609974, 32.620504, 24.172203,   &
-   &             0.636717, 31.983787,  3.138886,   &
-   &            30.973257, 44.828336,  0.991874,   &
-   &             0.373813, 43.668246, 32.246691,   &
-   &            30.599444,  2.147012, 10.511172,   &
-   &            42.681324, 13.650058,  0.986922,   &
-   &             9.874455, 13.013341,  0.262904,   &
-   &             0.004952,  1.142024, 63.219948,   &
-   &             0.205021,  2.151964, 64.230478,   &
-   &            43.836462, 47.439436,  1.384343,   &
-   &             7.437771, 18.829299,  9.500642,   &
-   &             0.431696,  1.160090, 55.782177,   &
-   &            12.639528,  1.155138,  0.168216,   &
-   &             1.647247, 10.884985,  5.610937,   &
-   &            12.658184,  1.010530,  1.983748,   &
-   &            14.023871,  0.560178,  1.273434,   &
-   &            12.021467, 62.583231, 63.593761,   &
-   &            76.438310,  4.280910, 13.218362,   &
-   &            17.818769,  8.359495, 56.792707,   &
-   &            8.448301,  1.978796,  8.863925,   &
-   &             0.186365,  8.996212,  6.771027,   &
-   &            45.815258, 12.002811, 75.278220,   &
-   &            65.241008, 18.870667, 22.009553,   &
-   &            64.604291, 11.498094,  0.578834,   &
-   &             9.237738, 49.747842,  2.147012,   &
-   &             1.196895,  2.133898,  0.173168/)
+   &      (/    31.609974_SHR_KIND_R4, 32.620504_SHR_KIND_R4, 24.172203_SHR_KIND_R4,   &
+   &             0.636717_SHR_KIND_R4, 31.983787_SHR_KIND_R4,  3.138886_SHR_KIND_R4,   &
+   &            30.973257_SHR_KIND_R4, 44.828336_SHR_KIND_R4,  0.991874_SHR_KIND_R4,   &
+   &             0.373813_SHR_KIND_R4, 43.668246_SHR_KIND_R4, 32.246691_SHR_KIND_R4,   &
+   &            30.599444_SHR_KIND_R4,  2.147012_SHR_KIND_R4, 10.511172_SHR_KIND_R4,   &
+   &            42.681324_SHR_KIND_R4, 13.650058_SHR_KIND_R4,  0.986922_SHR_KIND_R4,   &
+   &             9.874455_SHR_KIND_R4, 13.013341_SHR_KIND_R4,  0.262904_SHR_KIND_R4,   &
+   &             0.004952_SHR_KIND_R4,  1.142024_SHR_KIND_R4, 63.219948_SHR_KIND_R4,   &
+   &             0.205021_SHR_KIND_R4,  2.151964_SHR_KIND_R4, 64.230478_SHR_KIND_R4,   &
+   &            43.836462_SHR_KIND_R4, 47.439436_SHR_KIND_R4,  1.384343_SHR_KIND_R4,   &
+   &             7.437771_SHR_KIND_R4, 18.829299_SHR_KIND_R4,  9.500642_SHR_KIND_R4,   &
+   &             0.431696_SHR_KIND_R4,  1.160090_SHR_KIND_R4, 55.782177_SHR_KIND_R4,   &
+   &            12.639528_SHR_KIND_R4,  1.155138_SHR_KIND_R4,  0.168216_SHR_KIND_R4,   &
+   &             1.647247_SHR_KIND_R4, 10.884985_SHR_KIND_R4,  5.610937_SHR_KIND_R4,   &
+   &            12.658184_SHR_KIND_R4,  1.010530_SHR_KIND_R4,  1.983748_SHR_KIND_R4,   &
+   &            14.023871_SHR_KIND_R4,  0.560178_SHR_KIND_R4,  1.273434_SHR_KIND_R4,   &
+   &            12.021467_SHR_KIND_R4, 62.583231_SHR_KIND_R4, 63.593761_SHR_KIND_R4,   &
+   &            76.438310_SHR_KIND_R4,  4.280910_SHR_KIND_R4, 13.218362_SHR_KIND_R4,   &
+   &            17.818769_SHR_KIND_R4,  8.359495_SHR_KIND_R4, 56.792707_SHR_KIND_R4,   &
+   &            8.448301_SHR_KIND_R4,  1.978796_SHR_KIND_R4,  8.863925_SHR_KIND_R4,   &
+   &             0.186365_SHR_KIND_R4,  8.996212_SHR_KIND_R4,  6.771027_SHR_KIND_R4,   &
+   &            45.815258_SHR_KIND_R4, 12.002811_SHR_KIND_R4, 75.278220_SHR_KIND_R4,   &
+   &            65.241008_SHR_KIND_R4, 18.870667_SHR_KIND_R4, 22.009553_SHR_KIND_R4,   &
+   &            64.604291_SHR_KIND_R4, 11.498094_SHR_KIND_R4,  0.578834_SHR_KIND_R4,   &
+   &             9.237738_SHR_KIND_R4, 49.747842_SHR_KIND_R4,  2.147012_SHR_KIND_R4,   &
+   &             1.196895_SHR_KIND_R4,  2.133898_SHR_KIND_R4,  0.173168_SHR_KIND_R4/)
 
    real   (SHR_KIND_R4), parameter :: mvphas(pmvelen) = & ! phases for mvelp sine series
-   &      (/    251.9025, 280.8325, 128.3057,   &
-   &            348.1074, 292.7252, 165.1686,   &
-   &            263.7951,  15.3747,  58.5749,   &
-   &             40.8226, 308.4258, 240.0099,   &
-   &            222.9725, 106.5937, 114.5182,   &
-   &            268.7809, 279.6869,  39.6448,   &
-   &            126.4108, 291.5795, 307.2848,   &
-   &             18.9300, 273.7596, 143.8050,   &
-   &            191.8927, 125.5237, 172.7351,   &
-   &            316.7998, 319.6024,  69.7526,   &
-   &            123.5968, 217.6432,  85.5882,   &
-   &            156.2147,  66.9489,  20.2082,   &
-   &            250.7568,  48.0188,   8.3739,   &
-   &             17.0374, 155.3409,  94.1709,   &
-   &            221.1120,  28.9300, 117.1498,   &
-   &            320.5095, 262.3602, 336.2148,   &
-   &            233.0046, 155.6977, 184.6277,   &
-   &            267.2772,  78.9281, 123.4722,   &
-   &            188.7132, 180.1364,  49.1382,   &
-   &            152.5268,  98.2198,  97.4808,   &
-   &            221.5376, 168.2438, 161.1199,   &
-   &             55.0196, 262.6495, 200.3284,   &
-   &            201.6651, 294.6547,  99.8233,   &
-   &            213.5577, 154.1631, 232.7153,   &
-   &            138.3034, 204.6609, 106.5938,   &
-   &            250.4676, 332.3345,  27.3039/)
+   &      (/    251.9025_SHR_KIND_R4, 280.8325_SHR_KIND_R4, 128.3057_SHR_KIND_R4,   &
+   &            348.1074_SHR_KIND_R4, 292.7252_SHR_KIND_R4, 165.1686_SHR_KIND_R4,   &
+   &            263.7951_SHR_KIND_R4,  15.3747_SHR_KIND_R4,  58.5749_SHR_KIND_R4,   &
+   &             40.8226_SHR_KIND_R4, 308.4258_SHR_KIND_R4, 240.0099_SHR_KIND_R4,   &
+   &            222.9725_SHR_KIND_R4, 106.5937_SHR_KIND_R4, 114.5182_SHR_KIND_R4,   &
+   &            268.7809_SHR_KIND_R4, 279.6869_SHR_KIND_R4,  39.6448_SHR_KIND_R4,   &
+   &            126.4108_SHR_KIND_R4, 291.5795_SHR_KIND_R4, 307.2848_SHR_KIND_R4,   &
+   &             18.9300_SHR_KIND_R4, 273.7596_SHR_KIND_R4, 143.8050_SHR_KIND_R4,   &
+   &            191.8927_SHR_KIND_R4, 125.5237_SHR_KIND_R4, 172.7351_SHR_KIND_R4,   &
+   &            316.7998_SHR_KIND_R4, 319.6024_SHR_KIND_R4,  69.7526_SHR_KIND_R4,   &
+   &            123.5968_SHR_KIND_R4, 217.6432_SHR_KIND_R4,  85.5882_SHR_KIND_R4,   &
+   &            156.2147_SHR_KIND_R4,  66.9489_SHR_KIND_R4,  20.2082_SHR_KIND_R4,   &
+   &            250.7568_SHR_KIND_R4,  48.0188_SHR_KIND_R4,   8.3739_SHR_KIND_R4,   &
+   &             17.0374_SHR_KIND_R4, 155.3409_SHR_KIND_R4,  94.1709_SHR_KIND_R4,   &
+   &            221.1120_SHR_KIND_R4,  28.9300_SHR_KIND_R4, 117.1498_SHR_KIND_R4,   &
+   &            320.5095_SHR_KIND_R4, 262.3602_SHR_KIND_R4, 336.2148_SHR_KIND_R4,   &
+   &            233.0046_SHR_KIND_R4, 155.6977_SHR_KIND_R4, 184.6277_SHR_KIND_R4,   &
+   &            267.2772_SHR_KIND_R4,  78.9281_SHR_KIND_R4, 123.4722_SHR_KIND_R4,   &
+   &            188.7132_SHR_KIND_R4, 180.1364_SHR_KIND_R4,  49.1382_SHR_KIND_R4,   &
+   &            152.5268_SHR_KIND_R4,  98.2198_SHR_KIND_R4,  97.4808_SHR_KIND_R4,   &
+   &            221.5376_SHR_KIND_R4, 168.2438_SHR_KIND_R4, 161.1199_SHR_KIND_R4,   &
+   &             55.0196_SHR_KIND_R4, 262.6495_SHR_KIND_R4, 200.3284_SHR_KIND_R4,   &
+   &            201.6651_SHR_KIND_R4, 294.6547_SHR_KIND_R4,  99.8233_SHR_KIND_R4,   &
+   &            213.5577_SHR_KIND_R4, 154.1631_SHR_KIND_R4, 232.7153_SHR_KIND_R4,   &
+   &            138.3034_SHR_KIND_R4, 204.6609_SHR_KIND_R4, 106.5938_SHR_KIND_R4,   &
+   &            250.4676_SHR_KIND_R4, 332.3345_SHR_KIND_R4,  27.3039_SHR_KIND_R4/)
 
    !---------------------------Local variables----------------------------------
    integer(SHR_KIND_IN) :: i       ! Index for series summations
@@ -360,8 +360,8 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
       if ( log_print ) then
          write(6,F01) 'Calculate orbit for year: ' , iyear_AD
       end if
-      yb4_1950AD = 1950.0 - float(iyear_AD)
-      if ( abs(yb4_1950AD) .gt. 1000000.0 )then
+      yb4_1950AD = 1950 - float(iyear_AD)
+      if ( abs(yb4_1950AD) .gt. 1000000.0_SHR_KIND_R4 )then
          if ( log_print ) then
             write(6,F00) 'orbit only valid for years+-1000000'
             write(6,F00) 'Relative to 1950 AD'
@@ -407,12 +407,12 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
       ! factor).  For obliq, first term is Berger 1978 epsilon star; second
       ! term is series summation in degrees.
 
-      obsum = 0.0
+      obsum = 0
       do i = 1, poblen
          obsum = obsum + obamp(i)*psecdeg*cos((obrate(i)*psecdeg*years + &
          &       obphas(i))*degrad)
       end do
-      obliq = 23.320556 + obsum
+      obliq = 23.320556_SHR_KIND_R4 + obsum
 
       ! Summation of cosine and sine series for computation of eccentricity
       ! (eccen; e in Berger 1978) and fixed vernal equinox longitude of
@@ -438,19 +438,19 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
 
       ! A series of cases for fvelp, which is in radians.
 
-      if (abs(cossum) .le. 1.0E-8) then
+      if (abs(cossum) .le. 1.0E-8_SHR_KIND_R4) then
         if (sinsum .eq. 0.0) then
           fvelp = 0.0
-        else if (sinsum .lt. 0.0) then
-          fvelp = 1.5*pi
-        else if (sinsum .gt. 0.0) then
-          fvelp = .5*pi
+        else if (sinsum .lt. 0) then
+          fvelp = 1.5_SHR_KIND_R4*pi
+        else if (sinsum .gt. 0) then
+          fvelp = .5_SHR_KIND_R4*pi
         endif
-      else if (cossum .lt. 0.0) then
+      else if (cossum .lt. 0) then
         fvelp = atan(sinsum/cossum) + pi
-      else if (cossum .gt. 0.0) then
-        if (sinsum .lt. 0.0) then
-          fvelp = atan(sinsum/cossum) + 2.0*pi
+      else if (cossum .gt. 0) then
+        if (sinsum .lt. 0) then
+          fvelp = atan(sinsum/cossum) + 2*pi
         else
           fvelp = atan(sinsum/cossum)
         endif
@@ -465,20 +465,20 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
       ! Series summation plus second and third terms constitute Berger 1978
       ! psi, which is the general precession.
 
-      mvsum = 0.0
+      mvsum = 0
       do i = 1, pmvelen
         mvsum = mvsum + mvamp(i)*psecdeg*sin((mvrate(i)*psecdeg*years + &
         &       mvphas(i))*degrad)
       end do
-      mvelp = fvelp/degrad + 50.439273*psecdeg*years + 3.392506 + mvsum
+      mvelp = fvelp/degrad + 50.439273_SHR_KIND_R4*psecdeg*years + 3.392506_SHR_KIND_R4 + mvsum
 
       ! Cases to make sure mvelp is between 0 and 360.
 
-      do while (mvelp .lt. 0.0)
-        mvelp = mvelp + 360.0
+      do while (mvelp .lt. 0)
+        mvelp = mvelp + 360
       end do
-      do while (mvelp .ge. 360.0)
-        mvelp = mvelp - 360.0
+      do while (mvelp .ge. 360)
+        mvelp = mvelp - 360
       end do
 
    END IF  ! end of test on whether to calculate or use input orbital params
@@ -497,20 +497,20 @@ SUBROUTINE shr_orb_params( iyear_AD , eccen  , obliq , mvelp     ,     &
    ! Additionally, orbit will need this value in radians. So mvelp becomes
    ! mvelpp (mvelp plus pi)
 
-   mvelpp = (mvelp + 180.)*degrad
+   mvelpp = (mvelp + 180)*degrad
 
    ! Set up an argument used several times in lambm0 calculation ahead.
 
-   beta = sqrt(1. - eccen2)
+   beta = sqrt(1 - eccen2)
 
    ! The mean longitude at the vernal equinox (lambda m nought in Berger
    ! 1978; in radians) is calculated from the following formula given in
    ! Berger 1978.  At the vernal equinox the true longitude (lambda in Berger
    ! 1978) is 0.
 
-   lambm0 = 2.*((.5*eccen + .125*eccen3)*(1. + beta)*sin(mvelpp)  &
-   &      - .250*eccen2*(.5    + beta)*sin(2.*mvelpp)            &
-   &      + .125*eccen3*(1./3. + beta)*sin(3.*mvelpp))
+   lambm0 = 2*((.5_SHR_KIND_R4*eccen + .125_SHR_KIND_R4*eccen3)*(1 + beta)*sin(mvelpp)  &
+   &      - .250_SHR_KIND_R4*eccen2*(.5_SHR_KIND_R4    + beta)*sin(2*mvelpp)            &
+   &      + .125_SHR_KIND_R4*eccen3*(1/3._SHR_KIND_R4 + beta)*sin(3*mvelpp))
 
    if ( log_print ) then
      write(6,F03) '------ Computed Orbital Parameters ------'
@@ -548,8 +548,8 @@ END SUBROUTINE shr_orb_params
    real                ,intent(in)  :: calday ! Calendar day, including fraction
 
    !---------------------------Local variables-----------------------------
-   real   (SHR_KIND_R4),parameter :: dayspy = 365.0  ! days per year
-   real   (SHR_KIND_R4),parameter :: ve     = 80.5   ! Calday of vernal equinox
+   real   (SHR_KIND_R4),parameter :: dayspy = 365.0_SHR_KIND_R4 ! days per year
+   real   (SHR_KIND_R4),parameter :: ve     = 80.5_SHR_KIND_R4 ! Calday of vernal equinox
                                                      ! assumes Jan 1 = calday 1
 
    real   (SHR_KIND_R4) ::   lambm  ! Lambda m, mean long of perihelion (rad)
@@ -575,15 +575,15 @@ END SUBROUTINE shr_orb_params
    ! days past or before (a negative increment) the vernal equinox divided by
    ! the days in a model year times the 2*pi radians in a complete orbit.
 
-   lambm = lambm0 + (calday - ve)*2.*pi/dayspy
+   lambm = lambm0 + (calday - ve)*2*pi/dayspy
    lmm   = lambm  - mvelpp
 
    ! The earths true longitude, in radians, is then found from
    ! the formula in Berger 1978:
 
    sinl  = sin(lmm)
-   lamb  = lambm  + eccen*(2.*sinl + eccen*(1.25*sin(2.*lmm)  &
-            + eccen*((13.0/12.0)*sin(3.*lmm) - 0.25*sinl)))
+   lamb  = lambm  + eccen*(2*sinl + eccen*(1.25_SHR_KIND_R4*sin(2*lmm)  &
+            + eccen*((13.0_SHR_KIND_R4/12.0_SHR_KIND_R4)*sin(3*lmm) - 0.25_SHR_KIND_R4*sinl)))
 
    ! Using the obliquity, eccentricity, moving vernal equinox longitude of
    ! perihelion (plus), and earths true longitude, the declination (delta)
@@ -591,7 +591,7 @@ END SUBROUTINE shr_orb_params
    ! rho will be used), and thus the eccentricity factor (eccf), can be
    ! calculated from formulas given in Berger 1978.
 
-   invrho = (1. + eccen*cos(lamb - mvelpp)) / (1. - eccen*eccen)
+   invrho = (1 + eccen*cos(lamb - mvelpp)) / (1 - eccen*eccen)
 
    ! Set solar declination and eccentricity factor
 

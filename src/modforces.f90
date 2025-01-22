@@ -63,13 +63,13 @@ contains
 !                                                                 |
 !-----------------------------------------------------------------|
 
-  use modglobal, only : i1,j1,kmax,dzh,dzf,grav, lpressgrad
+  use modglobal, only : kmax,dzh,dzf,grav, lpressgrad
   use modfields, only : sv0,up,vp,wp,thv0h,dpdxl,dpdyl,thvh
   use moduser,   only : force_user
   use modmicrodata, only : imicro, imicro_bulk, imicro_bin, imicro_sice, imicro_sice2, iqr
   implicit none
 
-  integer i, j, k
+  integer k
 
   call timer_tic('modforces/forces', 0)
 
@@ -88,7 +88,7 @@ contains
     !$acc kernels default(present) async(2)
     do k=2,kmax
        wp(:,:,k) = wp(:,:,k) + grav*(thv0h(:,:,k)-thvh(k))/thvh(k) - &
-                  grav*(sv0(:,:,k,iqr)*dzf(k-1)+sv0(:,:,k-1,iqr)*dzf(k))/(2.0*dzh(k))
+                  grav*(sv0(:,:,k,iqr)*dzf(k-1)+sv0(:,:,k-1,iqr)*dzf(k))/(2*dzh(k))
     end do
     !$acc end kernels
   else
@@ -103,7 +103,7 @@ contains
 !     special treatment for lowest full level: k=1
 !     --------------------------------------------
   !$acc kernels default(present) async(3)
-  wp(:,:,1) = 0.0
+  wp(:,:,1) = 0
   !$acc end kernels
 
   !$acc wait

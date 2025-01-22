@@ -63,9 +63,13 @@ module modsimpleice2
                              lambdar, lambdas, lambdag, &
                              qrmask, qcmask, precep, &
                              ccrz,ccsz,ccgz,ccrz2,ccsz2,ccgz2,&
-                             bbg,bbr,bbs,ddg,ddr,dds
+                             bbg,bbr,bbs,ddg,ddr,dds, iqr
+    use modtracers, only: add_tracer
     implicit none
     integer:: i, j, k
+
+    call add_tracer("qr", long_name="Total precipitation mixing ratio", &
+                    unit="kg/kg", lmicro=.true., isv=iqr) 
 
     allocate (qr(2:i1,2:j1,k1)        & ! qr (total precipitation!) converted from a scalar variable
              ,qrp(2:i1,2:j1,k1)       & ! qr tendency due to microphysics only, for statistics
@@ -162,16 +166,16 @@ module modsimpleice2
     implicit none
 
     integer:: i,j,k
-    real:: qrsmall, qrsum,qrtest
-    real :: qll,qli,ddisp,lwc,autl,tc,times,auti,aut ! autoconvert
-    real :: qrr,qrs,qrg, gaccrl,gaccsl,gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc  !accrete
-    real :: ssl,ssi,ventr,vents,ventg,thfun,evapdepr,evapdeps,evapdepg,devap  !evapdep
-    real :: dt_spl,wfallmax,vtr,vts,vtg,vtf ! precipitation
-    real :: tmp_lambdar, tmp_lambdas, tmp_lambdag
+    real(field_r) :: qrsmall, qrsum
+    real(field_r) :: qll,qli,ddisp,lwc,autl,tc,times,auti,aut ! autoconvert
+    real(field_r) :: qrr,qrs,qrg, gaccrl,gaccsl,gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc  !accrete
+    real(field_r) :: ssl,ssi,ventr,vents,ventg,thfun,evapdepr,evapdeps,evapdepg,devap  !evapdep
+    real(field_r) :: dt_spl,wfallmax,vtr,vts,vtg,vtf ! precipitation
+    real(field_r) :: tmp_lambdar, tmp_lambdas, tmp_lambdag
     integer :: jn
     integer :: n_spl      !<  sedimentation time splitting loop
 
-    real :: ilratio_,lambdar_,lambdas_,lambdag_, rsgratio_, sgratio_  ! local values instead of global arrays
+    real(field_r) :: ilratio_,lambdar_,lambdas_,lambdag_, rsgratio_, sgratio_  ! local values instead of global arrays
     logical :: qrmask_, qcmask_
     logical :: rain_present, snow_present, graupel_present   ! logicals for presence of different forms of water in the current cell
     logical :: any_qr, any_snow_graupel                      ! logicals for precense of any precipitation, and for presense of snow/graupel in the whole system
@@ -352,9 +356,9 @@ module modsimpleice2
               ! qll=ql0(i,j,k)*ilratio(i,j,k)
               ! qli=ql0(i,j,k)-qll
 
-              autl=max(0.,timekessl*(qll-qll0))
+              autl=max(0._field_r,timekessl*(qll-qll0))
               tc=tmp0(i,j,k)-tmelt
-              auti=max(0.,betakessi*exp(0.025*tc)*(qli-qli0))
+              auti=max(0._field_r,betakessi*exp(0.025_field_r*tc)*(qli-qli0))
               aut = min(autl + auti,ql0(i,j,k)/delt)
               qrp(i,j,k) = qrp(i,j,k) + aut
               qtpmcr(i,j,k) = qtpmcr(i,j,k) - aut

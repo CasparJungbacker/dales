@@ -308,8 +308,7 @@ subroutine sedim_rain3(q_hr, n_hr, q_hrp, n_hrp, precep_hr, tend)
   integer :: k_low1,k_high1  & ! Boundaries for the first k loop
             ,k_low2,k_high2    ! Boundaries for the second k loop
 
-  real :: wvar        &!< work variable
-         ,dt_spl      &!<
+  real :: dt_spl      &!<
          ,xr_spl      &!< for time splitting
          ,Dvr_spl     &!<     -
          ,mur_spl     &!<     -
@@ -476,7 +475,7 @@ subroutine sedim_snow3(q_hs, n_hs, q_hsp, n_hsp, precep_hs, tend)
   real  :: qip_spl(k1), nip_spl(k1)
   real  :: sed_qip(k1), sed_nip(k1)
 
-  real :: wfall, xip_spl, wvar
+  real :: wfall, xip_spl
   real :: dt_spl
 
   qip_spl = q_hs
@@ -567,7 +566,7 @@ subroutine sedim_graupel3(q_hg, n_hg, q_hgp, n_hgp, precep_hg, tend)
   real  :: qip_spl(k1), nip_spl(k1)
   real  :: sed_qip(k1), sed_nip(k1)
 
-  real :: wvar,xip_spl
+  real :: xip_spl
   real :: dt_spl,wfall
 
   qip_spl = q_hg
@@ -657,7 +656,7 @@ subroutine sedim_ice3(q_ci, n_ci, q_cip, n_cip, precep_ci, tend)
   real :: qip_spl(k1), nip_spl(k1)
   real :: sed_qip(k1), sed_nip(k1)
 
-  real :: dt_spl, xip_spl, wvar, wfall
+  real :: dt_spl, xip_spl, wfall
 
   n_spl = ceiling(split_factor*wfallmax_ci*delt/(minval(dzf)))
   dt_spl = delt/real(n_spl)
@@ -749,7 +748,7 @@ subroutine sedim_cl3(q_cl, n_cl, q_clp, n_clp, n_ccp, qtpmcr, thlpmcr, tend)
   real :: qip_spl(k1), nip_spl(k1)
   real :: sed_qip(k1), sed_nip(k1)
 
-  real :: dt_spl, xip_spl, wvar, wfall
+  real :: dt_spl, xip_spl, wfall
 
   qip_spl = q_cl
   nip_spl = n_cl
@@ -840,8 +839,8 @@ real function sed_flux3(Nin,Din,sig2,Ddiv,nnn)
   use modglobal, only : pi,rhow
   implicit none
 
-  real, intent(in)    :: Nin, Din, sig2
-  real(field_r), intent(in)    :: Ddiv
+  real, intent(in)    :: Nin, Din
+  real(field_r), intent(in)    :: Ddiv, sig2
   integer, intent(in) :: nnn
 
   ! para. def. lognormal DSD (sig2 = ln^2 sigma_g), D sep. droplets from drops
@@ -898,8 +897,8 @@ real function liq_cont3(Nin,Din,sig2,Ddiv,nnn)
   use modglobal, only : pi,rhow
   implicit none
 
-  real, intent(in)    :: Nin, Din, sig2
-  real(field_r), intent(in) :: Ddiv
+  real, intent(in)    :: Nin, Din
+  real(field_r), intent(in) :: Ddiv, sig2
   integer, intent(in) :: nnn
 
   ! para. def. lognormal DSD (sig2 = ln^2 sigma_g), D sep. droplets from drops
@@ -930,7 +929,8 @@ end function liq_cont3
 ! -------------------------------------------------------------------
 real function erfint3(beta, D, D_min, D_max, sig2,nnn )
   implicit none
-  real, intent(in)    :: beta, D, D_min, D_max, sig2
+  real, intent(in)    :: beta, D, D_min, D_max
+  real(field_r), intent(in) :: sig2
   integer, intent(in) :: nnn
 
   real, parameter :: eps = 1e-10      &

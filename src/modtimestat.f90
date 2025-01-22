@@ -119,7 +119,7 @@ contains
     call D_MPI_BCAST(iblh_meth  ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(iblh_var   ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(blh_nsamp  ,1,0,comm3d,mpierr)
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
 
     tnext = idtav+btime
 
@@ -404,7 +404,7 @@ contains
 !>Run timestat. Calculate and write the statistics
   subroutine timestat
 
-    use modglobal,  only : i1,j1,kmax,zf,dzf,cu,cv,rv,rd,eps1, &
+    use modglobal,  only : i1,j1, k1,kmax,zf,dzf,cu,cv,rv,rd,eps1, &
                           ijtot,timee,rtimee,dt_lim,rk3step,cexpnr,ifoutput
     use modmicrodata, only : imicro, iqr, imicro_sice, imicro_sice2, imicro_bulk, precep
     use modfields,  only : e120,qt0,ql0,u0av,v0av,rhobf,rhof,u0,v0,w0,sv0
@@ -419,8 +419,8 @@ contains
 #if defined(_OPENACC)
     use modgpu, only: update_host
 #endif
-    use modraddata, only :  lwd,lwu,swd,swu,lwdca,lwuca,swdca,swuca,SW_up_TOA,SW_dn_TOA,LW_up_TOA,&
-                            SW_up_ca_TOA,LW_up_ca_TOA,iradiation
+    use modraddata, only :  lwd,lwu,swd,swu,lwdca,lwuca,swdca,swuca, &
+                            iradiation, doclearsky
     implicit none
 
     real(field_r)   :: zbaseavl, ztopavl, ztopmaxl, ztop, zbaseminl
@@ -453,6 +453,28 @@ contains
 
     ! heterogeneity variables
     integer:: patchx, patchy
+
+    ! Radiation variables for reductions
+    real(field_r) :: &
+      s_lwd_surf,    & !< Surface downwelling longwave flux
+      s_lwu_surf,    & !< Surface upwelling longwave flux
+      s_swd_surf,    & !< Surface downwelling shortwave flux
+      s_swu_surf,    & !< Surface upwelling shortwave flux
+      s_swd_toa,     & !< TOA downwelling shortwave flux
+      s_swu_toa,     & !< TOA upwelling shortwave flux
+      s_lwu_toa,     & !< TOA upwelling longwave flux
+      s_swd_tom,     & !< TOM downwelling shortwave flux
+      s_lwd_tom,     & !< TOM downwelling longwave flux
+      s_swu_tom,     & !< TOM upwelling shortwave flux
+      s_lwu_tom,     & !< TOM upwelling longwave flux
+      s_swd_surf_ca, & !< Surface downwelling shorwave flux, clear sky
+      s_swu_surf_ca, & !< Surface upwelling shortwave flux, clear sky
+      s_lwd_surf_ca, & !< Surface downwelling longwave flux, clear sky
+      s_lwu_surf_ca, & !< Surface upwelling longwave flux, clear sky
+      s_swu_toa_ca,  & !< TOA upwelling shortwave flux, clear sky
+      s_lwu_toa_ca,  & !< TOA upwelling longwave flux, clear sky
+      s_swu_tom_ca,  & !< TOM upwelling shortwave flux, clear sky
+      s_lwu_tom_ca     !< TOM upwelling longwave flux, clear sky
 
     integer:: i, j, k, ilu
 
@@ -591,7 +613,7 @@ contains
       end do
     end if
 
-    if (imicro > 0) then
+    if (imicro > 1) then
       !$acc parallel loop collapse(2) default(present) reduction(+:qrintavl) &
       !$acc& private(qrint) async
       do j = 2, j1
@@ -987,31 +1009,132 @@ contains
 
     ! calculate radiation fluxes at surface, TOM, TOA
     if (iradiation /= 0) then
-       vars(ivar_rad+ 0) = abs(sum(lwd(2:i1,2:j1,1)))  !'rlds',   'surface downwelling longwave flux'
-       vars(ivar_rad+ 1) = abs(sum(lwu(2:i1,2:j1,1)))  !'rlus',   'surface upwelling longwave flux'
-       vars(ivar_rad+ 2) = abs(sum(swd(2:i1,2:j1,1)))  !'rsds',   'surface downwelling shortwave flux'
-       vars(ivar_rad+ 3) = abs(sum(swu(2:i1,2:j1,1)))  !'rsus',   'surface upwelling shortwave flux'
 
-       vars(ivar_rad+ 4) = abs(sum(swdca(2:i1,2:j1,1)))  !'rsdscs', 'surface downwelling shortwave flux - clear sky'
-       vars(ivar_rad+ 5) = abs(sum(swuca(2:i1,2:j1,1)))  !'rsuscs', 'surface upwelling shortwave flux - clear sky'
-       vars(ivar_rad+ 6) = abs(sum(lwdca(2:i1,2:j1,1)))  !'rldscs', 'surface downwelling longwave flux - clear sky'
-       vars(ivar_rad+ 7) = abs(sum(lwuca(2:i1,2:j1,1)))  !'rluscs', 'surface upwelling longwave flux - clear sky'
+      s_lwd_surf = 0
+      s_lwu_surf = 0
+      s_swd_surf = 0
+      s_swu_surf = 0
+      s_swd_toa = 0
+      s_swu_toa = 0
+      s_lwu_toa = 0
+      s_swd_tom = 0
+      s_lwd_tom = 0
+      s_swu_tom = 0
+      s_lwu_tom = 0
+      s_swd_surf_ca = 0
+      s_swu_surf_ca = 0
+      s_lwd_surf_ca = 0
+      s_lwu_surf_ca = 0
+      s_swu_toa_ca = 0
+      s_lwu_toa_ca = 0
+      s_swu_tom_ca = 0
+      s_lwu_tom_ca = 0
 
-       vars(ivar_rad+ 8) = abs(sum(SW_dn_TOA(2:i1,2:j1)))    !'rsdt',   'TOA incoming shortwave flux','W/m^2'
-       vars(ivar_rad+ 9) = abs(sum(SW_up_TOA(2:i1,2:j1)))    !'rsut',   'TOA outgoing shortwave flux','W/m^2'
-       vars(ivar_rad+10) = abs(sum(LW_up_TOA(2:i1,2:j1)))    !'rlut',   'TOA outgoing longwave flux','W/m^2'
-       vars(ivar_rad+11) = abs(sum(SW_up_ca_TOA(2:i1,2:j1))) !'rsutcs', 'TOA outgoing shortwave flux -clear sky'
-       vars(ivar_rad+12) = abs(sum(LW_up_ca_TOA(2:i1,2:j1))) !'rlutcs', 'TOA outgoing longwave flux -clear sky'
+      ! Surface fluxes
 
-       vars(ivar_rad+13) = abs(sum(swd(2:i1,2:j1,kmax)))   !'rsdtm',  'TOM incoming shortwave flux'
-       vars(ivar_rad+14) = abs(sum(lwd(2:i1,2:j1,kmax)))   !'rsdtm',  'TOM incoming longwave flux'
-       vars(ivar_rad+15) = abs(sum(swu(2:i1,2:j1,kmax)))   !'rsutm',  'TOM outgoing shortwave flux'
-       vars(ivar_rad+16) = abs(sum(lwu(2:i1,2:j1,kmax)))   !'rlutm',  'TOM outgoing longwave flux'
-       vars(ivar_rad+17) = abs(sum(swuca(2:i1,2:j1,kmax))) !'rsutmcs','TOM outgoing shortwave flux -clear sky'
-       vars(ivar_rad+18) = abs(sum(lwuca(2:i1,2:j1,kmax))) !'rlutmcs','TOM outgoing longwave flux -clear sky'
+      !$acc parallel loop gang vector collapse(2) default(present) &
+      !$acc reduction(+: s_swd_surf, s_swu_surf, s_lwd_surf, s_lwu_surf) async
+      do j = 2, j1
+        do i = 2, i1
+          s_swd_surf = s_swd_surf + swd(i,j,1)
+          s_swu_surf = s_swu_surf + swu(i,j,1)
+          s_lwd_surf = s_lwd_surf + lwd(i,j,1)
+          s_lwu_surf = s_lwu_surf + lwu(i,j,1)
+        end do
+      end do
 
-       call D_MPI_ALLREDUCE(vars(ivar_rad:ivar_rad+18), 19,  MPI_SUM, comm3d,mpierr)
-       vars(ivar_rad:ivar_rad+18) = vars(ivar_rad:ivar_rad+18) / ijtot
+      ! Top of atmosphere fluxes
+
+      !$acc parallel loop gang vector collapse(2) default(present) &
+      !$acc reduction(+: s_swd_toa, s_swu_toa, s_lwu_toa) async
+      do j = 2, j1
+        do i = 2, i1
+          s_swd_toa = s_swd_toa + swd(i,j,k1)
+          s_swu_toa = s_swu_toa + swu(i,j,k1)
+          s_lwu_toa = s_lwu_toa + lwu(i,j,k1)
+        end do
+      end do
+
+      ! Top of model fluxes
+
+      !$acc parallel loop gang vector collapse(2) default(present) &
+      !$acc reduction(+: s_swd_tom, s_swu_tom, s_lwd_tom, s_lwu_tom) async
+      do j = 2, j1
+        do i = 2, i1
+          s_swd_tom = s_swd_tom + swd(i,j,kmax)
+          s_swu_tom = s_swu_tom + swu(i,j,kmax)
+          s_lwd_tom = s_lwd_tom + lwd(i,j,kmax)
+          s_lwu_tom = s_lwu_tom + lwu(i,j,kmax)
+        end do
+      end do
+
+      if (doclearsky) then
+
+        ! Surface fluxes
+
+        !$acc parallel loop gang vector collapse(2) default(present) &
+        !$acc reduction(+: s_swd_surf_ca, s_swu_surf_ca, &
+        !$acc              s_lwd_surf_ca, s_lwu_surf_ca) async
+        do j = 2, j1
+          do i = 2, i1
+            s_swd_surf_ca = s_swd_surf_ca + swdca(i,j,1)
+            s_swu_surf_ca = s_swu_surf_ca + swuca(i,j,1)
+            s_lwd_surf_ca = s_lwd_surf_ca + lwdca(i,j,1)
+            s_lwu_surf_ca = s_lwu_surf_ca + lwuca(i,j,1)
+          end do
+        end do
+
+        ! Top of atmosphere fluxes
+
+        !$acc parallel loop gang vector collapse(2) default(present) &
+        !$acc reduction(+: s_swu_toa_ca, s_lwu_toa_ca) async
+        do j = 2, j1
+          do i = 2, i1
+            s_swu_toa_ca = s_swu_toa_ca + swuca(i,j,k1)
+            s_lwu_toa_ca = s_lwu_toa_ca + lwuca(i,j,k1)
+          end do
+        end do
+
+        ! Top of model fluxes
+
+        !$acc parallel loop gang vector collapse(2) default(present) &
+        !$acc reduction(+: s_swu_tom_ca, s_lwu_tom_ca) async
+        do j = 2, j1
+          do i = 2, i1
+            s_swu_tom_ca = s_swu_tom_ca + swuca(i,j,kmax)
+            s_lwu_tom_ca = s_lwu_tom_ca + lwuca(i,j,kmax)
+          end do
+        end do
+      end if
+
+      !$acc wait
+
+      vars(ivar_rad+ 0) = abs(s_lwd_surf)  !'rlds',   'surface downwelling longwave flux'
+      vars(ivar_rad+ 1) = abs(s_lwu_surf)  !'rlus',   'surface upwelling longwave flux'
+      vars(ivar_rad+ 2) = abs(s_swd_surf)  !'rsds',   'surface downwelling shortwave flux'
+      vars(ivar_rad+ 3) = abs(s_swu_surf)  !'rsus',   'surface upwelling shortwave flux'
+
+      vars(ivar_rad+ 4) = abs(s_swd_surf_ca)  !'rsdscs', 'surface downwelling shortwave flux - clear sky'
+      vars(ivar_rad+ 5) = abs(s_swu_surf_ca)  !'rsuscs', 'surface upwelling shortwave flux - clear sky'
+      vars(ivar_rad+ 6) = abs(s_lwd_surf_ca)  !'rldscs', 'surface downwelling longwave flux - clear sky'
+      vars(ivar_rad+ 7) = abs(s_lwu_surf_ca)  !'rluscs', 'surface upwelling longwave flux - clear sky'
+
+      vars(ivar_rad+ 8) = abs(s_swd_toa)    !'rsdt',   'TOA incoming shortwave flux','W/m^2'
+      vars(ivar_rad+ 9) = abs(s_swu_toa)    !'rsut',   'TOA outgoing shortwave flux','W/m^2'
+      vars(ivar_rad+10) = abs(s_lwu_toa)    !'rlut',   'TOA outgoing longwave flux','W/m^2'
+      vars(ivar_rad+11) = abs(s_swu_toa_ca) !'rsutcs', 'TOA outgoing shortwave flux -clear sky'
+      vars(ivar_rad+12) = abs(s_lwu_toa_ca) !'rlutcs', 'TOA outgoing longwave flux -clear sky'
+
+      vars(ivar_rad+13) = abs(s_swd_tom)   !'rsdtm',  'TOM incoming shortwave flux'
+      vars(ivar_rad+14) = abs(s_lwd_tom)   !'rsdtm',  'TOM incoming longwave flux'
+      vars(ivar_rad+15) = abs(s_swu_tom)   !'rsutm',  'TOM outgoing shortwave flux'
+      vars(ivar_rad+16) = abs(s_lwu_tom)   !'rlutm',  'TOM outgoing longwave flux'
+      vars(ivar_rad+17) = abs(s_swu_tom_ca) !'rsutmcs','TOM outgoing shortwave flux -clear sky'
+      vars(ivar_rad+18) = abs(s_lwu_tom_ca) !'rlutmcs','TOM outgoing longwave flux -clear sky'
+
+      call D_MPI_ALLREDUCE(vars(ivar_rad:ivar_rad+18), 19,  MPI_SUM, comm3d,mpierr)
+
+      vars(ivar_rad:ivar_rad+18) = vars(ivar_rad:ivar_rad+18) / ijtot
     end if
 
 
@@ -1225,7 +1348,7 @@ contains
 !! - By monitoring a threshold value of some scalar, averaged over a definable number of columns
   subroutine calcblheight
 
-    use modglobal,  only : ih,i1,jh,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,ijtot,iadv_sv,iadv_kappa
+    use modglobal,  only : i1,j1,kmax,k1,cp,rlv,imax,rd,zh,dzh,zf,dzf,rv,ijtot,iadv_sv,iadv_kappa
     use modfields,  only : w0,qt0,qt0h,ql0,thl0,thl0h,thv0h,sv0,exnf,whls
     use modsurfdata,only : svs, lhetero, xpatches, ypatches
     use modsurface, only : patchxnr,patchynr
@@ -1265,7 +1388,7 @@ contains
             blh_fld(:,:,:) = w0(:,:,:)*thv0h(:,:,:)
             !$acc end kernels
           case(1:)
-            if (iadv_sv(iblh_var) == iadv_kappa) then
+            if (iadv_sv == iadv_kappa) then
               call halflev_kappa(sv0(:,:,:,iblh_var),sv0h)
               !$acc kernels default(present)
               sv0h(2:i1,2:j1,1) = svs(iblh_var)

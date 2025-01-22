@@ -192,7 +192,7 @@ end subroutine hadvecc_kappa
 !< Vertical advection with the kappa scheme
 
 subroutine vadvecc_kappa(a_in,a_out)
-  use modglobal, only : i1,i2,ih,j1,j2,jh,k1,kmax,dzf
+  use modglobal, only : i1,ih,j1,jh,k1,kmax,dzf
   use modfields, only : w0, rhobf
   implicit none
   real(field_r), dimension(2-ih:i1+ih,2-jh:j1+jh,k1), intent(in) :: a_in

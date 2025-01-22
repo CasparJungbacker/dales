@@ -61,8 +61,7 @@ save
 contains
 !> Initialization routine, reads namelists and inits variables
   subroutine initquadrant
-    use modmpi,    only : comm3d,mpierr,myid,mpi_logical,mpi_integer &
-                        , D_MPI_BCAST
+    use modmpi,    only : comm3d,mpierr,myid,D_MPI_BCAST
     use modglobal, only : ladaptive, dtmax,ifnamopt,fname_options,kmax,   &
                            dtav_glob,btime,tres,cexpnr,ifoutput,nsv,lwarmstart,checknamelisterror
     use modstat_nc, only : lnetcdf,define_nc,ncinfo,open_nc,define_nc,ncinfo,nctiminfo,writestat_dims_q_nc
@@ -111,8 +110,8 @@ contains
     longsamplname(3) = 'Quadrant 3: u < 0, w < 0'
     longsamplname(4) = 'Quadrant 4: u > 0, w < 0'
 
-    idtav            = dtav/tres
-    itimeav          = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
     tnext            = idtav   + btime
     tnextwrite       = itimeav + btime
 

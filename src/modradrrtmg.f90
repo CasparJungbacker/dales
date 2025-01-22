@@ -1,16 +1,22 @@
 module modradrrtmg
-  use modprecision, only : field_r
+  use modprecision, only : field_r, kind_im
   use modraddata
   implicit none
 
   private
-  public :: radrrtmg, readSounding, readTraceProfs
+
+  public :: radrrtmg
+  public :: readSounding
+  public :: readTraceProfs
 
 contains
 
   subroutine radrrtmg
-    use modglobal,     only : cp,rlv,dzf,&
-                              imax,jmax,kmax,i1,j1,k1,&
+
+#ifdef USE_RRTMG
+
+    use modglobal,     only : cp,dzf,&
+                              imax,kmax,i1,j1,k1,&
                               kind_rb,SHR_KIND_R4,boltz
     use modmpi,        only : myid
     use modfields,     only : initial_presh,initial_presf,rhof,exnf,thl0
@@ -25,16 +31,6 @@ contains
     integer                :: npatch    ! Sounding levels above domain
     integer                :: i,j,k,ierr(4)
     logical                :: sunUp
-    real(SHR_KIND_R4),save ::  eccen, & ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
-                               obliq, & ! Earth's obliquity angle (deg) (-90 to +90) (typically 22-26)
-                               mvelp, & ! Earth's moving vernal equinox at perhelion (deg)(0 to 360.0)
-                               !
-                               ! Orbital information after processed by orbit_params
-                               !
-                               obliqr, &  ! Earth's obliquity in radians
-                               lambm0, &  ! Mean longitude of perihelion at the vernal equinox (radians)
-                               mvelpp     ! Earth's moving vernal equinox longitude
-                                          ! of perihelion plus pi (radians)
 
     real                   :: thlpld,thlplu,thlpsd,thlpsu
     real(KIND=kind_rb)     :: cpdair
@@ -44,7 +40,7 @@ contains
                                                      !LWP_slice, &
                                                      !IWP_slice
 
-
+! Disable RRTMG when RRTMGP is compiled in single precision
 
     if(.not.isReadSounding) then
       call readSounding(initial_presh(k1)/100.,npatch_start,npatch_end)
@@ -285,12 +281,20 @@ contains
       end do
     end do
 
+#else
+    use modmpi, only: myid
+    if (myid == 0) then
+      write(6,*) "RRTMG is disabled when compiling with -DENABLE_FP32_RAD=ON"
+      stop
+    end if
+#endif
     !if(myid==0) write(*,*) 'RadiationDone'
 !    stop 'FINISHED radrrtmg!!'
   end subroutine radrrtmg
 
 ! ==============================================================================;
 ! ==============================================================================;
+
 
   subroutine readSounding(ptop_model,npatch_start,npatch_end)
     use modglobal, only     : cexpnr
@@ -424,10 +428,8 @@ contains
 ! ==============================================================================;
 
   subroutine readTraceProfs        ! original tracesini subroutine in rad_driver
-    use modglobal, only : kind_rb, kind_im, &
-                          grav
+    use modglobal, only : kind_rb, grav
     use modmpi, only    : myid
-    use rrlw_ncpar, only: getAbsorberIndex
     use netcdf
     implicit none
 
@@ -624,6 +626,8 @@ contains
 ! ==============================================================================;
 ! ==============================================================================;
 
+#ifdef USE_RRTMG
+
   subroutine setupSlicesFromProfiles(j,npatch_start, &
            LWP_slice,IWP_slice,cloudFrac,liquidRe,iceRe)
   !=============================================================================!
@@ -638,11 +642,10 @@ contains
   ! JvdDussen, 24-6-2010                                                        !
   ! ============================================================================!
 
-      use modglobal, only: imax,jmax,kmax,i1,k1,grav,kind_rb,rlv,cp,Rd,pref0,tup,tdn
+      use modglobal, only: imax,jmax,kmax,i1,grav,kind_rb,rlv,cp,Rd,pref0,tup,tdn
       use modfields, only: thl0,ql0,qt0,exnf,rhof
       use modsurfdata, only: tskin,ps
       use modmicrodata, only : Nc_0,sig_g
-      use modmpi, only: myid
 
       implicit none
 
@@ -653,16 +656,15 @@ contains
                                            liquidRe (imax,krad1), &
                                            iceRe    (imax,krad1)
       integer :: i,k,ksounding,im
-      real (KIND=kind_rb) :: exners
+      real(KIND=kind_rb) :: exners
       real(KIND=kind_rb) :: layerMass(imax,krad1)
       !real(KIND=kind_rb),dimension(imax,kmax)     :: tabs         ! Absolute temperature
       real(KIND=kind_rb),dimension(imax,jmax)     :: sstxy        ! sea surface temperature
-      real   (SHR_KIND_R4), parameter :: pi = 3.14159265358979
-      real , parameter :: rho_liq = 1000.
+      real, parameter :: pi = 3.14159265358979
+      real, parameter :: rho_liq = 1000.
 
       real :: reff_factor
       real :: ilratio
-      real :: tempC  !temperature in celsius
       real :: IWC0 ,B_function !cstep needed for ice effective radius following Eqs. (14) and (35) from Wyser 1998
 
       IWC0 = 50e-3  !kg/m3, Wyser 1998 Eq. 14 (he gives 50 g/m3)
@@ -849,9 +851,8 @@ contains
 
   subroutine setupSW(sunUp)
 
-    use modglobal,   only : xday,xlat,xlon,imax,xtime,rtimee
+    use modglobal,   only : xday,xlat,xlon,xtime,rtimee
     use shr_orb_mod, only : shr_orb_decl
-    use modmpi,      only : myid
     use modsurfdata, only : albedoav
 
     implicit none
@@ -986,5 +987,41 @@ contains
     endif
 
   end subroutine albedo
+
+#endif
+
+  ! CJ: copied from rrtmg_lw, so we can compile without rrtmg
+	subroutine getAbsorberIndex(AbsorberName, AbsorberIndex)
+		character(*),          intent(in)  :: AbsorberName
+		integer(kind=kind_im), intent(out) :: AbsorberIndex
+
+    integer(kind=kind_im), parameter :: Absorber = 12
+    character(*),          parameter :: AbsorberNames(Absorber) = (/ &
+      'N2   ',  &
+      'CCL4 ',  &
+      'CFC11',  &
+      'CFC12',  &
+      'CFC22',  &
+      'H2O  ',  &
+      'CO2  ',  &
+      'O3   ',  &
+      'N2O  ',  & 
+      'CO   ',  &
+      'CH4  ',  &
+      'O2   '  /)
+		
+		integer(kind=kind_im) :: m
+	
+		AbsorberIndex = -1
+		do m = 1, Absorber
+			if (trim(AbsorberNames(m)) == trim(AbsorberName)) then
+				AbsorberIndex = m
+			end if
+		end do
+		
+		if (AbsorberIndex == -1) then
+			print*, "Absorber name index lookup failed."
+		end if
+	end subroutine getAbsorberIndex
 
 end module modradrrtmg

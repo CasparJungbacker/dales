@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=DEBUG -DUSE_FFTW=True ..
+          cmake -DCMAKE_BUILD_TYPE=Debug ../
 
       - name: Build
         run: |
@@ -49,6 +49,6 @@ jobs:
           
       - name: Run tests
         run: |
-          export DALES=$(find ~+/build/src -maxdepth 1 -name "dales*")
+          export DALES=/home/runner/work/dales/dales/build/bin/dales
           pytest -rf --assert=plain --case=${{ matrix.case }}
           

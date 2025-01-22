@@ -192,7 +192,7 @@ module modgenstat
 contains
 
   subroutine initgenstat
-    use modmpi, only : myid,mpierr, comm3d, mpi_logical, D_MPI_BCAST
+    use modmpi, only : myid,mpierr, comm3d, D_MPI_BCAST
     use modglobal, only : i1, ih, j1, jh, kmax, k1, nsv, ifnamopt, fname_options, ifoutput, &
                           cexpnr, dtav_glob, timeav_glob, dt_lim, btime, tres, &
                           lwarmstart, checknamelisterror
@@ -205,7 +205,6 @@ contains
 
     integer n, ierr
     character(40) :: name
-    character(3) :: csvname
 
     namelist/NAMGENSTAT/ &
     dtav,timeav,lstat
@@ -538,23 +537,23 @@ contains
 
   subroutine do_genstat
 
-    use modfields, only : u0,v0,w0,thl0,qt0,qt0h,e120, &
+    use modfields, only : u0,v0,w0,thl0,qt0,qt0h, &
                           ql0,ql0h,thl0h,thv0h,sv0,exnf,exnh,tmp0,presf, &
                           um, vm, wm, svm, qtm, thlm, e12m  
     use modsurfdata,only: thls,qts,ustar,thlflux,qtflux,svflux
     use modsubgriddata,only : ekm, ekh, csz
     use modglobal, only : i1,ih,j1,jh,k1,kmax,nsv,dzf,dzh,rlv,rv,rd,cp,dzhi, &
                           ijtot,cu,cv,iadv_sv,iadv_kappa,eps1,dxi,dyi,tup,tdn,lopenbc
-    use modmpi,    only : comm3d,mpi_sum,mpierr,slabsum,D_MPI_ALLREDUCE,myid
+    use modmpi,    only : comm3d,mpi_sum,mpierr,slabsum,D_MPI_ALLREDUCE
     use advec_kappa, only : halflev_kappa
-    use modmicrodata, only: tuprsg, tdnrsg, imicro, imicro_sice, imicro_sice2, iqr
+    use modmicrodata, only: tuprsg, tdnrsg, iqr
     use modthermodynamics, only: qsat_tab
     implicit none
 
     real :: cthl,cqt,den
 
-    integer :: i, j, k, n, km
-    real :: tsurf, qsat_, c1, c2
+    integer :: i, j, k, n
+    real :: tsurf, c1, c2
     real :: qs0h, t0h, ekhalf, euhalf, evhalf
     real :: wthls, wthlr, wqts, wqtr, wqls, wqlr, wthvs, wthvr
     real :: uws,vws,uwr,vwr
@@ -757,7 +756,7 @@ contains
         clwav1_sum = clwav1_sum + ql0(i,j,1) * ilratio
         cliav1_sum = cliav1_sum + ql0(i,j,1) * (1-ilratio)
 
-        if (nsv > 1) then
+        if (iqr > 0) then
            ilratio = max(0._field_r,min(1._field_r,(tmp0(i,j,1)-tdnrsg)/(tuprsg-tdnrsg)))
            plwav1_sum = plwav1_sum + sv0(i,j,1,iqr) * ilratio
            pliav1_sum = pliav1_sum + sv0(i,j,1,iqr) * (1-ilratio)
@@ -878,7 +877,7 @@ contains
           clwav_s = clwav_s + ql0(i,j,k) * ilratio
           cliav_s = cliav_s + ql0(i,j,k) * (1-ilratio)
 
-          if (nsv > 1) then
+          if (iqr > 0) then
             ilratio = max(0._field_r,min(1._field_r,(tmp0(i,j,k)-tdnrsg)/(tuprsg-tdnrsg)))
             plwav_s = plwav_s + sv0(i,j,k,iqr) * ilratio
             pliav_s = pliav_s + sv0(i,j,k,iqr) * (1-ilratio)
@@ -943,7 +942,7 @@ contains
         call calc_moment(sv2av(:, n), svm(:, :, :, n), 2, svmav(:, n))
       end do
     do n = 1, nsv
-        if (iadv_sv(n)==iadv_kappa .and. .not. lopenbc) then
+        if (iadv_sv==iadv_kappa .and. .not. lopenbc) then
            call halflev_kappa(sv0(:,:,:,n),sv0h)
         else
           !$acc parallel loop collapse(3) default(present) async(1)

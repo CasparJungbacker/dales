@@ -19,10 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fftw:    ["", "-DUSE_FFTW=T"]
-        hypre:    ["", "-DUSE_HYPRE=T"]
-        field_r: ["32","64"]
-        pois_r:  ["32","64"]
+        hypre:    ["On", "Off"]
+        sp_fields: ["On","Off"]
+        sp_pois:  ["On","Off"]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -40,11 +39,11 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=DEBUG \
-           ${{ matrix.fftw }} \
-           ${{ matrix.hypre }} \
-           -DPOIS_PRECISION=${{ matrix.pois_r }} \
-           -DFIELD_PRECISION=${{ matrix.field_r }} ../
+          cmake \
+            -DENABLE_HYPRE=${{ matrix.hypre }} \
+            -DENABLE_FP32_FIELDS=${{ matrix.sp_fields }} \
+            -DENABLE_FP32_POIS=${{ matrix.sp_pois }} \
+            ../
       - name : Build
         run: |
           cd build

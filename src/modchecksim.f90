@@ -56,7 +56,7 @@ module modchecksim
 contains
 !> Initializing Checksim. Read out the namelist, initializing the variables
   subroutine initchecksim
-    use modglobal, only : kmax,k1,ifnamopt,fname_options,dtmax,ladaptive,btime,tres,checknamelisterror
+    use modglobal, only : kmax,ifnamopt,fname_options,dtmax,ladaptive,btime,tres,checknamelisterror
     use modmpi,    only : myid,comm3d,mpierr,D_MPI_BCAST
     implicit none
     integer :: ierr

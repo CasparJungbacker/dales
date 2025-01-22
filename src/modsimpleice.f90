@@ -52,11 +52,15 @@ module modsimpleice
                              ilratio, rsgratio, sgratio, &
                              lambdar, lambdas, lambdag, &
                              qrmask, qcmask, precep, &
-                             ccrz, ccsz, ccgz, bbg, bbr, bbs, ddg, ddr, dds
+                             ccrz, ccsz, ccgz, bbg, bbr, bbs, ddg, ddr, dds, iqr
 
     use modglobal, only : ih,i1,jh,j1,k1,lacz_gamma
+    use modtracers, only: add_tracer
 
     implicit none
+
+    call add_tracer("qr", long_name="Total precipitation mixing ratio", &
+                    unit="kg/kg", lmicro=.true., isv=iqr) 
 
     allocate (qr(2:i1,2:j1,k1)        & ! qr (total precipitation!) converted from a scalar variable
              ,qrp(2:i1,2:j1,k1)       & ! qr tendency due to microphysics only, for statistics
@@ -114,7 +118,7 @@ module modsimpleice
     use modglobal, only : i1,j1,k1,rdt,rk3step,timee,rlv,cp,tup,tdn
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof,tmp0,rhobf
     use modsimpleicestat, only : simpleicetend
-    use modmicrodata, only : nr, nrp, iqr, qrp, sed_qr, qr_spl, qtpmcr, thlpmcr, delt, &
+    use modmicrodata, only : nr, nrp, iqr, qrp, qtpmcr, thlpmcr, delt, &
                              qcmask, qcmin, qrmask, qrmin, qr, &
                              ilratio, rsgratio, sgratio, &
                              aag, aar, aas, bbg, bbr, bbs, ccg, ccr, ccs, &
@@ -298,7 +302,7 @@ module modsimpleice
           tc=tmp0(i,j,k)-tmelt ! Temperature wrt melting point
           times=min(1.e3,(3.56*tc+106.7)*tc+1.e3) ! Time scale for ice autoconversion
           auti=qli/times
-          aut = min(autl + auti,ql0(i,j,k)/delt)
+          aut = min(autl + auti,ql0(i,j,k)/delt*1.0) ! convert RHS to double for nvidia compiler
           qrp(i,j,k) = qrp(i,j,k)+aut
           qtpmcr(i,j,k) = qtpmcr(i,j,k)-aut
           thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*aut
@@ -317,7 +321,7 @@ module modsimpleice
           autl=max(0.,timekessl*(qll-qll0))
           tc=tmp0(i,j,k)-tmelt
           auti=max(0.,betakessi*exp(0.025*tc)*(qli-qli0))
-          aut = min(autl + auti,ql0(i,j,k)/delt)
+          aut = min(autl + auti,ql0(i,j,k)/delt*1.0) ! convert RHS to double for nvidia compiler
           qrp(i,j,k) = qrp(i,j,k)+aut
           qtpmcr(i,j,k) = qtpmcr(i,j,k)-aut
           thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*aut
@@ -334,7 +338,7 @@ module modsimpleice
     use modfields, only : ql0,exnf,rhof
     use modmicrodata, only : ddg, ddr, dds, aag, aar, aas, bbg, bbr, bbs, delt, &
                              lambdag, lambdar, lambdas, ccgz, ccrz, ccsz, &
-                             ceffgi, ceffgl, ceffri, ceffrl, ceffsi, ceffsl, betakessi, &
+                             ceffgi, ceffgl, ceffri, ceffrl, ceffsi, ceffsl, &
                              qrmask, qcmask, qr, qrp, qtpmcr, thlpmcr, &
                              ilratio, rsgratio, sgratio
     implicit none
@@ -364,7 +368,7 @@ module modsimpleice
         accr=(gaccrl+gaccri)*qrr/(qrr+1.e-9)
         accs=(gaccsl+gaccsi)*qrs/(qrs+1.e-9)
         accg=(gaccgl+gaccgi)*qrg/(qrg+1.e-9)
-        acc= min(accr+accs+accg,ql0(i,j,k)/delt)  ! total growth by accretion
+        acc= min(accr+accs+accg,ql0(i,j,k)/delt*1.0)  ! total growth by accretion ! convert RHS to double for nvidia compiler
         qrp(i,j,k) = qrp(i,j,k)+acc
         qtpmcr(i,j,k) = qtpmcr(i,j,k)-acc
         thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*acc
@@ -380,10 +384,10 @@ module modsimpleice
     use modglobal, only : i1,j1,k1,rlv,cp,pi
     use modfields, only : qt0,ql0,exnf,rhof,tmp0,qvsl,qvsi,esl
     use modmicrodata, only : betag, betar, betas, ddg, ddr, dds, delt, &
-                             n0rg, n0rr, n0rs, aag, aar, aas, &
+                             n0rg, n0rr, n0rs, &
                              ccgz, ccrz, ccsz, lambdag, lambdar, lambdas, &
                              evapfactor, qrmask, qr, qrp, qtpmcr, thlpmcr, &
-                             qrmask, qcmask
+                             qrmask
     implicit none
 
     real :: ssl,ssi,ventr,vents,ventg,&
@@ -407,7 +411,7 @@ module modsimpleice
         evapdepg=(4.*pi/(betag*rhof(k)))*(ssi-1.)*ventg*thfun
         ! total growth by deposition and evaporation
         ! limit with qr and ql after accretion and autoconversion
-        devap= max(min(evapfactor*(evapdepr+evapdeps+evapdepg),ql0(i,j,k)/delt+qrp(i,j,k)),-qr(i,j,k)/delt-qrp(i,j,k))
+        devap= max(min(evapfactor*(evapdepr+evapdeps+evapdepg),ql0(i,j,k)/delt+qrp(i,j,k)*1.0),-qr(i,j,k)/delt-qrp(i,j,k)*1.0) !
         qrp(i,j,k) = qrp(i,j,k)+devap
         qtpmcr(i,j,k) = qtpmcr(i,j,k)-devap
         thlpmcr(i,j,k) = thlpmcr(i,j,k)+(rlv/(cp*exnf(k)))*devap
@@ -423,7 +427,7 @@ module modsimpleice
     use modfields, only : rhof,rhobf
     use modmicrodata, only : qr_spl, sed_qr, precep, qr, qrp, &
                              aag, aas, aar, bbg, bbs, bbr, ddg, dds, ddr, n0rg, n0rs, n0rr, &
-                             betag, betar, betas, qrmin, &
+                             qrmin, &
                              lambdag, lambdar, lambdas, &
                              ccgz, ccrz, ccsz, &
                              sgratio, rsgratio, &

@@ -26,7 +26,7 @@ contains
 !> Advection at cell center
 subroutine hadvecc_upw(a_in,a_out)
 
-  use modglobal, only : i1,ih,j1,jh,k1,kmax,dxi,dyi
+  use modglobal, only : i1,ih,j1,jh,k1,dxi,dyi
   use modfields, only : u0, v0
   implicit none
 

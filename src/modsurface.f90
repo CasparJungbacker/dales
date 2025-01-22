@@ -809,8 +809,7 @@ contains
 
   !> Calculates the drag coefficients \f$C_m\f$ and \f$C_s\f$
   subroutine calc_drag_coefficients
-    use modglobal, only: i1, j1, fkar, zf, cu, cv
-    use modfields, only: u0, v0, u0av, v0av
+    use modglobal, only: i1, j1, fkar, zf
     implicit none
 
     integer :: i, j
@@ -1887,7 +1886,7 @@ contains
     real     :: CO2ags, CO2comp, gm, fmin0, fmin, esatsurf, Ds, D0, cfrac, co2abs, ci !Variables for AGS
     real     :: Ammax, betaw, fstr, Am, Rdark, PAR, alphac, tempy, An, AGSa1, Dstar, gcco2 !Variables for AGS
     real     :: rsAgs, rsCO2, fw, Resp, wco2 !Variables for AGS
-    real     :: Ag, PARdir, PARdif !Variables for 2leaf AGS
+    real     :: PARdir, PARdif !Variables for 2leaf AGS
     real     :: MW_Air = 28.97
     real     :: MW_CO2 = 44
 

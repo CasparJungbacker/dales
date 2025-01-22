@@ -36,7 +36,7 @@ private
 PUBLIC :: initcrosssection, crosssection,exitcrosssection
 save
 !NetCDF variables
-  integer,parameter :: nvar = 11
+  integer :: nvar = 9
   integer :: ncid1(100)
   integer :: ncid2(100)
   integer :: ncid3(100)
@@ -50,11 +50,11 @@ save
   character(80) :: fname1 = 'crossxz.yyyy.x000.exp.nc'
   character(80) :: fname2 = 'crossxy.zzzz.x000y000.exp.nc'
   character(80) :: fname3 = 'crossyz.xxxx.y000.exp.nc'
-  character(80),dimension(nvar,4) :: ncname1
+  character(80),dimension(:,:),allocatable :: ncname1
   character(80),dimension(1,4) :: tncname1
-  character(80),dimension(nvar,4) :: ncname2
+  character(80),dimension(:,:),allocatable :: ncname2
   character(80),dimension(1,4) :: tncname2
-  character(80),dimension(nvar,4) :: ncname3
+  character(80),dimension(:,:),allocatable :: ncname3
   character(80),dimension(1,4) :: tncname3
 
   real    :: dtav
@@ -72,8 +72,7 @@ save
 contains
 !> Initializing Crosssection. Read out the namelist, initializing the variables
   subroutine initcrosssection
-    use modmpi,   only :myid,mpierr,comm3d,mpi_logical,mpi_integer,cmyid,cmyidx,cmyidy,myidx,myidy &
-                       , D_MPI_BCAST
+    use modmpi,   only :myid,mpierr,comm3d,cmyid,cmyidx,cmyidy,myidx,myidy,D_MPI_BCAST
     use modglobal,only :imax,jmax,itot,jtot,ifnamopt,fname_options,dtmax,dtav_glob,ladaptive,j1,kmax,i1,dt_lim,cexpnr,&
                         tres,btime,checknamelisterror,output_prefix
     use modstat_nc,only : lnetcdf,open_nc, define_nc,ncinfo,nctiminfo,writestat_dims_nc
@@ -84,6 +83,10 @@ contains
 
     namelist/NAMCROSSSECTION/ &
     lcross, lbinary, dtav, crossheight, crossplane, crossortho, lxy, lxz, lyz
+
+    nvar = nvar + nsv
+
+    allocate(ncname1(nvar,4), ncname2(nvar,4), ncname3(nvar,4))
 
     crossheight(1)=2
     crossheight(2:100)=-999
@@ -110,6 +113,7 @@ contains
     call D_MPI_BCAST(lxy        ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lxz        ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lyz        ,1,0,comm3d,mpierr)
+    call D_MPI_BCAST(nvar       ,1,0,comm3d,mpierr)
 
     if(any((crossheight(1:100).gt.kmax)) .or. any(crossplane > jtot+1) .or. any(crossortho > itot+1) ) then
       stop 'CROSSSECTION: crosssection out of range'
@@ -143,7 +147,7 @@ contains
     ! 2  <= crossortho <= i1
     ! belong to this processor
 
-    idtav = dtav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
     tnext   = idtav+btime
     if(.not.(lcross)) return
     dt_lim = min(dt_lim,tnext)
@@ -169,7 +173,7 @@ contains
                 call ncinfo(ncname1( 8,:),   'buoyxz', 'xz crosssection of the buoyancy',                          'K',       't0tt')
                 call ncinfo(ncname1( 9,:),   'e120xz', 'xz crosssection of sqrt(turbulent kinetic energy)',        'm^2/s^2', 't0tt')
                 do n = 1,nsv
-                  call ncinfo(ncname1(9+n,:), tracer_prop(n)%tracname, tracer_prop(n)%traclong//' specific concentration', tracer_prop(n)%unit, 't0tt')
+                  call ncinfo(ncname1(9+n,:), trim(tracer_prop(n)%tracname), trim(tracer_prop(n)%traclong), trim(tracer_prop(n)%unit), 't0tt')
                 enddo
                 call open_nc(trim(output_prefix)//fname1,ncid1(cross),nrec1(cross),n1=imax,n3=kmax)
 
@@ -177,11 +181,10 @@ contains
                    call define_nc(ncid1(cross), 1, tncname1)
                    call writestat_dims_nc(ncid1(cross))
                 end if
-                call define_nc(ncid1(cross), NVar, ncname1)
+                call define_nc(ncid1(cross), nvar, ncname1)
              end if
           end do
         end if
-
         if (lxy) then
            do cross=1,nxy
               write(cheight,'(i4.4)') crossheight(cross)
@@ -200,14 +203,14 @@ contains
               call ncinfo(ncname2( 8,:),    'buoyxy', 'xy crosssection of the buoyancy',                           'K',       'tt0t')
               call ncinfo(ncname2( 9,:),    'e120xy', 'xy crosssection of sqrt(turbulent kinetic energy)',         'm^2/s^2', 'tt0t')
               do n = 1,nsv
-                call ncinfo(ncname2(9+n,:), tracer_prop(n)%tracname, tracer_prop(n)%traclong//' specific concentration', tracer_prop(n)%unit, 'tt0t')
+                call ncinfo(ncname2(9+n,:), trim(tracer_prop(n)%tracname), trim(tracer_prop(n)%traclong), trim(tracer_prop(n)%unit), 'tt0t')
               enddo
               call open_nc(trim(output_prefix)//fname2,ncid2(cross),nrec2(cross),n1=imax,n2=jmax)
               if (nrec2(cross)==0) then
                  call define_nc(ncid2(cross), 1, tncname2)
                  call writestat_dims_nc(ncid2(cross))
               end if
-              call define_nc(ncid2(cross), NVar, ncname2)
+              call define_nc(ncid2(cross), nvar, ncname2)
            end do
         end if
         if (lyz) then  ! .and. myidx == 0
@@ -230,19 +233,18 @@ contains
                  call ncinfo(ncname3( 8,:),    'buoyyz', 'yz crosssection of the buoyancy',                           'K',      '0ttt')
                  call ncinfo(ncname3( 9,:),    'e120yz', 'yz crosssection of sqrt(turbulent kinetic energy)',         'm^2/s^2','0ttt')
                  do n = 1,nsv
-                    call ncinfo(ncname3(9+n,:), tracer_prop(n)%tracname, tracer_prop(n)%traclong//' specific concentration', tracer_prop(n)%unit, '0ttt')
+                    call ncinfo(ncname3(9+n,:), trim(tracer_prop(n)%tracname), trim(tracer_prop(n)%traclong), trim(tracer_prop(n)%unit), '0ttt')
                  enddo
                  call open_nc(trim(output_prefix)//fname3,  ncid3(cross),nrec3(cross),n2=jmax,n3=kmax)
                  if (nrec3(cross)==0) then
                     call define_nc(ncid3(cross), 1, tncname3)
                     call writestat_dims_nc(ncid3(cross))
                  end if
-                 call define_nc(ncid3(cross), NVar, ncname3)
+                 call define_nc(ncid3(cross), nvar, ncname3)
               end if
            end do
         end if
     end if
-
 
   end subroutine initcrosssection
 !>Run crosssection. Mainly timekeeping
@@ -282,7 +284,7 @@ contains
   use modstat_nc, only : lnetcdf, writestat_nc
   implicit none
 
-  integer i,k,n
+  integer i,k,n,isv
   character(20) :: name
 
   real, allocatable :: thv0(:,:),vars(:,:,:),buoy(:,:)
@@ -360,14 +362,10 @@ contains
             vars(:,:,6) = qtm(2:i1,crossplane(cross),1:kmax)
             vars(:,:,7) = ql0(2:i1,crossplane(cross),1:kmax)
             vars(:,:,8) = buoy(2:i1,1:kmax)
-            if(nsv>1) then
-               vars(:,:,9) = svm(2:i1,crossplane(cross),1:kmax,2)
-               vars(:,:,10) = svm(2:i1,crossplane(cross),1:kmax,1)
-            else
-               vars(:,:,9) = 0.
-               vars(:,:,10) = 0.
-            end if
-            vars(:,:,11) = e120(2:i1,crossplane(cross),1:kmax)
+            vars(:,:,9) = e120(2:i1,crossplane(cross),1:kmax)
+            do isv = 1,nsv
+               vars(:,:,9+isv) = svm(2:i1,crossplane(cross),1:kmax,isv)
+            end do
             call writestat_nc(ncid1(cross),1,tncname1,(/rtimee/),nrec1(cross),.true.)
             call writestat_nc(ncid1(cross),nvar,ncname1(1:nvar,:),vars,nrec1(cross),imax,kmax)
          end if
@@ -384,12 +382,11 @@ contains
     use modfields, only : um,vm,wm,thlm,qtm,svm,thl0,qt0,ql0,e120,exnf,thvf
     use modmpi,    only : cmyid
     use modstat_nc, only : lnetcdf, writestat_nc
-    use modmicrodata, only : iqr,inr
     implicit none
 
 
     ! LOCAL
-    integer i,j,n
+    integer i,j,n,isv
     character(40) :: name
     real, allocatable :: thv0(:,:,:),vars(:,:,:),buoy(:,:,:)
 
@@ -466,14 +463,10 @@ contains
           vars(:,:,6) = qtm(2:i1,2:j1,crossheight(cross))
           vars(:,:,7) = ql0(2:i1,2:j1,crossheight(cross))
           vars(:,:,8) = buoy(2:i1,2:j1,cross)
-          if(nsv>1) then
-             vars(:,:,9) = svm(2:i1,2:j1,crossheight(cross),iqr)
-             vars(:,:,10) = svm(2:i1,2:j1,crossheight(cross),inr)
-          else
-             vars(:,:,9) = 0.
-             vars(:,:,10) = 0.
-          end if
-          vars(:,:,11) = e120(2:i1,2:j1,crossheight(cross))
+          vars(:,:,9) = e120(2:i1,2:j1,crossheight(cross))
+          do isv = 1,nsv
+             vars(:,:,9+isv) = svm(2:i1,2:j1,crossheight(cross),isv)
+          end do
           call writestat_nc(ncid2(cross),1,tncname2,(/rtimee/),nrec2(cross),.true.)
           call writestat_nc(ncid2(cross),nvar,ncname2(1:nvar,:),vars,nrec2(cross),imax,jmax)
        end do
@@ -494,7 +487,7 @@ contains
 
 
     ! LOCAL
-    integer j,k,n
+    integer j,k,n,isv
     character(21) :: name
 
     real, allocatable :: thv0(:,:),vars(:,:,:),buoy(:,:)
@@ -579,14 +572,10 @@ contains
              vars(:,:,6) = qtm(crossortho(cross),2:j1,1:kmax)
              vars(:,:,7) = ql0(crossortho(cross),2:j1,1:kmax)
              vars(:,:,8) = buoy(2:j1,1:kmax)
-             if(nsv>1) then
-                vars(:,:,9) = svm(crossortho(cross),2:j1,1:kmax,2)
-                vars(:,:,10) = svm(crossortho(cross),2:j1,1:kmax,1)
-             else
-                vars(:,:,9) = 0.
-                vars(:,:,10) = 0.
-             end if
-             vars(:,:,11) = e120(crossortho(cross),2:j1,1:kmax)
+             vars(:,:,9) = e120(crossortho(cross),2:j1,1:kmax)
+             do isv = 1,nsv
+                vars(:,:,9+isv) = svm(crossortho(cross),2:j1,1:kmax,isv)
+             end do
              call writestat_nc(ncid3(cross),1,tncname3,(/rtimee/),nrec3(cross),.true.)
              call writestat_nc(ncid3(cross),nvar,ncname3(1:nvar,:),vars,nrec3(cross),jmax,kmax)
           end if
@@ -601,7 +590,6 @@ contains
 !> Clean up when leaving the run
   subroutine exitcrosssection
     use modstat_nc, only : exitstat_nc,lnetcdf
-    use modmpi, only : myidx, myidy
     use modglobal, only : i1,j1
     implicit none
 
@@ -626,6 +614,8 @@ contains
           end do
        end if
     end if
+
+    deallocate(ncname1, ncname2, ncname3)
 
   end subroutine exitcrosssection
 

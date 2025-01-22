@@ -58,9 +58,14 @@ contains
 
     implicit none
 
+#ifdef DALES_GPU
+    if (solver_id /= 200) then
+       STOP 'Running on GPU requires solver_id = 200 (cufft)'
+    end if
+#endif
+
     if (solver_id == 0) then
-      ! FFT based solver
-      call fft2dinit(p, Fp, d, xyrt, ps,pe,qs,qe)
+      call fft2dinit(p, Fp, d, xyrt, ps, pe, qs, qe)
     else if (solver_id == 100) then
       ! FFTW based solver
       call fftwinit(p, Fp, d, xyrt, ps,pe,qs,qe)
@@ -105,7 +110,6 @@ contains
     implicit none
 
     if (solver_id == 0) then
-      ! FFT based solver
       call fft2dexit(p,Fp,d,xyrt)
     else if (solver_id == 100) then
       ! FFTW based solver
@@ -140,7 +144,7 @@ contains
     logical converged
 
     call timer_tic('modpois/poisson', 0)
-    
+
     call fillps
 
     if (solver_id == 0) then
@@ -214,7 +218,7 @@ contains
     use modmpi,    only : excjs
     use modopenboundary, only : openboundary_excjs
     implicit none
-    
+
     integer :: i, j, k, ex, ey
     real(pois_r) :: rk3coef_inv
 
@@ -239,7 +243,7 @@ contains
 
   !$acc parallel loop collapse(3) default(present) async(1)
   do k=1,kmax
-    do j=2,ey ! openbc needs these to i2,j2. Periodic bc needs them to i1,j1 
+    do j=2,ey ! openbc needs these to i2,j2. Periodic bc needs them to i1,j1
       do i=2,ex
         pup(i,j,k) = up(i,j,k) + um(i,j,k) * rk3coef_inv
         pvp(i,j,k) = vp(i,j,k) + vm(i,j,k) * rk3coef_inv
@@ -314,7 +318,7 @@ contains
 !-----------------------------------------------------------------|
 
     use modfields, only : up, vp, wp
-    use modglobal, only : i1,j1,kmax,dx,dy,dzh,ih,jh,lopenbc,lboundary,i2,j2,k1,lperiodic
+    use modglobal, only : i1,j1,kmax,dx,dy,dzh,ih,jh,lopenbc,lboundary,i2,j2,lperiodic
     use modmpi,    only : excjs
     use modopenboundary, only : openboundary_excjs
     implicit none
@@ -361,7 +365,7 @@ contains
     !$acc wait(1)
 
     call timer_toc('modpois/tderive')
-    
+
     return
   end subroutine tderive
 
@@ -402,13 +406,13 @@ contains
     use modfields, only : rhobf, rhobh
     implicit none
 
-    real(pois_r) :: z,ak,bk,bbk
+    real(pois_r) :: z,bbk
     integer :: i, j, k
 
     call timer_tic('modpois/solmpj', 1)
-    
+
   ! Generate tridiagonal matrix
-    
+
     !$acc parallel loop default(present) async(1)
     do k=1,kmax
       ! SB fixed the coefficients

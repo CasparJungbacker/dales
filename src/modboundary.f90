@@ -36,23 +36,27 @@ public :: initboundary, boundary, exitboundary, grwdamp, ksp, tsc, cyclich
   integer :: ksp = -1                 !<    lowest level of sponge layer
   real(field_r),allocatable :: tsc(:)          !<   damping coefficients to be used in grwdamp.
   real(field_r) :: rnu0 = 2.75e-3
-  logical :: lboundopen = .false.	     !GT switch for open boundary conditions for all scalars
+  logical :: lboundopen = .false.            !GT switch for open boundary conditions for all scalars
   real(field_r) :: fillvalues(100) = 0       !GT fill value for each scalar to apply at the boundary
+
+  real(field_r), public              :: dtheta !< Applied gradient of qt at top of model
+  real(field_r), public              :: dqt    !< Applied gradient of theta at top of model
+  real(field_r), public, allocatable :: dsv(:) !< Applied gradient of sv(n) at top of model
 contains
 !>
 !! Initializing Boundary; specifically the sponge layer
 !>
   subroutine initboundary
     use modglobal, only : k1,kmax,pi,zf,nsv, &
-			  ifnamopt, fname_options, checknamelisterror 		!GT added
+                          ifnamopt, fname_options, checknamelisterror           !GT added
     use modmpi,    only : myid, comm3d, d_mpi_bcast                             !GT added
     
     implicit none
 
     real    :: zspb, zspt
-    integer :: k, ierr			!GT added ierr
+    integer :: k, ierr                  !GT added ierr
       ! --- Read & broadcast namelist NAMBOUNDSET -----------------------------------
-    namelist/NAMBOUNDSET/ lboundopen, fillvalues	!GT added
+    namelist/NAMBOUNDSET/ lboundopen, fillvalues        !GT added
 
     call timer_tic('modboundary/initboundary', 0)
     
@@ -64,8 +68,8 @@ contains
       close(ifnamopt)
     endif 
 
-    call d_mpi_bcast(lboundopen,          1,  0, comm3d, ierr)	!GT added
-    call d_mpi_bcast(fillvalues,	nsv,  0, comm3d, ierr)	!GT added 
+    call d_mpi_bcast(lboundopen,          1,  0, comm3d, ierr)  !GT added
+    call d_mpi_bcast(fillvalues,        nsv,  0, comm3d, ierr)  !GT added 
 
 
     allocate(tsc(k1))
@@ -83,7 +87,10 @@ contains
     end do
    tsc(k1)=tsc(kmax)
 
-   !$acc enter data copyin(tsc)
+   allocate(dsv(nsv))
+
+   !$acc enter data copyin(tsc) async
+   !$acc enter data create(dsv) async
 
    call timer_toc('modboundary/initboundary')
 
@@ -108,7 +115,7 @@ contains
 
     call cyclicm
     call cyclich
-    call setboundaries		!was uncommented GT
+    call setboundaries          !was uncommented GT
   
     call topm
     call toph
@@ -119,8 +126,8 @@ contains
   subroutine exitboundary
     implicit none
     
-    !$acc exit data delete(tsc)
-    deallocate(tsc)
+    !$acc exit data delete(tsc, dsv)
+    deallocate(tsc, dsv)
   end subroutine exitboundary
 
 !> Sets lateral periodic boundary conditions for the scalars
@@ -169,8 +176,8 @@ contains
   integer :: n
   if(.not. lboundopen) return
   do n=1,nsv
-    call closeboundaries(sv0(:, :, 1:k1, n), 2,i1,ih, 2,j1,jh, 1,k1, fillvalues(n))		!GT changes 0. (given BC) to fillvalues(n)
-    call closeboundaries(svm(:, :, 1:k1, n), 2,i1,ih, 2,j1,jh, 1,k1, fillvalues(n))		!GT changes 0. (given BC) to fillvalues(n)
+    call closeboundaries(sv0(:, :, 1:k1, n), 2,i1,ih, 2,j1,jh, 1,k1, fillvalues(n))             !GT changes 0. (given BC) to fillvalues(n)
+    call closeboundaries(svm(:, :, 1:k1, n), 2,i1,ih, 2,j1,jh, 1,k1, fillvalues(n))             !GT changes 0. (given BC) to fillvalues(n)
   enddo     
 
   end subroutine setboundaries
@@ -284,7 +291,7 @@ contains
 !> Sets top boundary conditions for scalars
   subroutine toph
 
-  use modglobal, only : kmax,k1,nsv,dtheta,dqt,dsv,dzh
+  use modglobal, only : kmax,k1,nsv,dzh
   use modfields, only : thl0,thlm,qt0,qtm,sv0,svm &
                        ,thl0av,qt0av,sv0av
   implicit none

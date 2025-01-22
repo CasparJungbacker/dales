@@ -70,12 +70,12 @@ contains
     call D_MPI_BCAST(timeav     ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(dtav       ,1,0,comm3d,mpierr)
     call D_MPI_BCAST(lvarbudget ,1,0,comm3d,mpierr)
-    idtav = dtav/tres
-    itimeav = timeav/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itimeav = int(timeav / tres, kind=kind(itimeav))
 
     tnext      = idtav   +btime
     tnextwrite = itimeav +btime
-    nsamples = itimeav/idtav
+    nsamples = int(itimeav / idtav)
     if(.not.(lvarbudget)) return
     dt_lim = min(dt_lim,tnext)
 
@@ -133,7 +133,7 @@ contains
       itimeav    = itimeav_prof
       tnext      = idtav+btime
       tnextwrite = itimeav+btime
-      nsamples   = itimeav/idtav
+      nsamples   = int(itimeav / idtav)
      if (myid==0) then
         call ncinfo(ncname( 1,:),'thl2tendf','Tendency of thl variance','K^2/s','tt')
         call ncinfo(ncname( 2,:),'thl2Pr','Resolved production of thl variance','K^2/s','tt')
@@ -188,12 +188,10 @@ contains
   subroutine do_varbudget
 
     use modfields     , only : qt0,thl0
-    use modsubgriddata, only : ekh
     use modsurfdata   , only : thlflux,qtflux
     use modmicrodata  , only : qtpmcr
     use modraddata    , only : thlprad
-    use modglobal     , only : i1,j1,ih,jh,k1,cp,ijtot, &
-                               iadv_thl,iadv_qt
+    use modglobal     , only : iadv_thl,iadv_qt
     use modmpi        , only : slabsum
 
     implicit none
@@ -251,8 +249,8 @@ contains
 ! TODO:  Speed up by not calculating zero derivatives
 ! FIXME: SG production term is still wrong
 
-    use modglobal,      only : i1,i2,ih,j1,j2,jh,k1,kmax,     &
-                               dzf,dzh,ijtot,dx2i,dy2i,cu,cv, &
+    use modglobal,      only : i1,i2,ih,j1,j2,jh,k1,          &
+                               ijtot,cu,cv,                   &
                                iadv_cd2,iadv_5th,iadv_52,     &
                                iadv_cd6,iadv_62,iadv_kappa,   &
                                iadv_hybrid,iadv_hybrid_f,lopenbc
@@ -271,7 +269,7 @@ contains
 
     implicit none
 
-    integer i,j,k,im,ip,jm,jp,km,kp,istart,iend,jstart,jend,ibuffer,jbuffer       !counter variables
+    integer i,j,k,istart,iend,jstart,jend,ibuffer,jbuffer       !counter variables
 
 !    ----------- input variables
     real          varxflux   (i2,j2),                    &    !surface flux of varx

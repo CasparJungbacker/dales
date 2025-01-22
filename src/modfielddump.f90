@@ -72,8 +72,7 @@ save
 contains
 !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
-    use modmpi,   only :myid,comm3d,mpi_logical,mpi_integer,myidx,myidy &
-                       , D_MPI_BCAST
+    use modmpi,   only :myid,comm3d,myidx,myidy,D_MPI_BCAST
     use modglobal,only :imax,jmax,kmax,cexpnr,ifnamopt,fname_options,dtmax,dtav_glob,kmax, ladaptive,dt_lim,btime,tres,&
          checknamelisterror, output_prefix
     use modstat_nc,only : lnetcdf,open_nc, define_nc,ncinfo,nctiminfo,writestat_dims_nc
@@ -133,9 +132,9 @@ contains
     call D_MPI_BCAST(ltntrl      ,1,0,comm3d,ierr)
     call D_MPI_BCAST(lsv       ,100,0,comm3d,ierr)
 
-    idtav = dtav/tres
-    itmin = tmin/tres
-    itmax = tmax/tres
+    idtav = int(dtav / tres, kind=kind(idtav))
+    itmin = int(tmin / tres, kind=kind(itmin))
+    itmax = int(tmax / tres, kind=kind(itmax))
 
     tnext      = idtav   +btime
     if(.not.(lfielddump)) return

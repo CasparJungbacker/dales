@@ -49,7 +49,7 @@ contains
                          dudxls, dudyls, dudtls, dvdxls, dvdyls, &
                          dvdtls, dthvdz, qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
-                         dsv, rd, rv, esatmtab, esatitab, esatltab
+                         rd, rv, esatmtab, esatitab, esatltab
     use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
                            ustar, dudz, dvdz, thlflux, qtflux, &
                            dqtdz, dthldz, svflux, svs, horv, ra, rs, wsvsurf
@@ -78,7 +78,7 @@ contains
     !$acc&              dthldtls, dqtdxls, dqtdyls, dqtdtls, &
     !$acc&              dudxls, dudyls, dudtls, dvdxls, dvdyls, &
     !$acc&              dvdtls, dthvdz, qvsl, qvsi, esl, qsat, &
-    !$acc&              dzf, dzh, zh, zf, delta, deltai, dsv, &
+    !$acc&              dzf, dzh, zh, zf, delta, deltai, &
     !$acc&              z0m, z0h, obl, tskin, qskin, Cm, Cs, &
     !$acc&              ustar, dudz, dvdz, thlflux, qtflux, &
     !$acc&              dqtdz, dthldz, svflux, svs, horv, ra, rs, wsvsurf, &
@@ -122,7 +122,7 @@ contains
                          dudxls, dudyls, dudtls, dvdxls, dvdyls, &
                          dvdtls, dthvdz, qvsl, qvsi, esl, qsat
     use modglobal, only: dzf, dzh, zh, zf, delta, deltai, &
-                         dsv, rd, rv, esatmtab, esatitab, esatltab
+                         rd, rv, esatmtab, esatitab, esatltab
     use modsurfdata, only: z0m, z0h, obl, tskin, qskin, Cm, Cs, &
                            ustar, dudz, dvdz, thlflux, qtflux, &
                            dqtdz, dthldz, svflux, svs, horv, ra, rs, wsvsurf
@@ -153,7 +153,7 @@ contains
     !$acc&            dthldtls, dqtdxls, dqtdyls, dqtdtls, &
     !$acc&            dudxls, dudyls, dudtls, dvdxls, dvdyls, &
     !$acc&            dvdtls, dthvdz, qvsl, qvsi, esl, qsat, &
-    !$acc&            dzf, dzh, zh, zf, delta, deltai, dsv, &
+    !$acc&            dzf, dzh, zh, zf, delta, deltai, &
     !$acc&            z0m, z0h, obl, tskin, qskin, Cm, Cs, &
     !$acc&            ustar, dudz, dvdz, thlflux, qtflux, &
     !$acc&            dqtdz, dthldz, svflux, svs, horv, ra, rs, wsvsurf, &
