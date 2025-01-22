@@ -43,8 +43,8 @@ set( dales_srcs
 	modgenstat.f90
 	modglobal.f90
 	modgpu.f90
-	modgpumpiinterface.f90
 	modheterostats.f90
+  modhipfft.f90
 	modhypre.f90
 	modlsm.f90
 	modlsmcrosssection.f90
@@ -93,6 +93,7 @@ set( dales_srcs
 	modtracdata.f90
 	modtracer_type.f90
 	modtracers.f90
+  modtranspose.f90
 	moduser.f90
 	modvarbudget.f90
 	program.f90
