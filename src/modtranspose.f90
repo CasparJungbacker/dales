@@ -5,12 +5,15 @@ module modtranspose
   use modprecision, only: pois_r
   use modglobal,    only: itot, jtot, kmax, i1, j1, k1, ih, jh, imax, jmax
   use modmpi,       only: D_MPI_ALLTOALL, commrow, commcol, nprocs, &
-    &                     nprocx, nprocy, mpierr, myidx, myidy
+                          nprocx, nprocy, mpierr, myidx, myidy
   use mpi_f08
+  use modtimer,     only: timer_tic, timer_toc
 
   implicit none
 
   private
+  
+  character(*), parameter :: modname = "modtranspose"
 
   public :: inittranspose
   public :: transpose_a1, transpose_a1inv
@@ -89,15 +92,20 @@ contains
              iony * jonx * konx * nprocx)
 
     allocate(buffer(sz))
+    
+    !$acc enter data create(buffer(1:sz))
 
   end subroutine inittranspose
 
   subroutine transpose_a1(p, px)
-  
     real(pois_r), pointer, intent(in)  :: p(:,:,:)
     real(pois_r), pointer, intent(out) :: px(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a1"
   
     integer :: i, j, k, n, ii
+
+    call timer_tic(routine, 2)
   
     if (nprocs == 1) then
       ! Already coalesced, no need to optimize further
@@ -149,14 +157,19 @@ contains
       end do
     end if
   
+    call timer_toc(routine)
+
   end subroutine transpose_a1
   
   subroutine transpose_a1inv(p, px)
-  
     real(pois_r), pointer, intent(in)  :: px(:,:,:)
     real(pois_r), pointer, intent(out) :: p(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a1inv"
   
     integer :: i, j, k, n, ii
+
+    call timer_tic(routine, 2)
   
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present) private(ii)
@@ -206,40 +219,28 @@ contains
       end do
     end if
   
+    call timer_toc(routine)
+
   end subroutine transpose_a1inv
   
   subroutine transpose_a2(px, py)
-  
-    real(pois_r), pointer, intent(in)   :: px(:,:,:)
-    real(pois_r), pointer, intent(out)  :: py(:,:,:)
+    real(pois_r), intent(in)   :: px(:,:,:)
+    real(pois_r), intent(out)  :: py(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a2"
  
     real(pois_r) :: shmem(NX, NY)
     integer      :: i, j, k, n, ii, iB, jB
 
+    call timer_tic(routine, 2)
+
     if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present) &
-      !$acc& private(shmem) vector_length(NX*NY)
+      !$acc parallel loop gang collapse(3) default(present)
       do k = 1, kmax
-        do j = 0, jtot - 1, NY
-          do i = 0, itot, NX
-            !$acc cache(shmem(1:NX,1:NY))
-            !$acc loop vector collapse(2)
-            do jB = 1, NY
-              do iB = 1, NX
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  shmem(iB,jB) = px(i,j,k)
-                end if
-              end do
-            end do
-            !$acc loop vector collapse(2) private(ii)
-            do iB = 1, NX
-              do jB = 1, NY
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  ii = (j+jB) + ((i+iB)-1)*jtot + (k-1)*itot*jtot
-                  buffer(ii) = shmem(jB,iB)
-                end if
-              end do
-            end do
+        do j = 1, jtot
+          do i = 1, itot
+            ii = i + (j-1)*itot + (k-1)*itot*jtot
+            buffer(ii) = px(i,j,k)
           end do
         end do
       end do
@@ -248,7 +249,7 @@ contains
       do k = 1, kmax
         do i = 1, itot
           do j = 1, jtot
-            ii = j + (i-1)*jtot + (k-1)*itot*jtot
+            ii = i + (j-1)*itot + (k-1)*itot*jtot
             py(j,k,i) = buffer(ii)
           end do
         end do
@@ -300,45 +301,33 @@ contains
       end do
     end if
   
+    call timer_toc(routine)
+
   end subroutine transpose_a2
   
   subroutine transpose_a2inv(px, py)
-
     real(pois_r), pointer, intent(in)  :: px(:,:,:)
     real(pois_r), pointer, intent(out) :: py(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a2inv"
   
     real(pois_r) :: shmem(NY,NX)
     integer      :: i, j, k, n, ii, iB, jB
+
+    call timer_tic(routine, 2)
   
     if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present) &
-      !$acc& private(shmem(1:NY,1:NX)) vector_length(NX*NY)
+      !$acc parallel loop collapse(3) default(present) private(ii)
       do k = 1, kmax
-        do j = 0, jtot - 1, NY
-          do i = 0, itot, NX
-            !$acc cache(shmem(1:NY,1:NX))
-            !$acc loop vector collapse(2)
-            do iB = 1, NX
-              do jB = 1, NY
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  shmem(jB,iB) = py(j,k,i)
-                end if
-              end do
-            end do
-            !$acc loop vector collapse(2) private(ii)
-            do jB = 1, NY
-              do iB = 1, NX
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  ii = j + (i-1)*jtot + (k-1)*itot*jtot
-                  buffer(ii) = shmem(jB,iB)
-                end if
-              end do
-            end do
+        do j = 1, jtot
+          do i = 1, itot
+            ii = j + (i-1)*jtot + (k-1)*itot*jtot
+            buffer(ii) = py(j,k,i)
           end do
         end do
       end do
 
-      !$acc parallel loop collapse(3) private(ii)
+      !$acc parallel loop collapse(3) default(present) private(ii)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -394,50 +383,27 @@ contains
       end do
     end if
   
+    call timer_toc(routine)
+
   end subroutine transpose_a2inv
   
   subroutine transpose_a3(py, Fp)
-
     real(pois_r), pointer, intent(in)  :: py(:,:,:)
     real(pois_r), pointer, intent(out) :: Fp(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a3"
   
     real(pois_r) :: shmem(NY,NX)
     integer      :: i, j, k, n, ii, iB, jB
   
-    if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present) &
-      !$acc private(shmem(1:NY,1:NX)) vector_length(NX*NY)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            !$acc cache(shmem(1:NY,1:NX))
-            !$acc loop vector collapse(2)
-            do iB = 1, NX
-              do jB = 1, NY
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  shmem(jB,iB) = py(j+jB,k,iB)
-                end if
-              end do
-            end do
-            !$acc loop vector collapse(2) private(ii)
-            do jB = 1, NY
-              do iB = 1, NX
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  ii = (i+iB) + ((j+jB)-1)*itot + (k-1)*itot*jtot
-                  buffer(ii) = shmem(j+jB,i+iB)
-                end if
-              end do
-            end do
-          end do
-        end do
-      end do
+    call timer_tic(routine, 2)
 
+    if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
-            ii = i + (j-1)*itot + (k-1)*itot*jtot
-            Fp(i+1,j+1,k) = buffer(ii)
+            Fp(i+1,j+1,k) = py(j,k,i)
           end do
         end do
       end do
@@ -488,51 +454,28 @@ contains
       end do
   
     end if
+
+    call timer_toc(routine)
   
   end subroutine transpose_a3
   
   subroutine transpose_a3inv(py, Fp)
-  
     real(pois_r), pointer, intent(in)  :: Fp(:,:,:)
     real(pois_r), pointer, intent(out) :: py(:,:,:)
+
+    character(*), parameter :: routine = modname//"::transpose_a3inv"
   
     real(pois_r) :: shmem(NX,NY)
     integer      :: i, j, k, n, ii, iB, jB
   
-    if (nprocs == 1) then
-      !$acc parallel loop gang collapse(3) default(present) &
-      !$acc private(shmem(1:NX,1:NY)) vector_length(NX*NY)
-      do k = 1, kmax
-        do j = 0, jtot - 1, NY
-          do i = 0, itot - 1, NX
-            !$acc cache(shmem(1:NX,1:NY))
-            !$acc loop vector collapse(2)
-            do jB = 1, NY
-              do iB = 1, NX
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  shmem(iB,jB) = Fp(i+iB+1,j+jB+1,k)
-                end if
-              end do
-            end do
-            !$acc loop vector collapse(2) private(ii)
-            do iB = 1, NX
-              do jB = 1, NY
-                if (i + iB <= itot .and. j + jB <= jtot) then
-                  ii = (j+jB) + ((i+iB)-1)*jtot + (k-1)*itot*jtot
-                  buffer(ii) = shmem(iB,jB)
-                end if
-              end do
-            end do
-          end do
-        end do
-      end do
+    call timer_tic(routine, 2)
 
-      !$acc parallel loop collapse(3) default(present) private(ii)
+    if (nprocs == 1) then
+      !$acc parallel loop collapse(3) default(present)
       do k = 1, kmax
-        do i = 1, itot
-          do j = 1, jtot
-            ii = j + (i-1)*jtot + (k-1)*itot*jtot
-            py(j,k,i) = buffer(ii)
+        do j = 1, jtot
+          do i = 1, itot
+            py(j,k,i) = Fp(i+1,j+1,k)
           end do
         end do
       end do
@@ -582,6 +525,8 @@ contains
         end do
       end do
     end if
+
+    call timer_toc(routine)
   
   end subroutine transpose_a3inv
 
