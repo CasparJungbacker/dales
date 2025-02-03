@@ -77,7 +77,7 @@ contains
                                   solver_id, maxiter, maxiter_precond, tolerance, n_pre, n_post, precond_id, checknamelisterror, &
                                   loutdirs, output_prefix, &
                                   lopenbc,linithetero,lperiodic,dxint,dyint,dzint,dxturb,dyturb,taum,tauh,pbc,lsynturb,nmodes,tau,lambda,lambdas,lambdas_x,lambdas_y,lambdas_z,iturb, &
-                                  hypre_logging,rdt,rk3step,i1,j1,k1,ih,jh,lboundary,lconstexner, lstart_netcdf
+                                  hypre_logging,rdt,rk3step,i1,j1,k1,ih,jh,lboundary,lconstexner, lstart_netcdf,dzf
     use modforces,         only : lforce_user
     use modsurfdata,       only : z0,ustin,wtsurf,wqsurf,wsvsurf,ps,thls,isurf
     use modsurface,        only : initsurface
@@ -86,7 +86,7 @@ contains
     use modemission,       only : initemission
     use modlsm,            only : initlsm, kmax_soil
     use moddrydeposition,  only : initdrydep
-    use modfields,         only : initfields,um,vm,wm,u0,v0,w0,up,vp,wp
+    use modfields,         only : initfields,um,vm,wm,u0,v0,w0,up,vp,wp,rhobf
     use modtracers,        only : inittracers, allocate_tracers
     use modpois,           only : initpois,poisson
     use modradiation,      only : initradiation
@@ -105,7 +105,9 @@ contains
     use tstep,             only : inittstep
     use modchem,           only : initchem
     use modversion,        only : git_version
-    use modopenboundary,   only : initopenboundary,openboundary_divcorr,openboundary_excjs,lbuoytop
+    use modopenboundary,   only : initopenboundary,openboundary_divcorr,openboundary_excjs,lbuoytop,&
+                                  rhointi, openboundary_phasevelocity
+
     use modchecksim,       only : chkdiv
 #if defined(_OPENACC)
     use modgpu,             only : initgpu
@@ -381,6 +383,12 @@ contains
     call inittimedep !depends on modglobal,modfields, modmpi, modsurf, modradiation
     call initpois ! hypre solver needs grid and baseprofiles
     if(lopenbc) then  ! Correct boundaries and initial field for divergence
+      ! Create 1/int(rho) - must be after rhobf has been initialized
+      allocate(rhointi(k1))
+      rhointi = 1./(rhobf*dzf)
+
+      call openboundary_phasevelocity() ! needed for initialization, called late in the time loop
+
       call chkdiv
       call openboundary_divcorr ! Remove divergence from large scale input
       ! Use poisson solver to get rid of divergence in initial field, needs to
@@ -598,9 +606,9 @@ contains
 
         else if (lstart_netcdf) then
           call init_from_netcdf('init.'//cexpnr//'.nc', height, uprof, vprof, &
-                                thlprof, qtprof, e12prof, ug, vg, wfls, & 
+                                thlprof, qtprof, e12prof, ug, vg, wfls, &
                                 dqtdxls, dqtdyls, dqtdtls, thlpcar, kmax)
-          call tracer_profs_from_netcdf('tracers.'//cexpnr//'.nc', & 
+          call tracer_profs_from_netcdf('tracers.'//cexpnr//'.nc', &
                                         tracer_prop, nsv, svprof(1:kmax,:))
         else
           open (ifinput,file='prof.inp.'//cexpnr,status='old',iostat=ierr)
@@ -689,7 +697,7 @@ contains
             endif
           enddo
           ! write(*,*) 'scalar_indices: ', scalar_indices
-          
+
           close(ifinput)
 
           write (6,*) 'height   sv(1) --------- sv(nsv) '
@@ -843,10 +851,10 @@ contains
       else
         call boundary
       end if
-      
+
       call thermodynamics
       call surface
-      
+
       if ( lopenbc ) then
         call openboundary_ghost()
       else
@@ -1262,7 +1270,7 @@ contains
     if ((timee>=tnextrestart .and. trestart > 0) .or. (timeleft==0 .and. trestart >= 0)) then
       tnextrestart = tnextrestart+itrestart
 #if defined(_OPENACC)
-      call update_host 
+      call update_host
 #endif
       call do_writerestartfiles
     end if
@@ -1779,12 +1787,12 @@ contains
   !! \param dqtdtls Tendency of the total water mixing ratio.
   !! \param dthlrad Tendency of the liquid water potential temperature due to radiative heating.
   !! \param kmax Index of highest vertical level.
-  !! 
+  !!
   !! \note Tracers are read from tracers.XXX.nc, not here.
   !! \todo Make DEPHY-compatible.
   subroutine init_from_netcdf(filename, height, uprof, vprof, thlprof, qtprof, &
                               e12prof, ug, vg, wfls, dqtdxls, dqtdyls, &
-                              dqtdtls, dthlrad, kmax) 
+                              dqtdtls, dthlrad, kmax)
     character(*),   intent(in)  :: filename
     real(field_r),  intent(out) :: height(:)
     real(field_r),  intent(out) :: uprof(:)
@@ -1835,7 +1843,7 @@ contains
                        fillvalue=0._field_r)
 
     call nchandle_error(nf90_close(ncid))
-    
+
   end subroutine init_from_netcdf
 
 end module modstartup

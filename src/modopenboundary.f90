@@ -43,8 +43,9 @@ contains
   subroutine initopenboundary
     ! Initialisation routine for openboundaries
     use modmpi, only : myidx, myidy, nprocx, nprocy, myid
-    use modglobal, only : imax,jmax,kmax,i1,j1,k1,dx,dy,itot,jtot,solver_id,nsv,cu,cv
+    use modglobal, only : imax,jmax,kmax,i1,j1,k1,dx,dy,itot,jtot,solver_id,nsv,cu,cv,dzf
     use modboundary, only: dsv
+    use modfields, only: rhobf
     implicit none
     integer :: i
 
@@ -444,9 +445,6 @@ contains
     implicit none
     real(field_r) :: sumdiv,div,divpart,divnew,divold
     integer :: i,j,k,it,icalc
-    ! Create 1/int(rho)
-    allocate(rhointi(k1))
-    rhointi = 1./(rhobf*dzf)
     ! Divergence correction
     if(myid==0) print *, "Start divergence correction boundaries"
     do it = 1,ntboundary

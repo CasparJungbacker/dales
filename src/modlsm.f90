@@ -306,7 +306,7 @@ subroutine calc_liquid_reservoir
             end do
 
             ! Tendency due to interception of precipitation by vegetation
-            if (imicro == 0) then
+            if (imicro == 0 .or. imicro == 1) then
                 rainrate = 0.
             else
                !rainrate = -sed_qr(i,j,1)/rhow
@@ -1796,8 +1796,34 @@ subroutine init_heterogeneous_nc
     tile(nlu)%lveg    = .false.
     tile(nlu)%laqu    = .false.
 
+    ! initialize to 0 to avoid un-initialized values in the halo or elsewhere
+    tile(nlu)%base_frac = 0
+    tile(nlu)%z0m = 0
+    tile(nlu)%z0h = 0
+    tile(nlu)%lambda_stable = 0
+    tile(nlu)%lambda_unstable = 0
+    tile(nlu)%rs_min = 0
+    tile(nlu)%lai = 0
+    tile(nlu)%a_r = 0
+    tile(nlu)%b_r = 0
+    tile(nlu)%gD = 0
+    tile(nlu)%tskin = 0
+
     ! 2D surface fields
     do ilu=1,nlu-1
+       ! initialize to 0 to avoid un-initialized values in the halo
+      tile(ilu)%base_frac = 0
+      tile(ilu)%z0m = 0
+      tile(ilu)%z0h = 0
+      tile(ilu)%lambda_stable = 0
+      tile(ilu)%lambda_unstable = 0
+      tile(ilu)%rs_min = 0
+      tile(ilu)%lai = 0
+      tile(ilu)%a_r = 0
+      tile(ilu)%b_r = 0
+      tile(ilu)%gD = 0
+      tile(ilu)%tskin = 0
+
       write(*,*) 'reading variables for LU type: ', trim(tile(ilu)%lushort)
       ! LU cover
       call check( nf90_inq_varid( ncid, 'cover_'//trim(tile(ilu)%lushort), varid) )
@@ -1983,6 +2009,7 @@ subroutine init_heterogeneous_nc
     end do
 
     ! Calculate vegetation fraction, and limit to prevent div/0's
+    cveg = 0
     do ilu=1,nlu
       if (tile(ilu)%lveg) then
         cveg(:,:) = cveg(:,:) + tile(ilu)%base_frac(:,:)
@@ -1991,6 +2018,7 @@ subroutine init_heterogeneous_nc
     where (cveg == 0) cveg = eps1
 
     ! Calculate land fraction, and limit to prevent div/0's
+    land_frac = 0
     do ilu=1,nlu
       if (tile(ilu)%laqu) then
         land_frac(:,:) = 1.-tile(ilu)%base_frac(:,:)
