@@ -341,12 +341,9 @@ module modbulkmicro
                        0.0_field_r)
           Nr_cor = min(svp(i,j,k,iNr) + Nrp(i,j,k) + (svm(i,j,k,iNr) / delt), &
                        0.0_field_r)
-          Nc_cor = min(svp(i,j,k,iNc) + Ncp(i,j,k) + (svm(i,j,k,iNc) / delt), &
-                       0.0_field_r)
 
           qrp(i,j,k) = qrp(i,j,k) - qr_cor
           Nrp(i,j,k) = Nrp(i,j,k) - Nr_cor
-          Ncp(i,j,k) = Ncp(i,j,k) - Nc_cor
         end do
       end do
     end do
@@ -373,9 +370,8 @@ module modbulkmicro
           qtp (i,j,k) = qtp (i,j,k) + qtpmcr (i,j,k)
           thlp(i,j,k) = thlp(i,j,k) + thlpmcr(i,j,k)
 
-          svp(i,j,k,iqr) = svp(i,j,k,iqr) + qrp
-          svp(i,j,k,inr) = svp(i,j,k,inr) + Nrp
-          svp(i,j,k,inc) = svp(i,j,k,inc) + Ncp
+          svp(i,j,k,iqr) = svp(i,j,k,iqr) + qrp(i,j,k)
+          svp(i,j,k,inr) = svp(i,j,k,inr) + Nrp(i,j,k)
         enddo
       enddo
     enddo
