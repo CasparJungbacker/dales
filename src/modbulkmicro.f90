@@ -335,7 +335,7 @@ module modbulkmicro
     ! remove negative values and non physical low values
     !*********************************************************************
     !$acc parallel loop collapse(3) default(present) private(qr_cor, Nr_cor)
-    do k = min(qrbase, qcbase), max(qrroof, qcroof)
+    do k = 1, k1
       do j = 2, j1
         do i = 2, i1
           qr_cor = min(svp(i,j,k,iqr) + qrp(i,j,k) + (svm(i,j,k,iqr) / delt), &
@@ -351,21 +351,8 @@ module modbulkmicro
 
     call bulkmicrotend
 
-    ! qcbase/qcroof are based on ql0.gt.qcmin and
-    ! qrbase/qrroof are based on qr.gt.qrmin
-    ! but we need boundaries to update qtp/thlp.
-    !
-    ! The difference between them comes from:
-    !  * sedimentation_cloud updated qtpmcr/thlpmcr at qcbase-1
-    !  * sedimentation_rain updated qrbase/qrroof,
-    !    but at those levels qtmpcr/thlpmcr are either zero or
-    !    already in the qc boundaries.
-    if (qcbase.le.k1) qcbase = max(1, qcbase - 1)
-
-    if (min(qrbase,qcbase) .gt. max(qrroof, qcroof)) return
-
     !$acc parallel loop collapse(3) default(present)
-    do k = min(qrbase,qcbase), max(qrroof, qcroof)
+    do k = 1, k1
       do j = 2, j1
         do i = 2, i1
           qtp (i,j,k) = qtp (i,j,k) + qtpmcr (i,j,k)

@@ -465,7 +465,7 @@ contains
         call ncinfo(ncname(47,:),'plw', 'Specific precipitation liquid water content','kg/kg','tt')
         call ncinfo(ncname(48,:),'pli', 'Specific precipitation ice content','kg/kg','tt')
         do n = 1, nsv
-          call ncinfo(ncname(48+7*(n-1)+1,:),trim(tracer_prop(n)%tracname), trim(tracer_prop(n)%traclong)//' specific mixing ratio', trim(tracer_prop(n)%unit),'tt')
+          call ncinfo(ncname(48+7*(n-1)+1,:),trim(tracer_prop(n)%tracname), trim(tracer_prop(n)%traclong), trim(tracer_prop(n)%unit),'tt')
           call ncinfo(ncname(48+7*(n-1)+2,:),trim(tracer_prop(n)%tracname)//'p', trim(tracer_prop(n)%traclong)//' tendency',trim(tracer_prop(n)%unit)//'/s)','tt')
           call ncinfo(ncname(48+7*(n-1)+3,:),trim(tracer_prop(n)%tracname)//'pt', trim(tracer_prop(n)%traclong)//' turbulence tendency',trim(tracer_prop(n)%unit)//'/s','tt')
           call ncinfo(ncname(48+7*(n-1)+4,:),trim(tracer_prop(n)%tracname)//'2r','Resolved '//trim(tracer_prop(n)%traclong)//' variance','('//trim(tracer_prop(n)%unit)//')^2','tt')
