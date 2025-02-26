@@ -71,6 +71,26 @@ module modtracers
 
 contains
 
+  function get_tracer_index(name) result(index)
+    character(len=*), intent(in) :: name
+
+    integer :: index, isv
+    logical :: found
+
+    found = .false.
+
+    do isv = 1, nsv
+      if (trim(tracer_prop(isv)%tracname) == trim(name)) then
+        found = .true.
+        index = isv
+        exit
+      end if
+    end do
+
+    if (.not. found) then
+    end if
+  end function get_tracer_index
+
   !> Initialize tracer definition.
   subroutine inittracers
     character(len=*), parameter :: routine = modname//'::inittracers'

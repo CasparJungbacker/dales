@@ -59,12 +59,13 @@ module modbulkmicro
 
 !> Initializes and allocates the arrays
   subroutine initbulkmicro
-    use modaerosol, only: laerosol
+    use modaerosol, only: laerosol, n_species_active
     use modglobal, only : i1,j1,k1,ih,jh
     use modmicrodata, only : lacz_gamma, Nc, Nc_0, Nr, Nrp, qr, qrp, thlpmcr, &
                              qtpmcr, Dvr, xr, mur, &
                              lbdr, iqr, inr, inc, &
-                             precep, qrmask, qcmask, sed_qr
+                             precep, qrmask, qcmask, sed_qr, qa_inc, qa_inr, &
+                             qap_inc, qap_inr, Ncp
     use modtracers,   only: add_tracer
     use modfields, only: sv0
     implicit none
@@ -77,16 +78,17 @@ module modbulkmicro
     call add_tracer("Nr", long_name="rain droplet number concentration", &
                     unit="1/m^3", lmicro=.true., isv=inr)
 
-    call add_tracer("Nc", long_name="rain droplet number concentration", &
+    call add_tracer("Nc", long_name="cloud droplet number concentration", &
                     unit="1/m^3", lmicro=.true., isv=inc)
 
                                         ! Fields accessed by:
-    allocate(qr       (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat
-            ,Nrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
+    allocate(  & ! dobulkmicrostat, dosimpleicestat
+            Nrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
             ,qrp      (2:i1,2:j1,k1)  & ! bulkmicrotend, simpleicetend
             ,Dvr      (2:i1,2:j1,k1)  & ! dobulkmicrostat
             ,sed_qr   (2:i1,2:j1,k1)  & ! dobulkmicrostat
-            ,precep   (2:i1,2:j1,k1)  ) ! dobulkmicrostat, dosimpleicestat, docape
+            ,precep   (2:i1,2:j1,k1)  & ! dobulkmicrostat, dosimpleicestat, docape
+            ,Ncp(2:i1,2:j1,k1))
 
     allocate(thlpmcr  (2:i1,2:j1,k1)  & !
             ,qtpmcr(2-ih:i1+ih,2-jh:j1+jh,k1) & ! ghost cells added here for modvarbudget
@@ -96,7 +98,10 @@ module modbulkmicro
             ,qrmask   (2:i1,2:j1,k1)  & !
             ,qcmask   (2:i1,2:j1,k1)  )
 
-
+    if (.not. laerosol) then
+      allocate(Nc(2:i1,2:j1,k1))
+      Nc(:,:,:) = Nc_0
+    end if
 
     gamma25=lacz_gamma(2.5)
     gamma3=2.
@@ -128,7 +133,8 @@ module modbulkmicro
 
 !> Calculates the microphysical source term.
   subroutine bulkmicro
-    use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging
+    use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging, &
+                          n_species_active, aerosol_names, aerosol_get_type_in_cloud
     use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -137,19 +143,19 @@ module modbulkmicro
                              l_sedc, l_mur_cst, l_lognormal, l_rain, &
                              qrmask, qrmin, qcmask, qcmin, &
                              mur_cst, inr, iqr, l_sb, Nc, Nc_0, iNc, &
-                             sed_qr
+                             sed_qr, precep, qap_inc, qap_inr, qa_inc, qa_inr
     use bulkmicro_sb, only: do_bulkmicro_sb
     use bulkmicro_kk, only: do_bulkmicro_kk
+    use modtracers,   only: get_tracer_index
     implicit none
-    integer :: i, j, k, imod
+    integer :: i, j, k, imod, s
+    integer :: itype, idx_c, idx_r
     real :: qrtest,nr_cor,qr_cor, Nc_cor
     real :: qrsum_neg, qrsum, Nrsum_neg, Nrsum
 
     qr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iqr)
     Nr(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNr)
-    Nc(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNc)
-
-    !$acc enter data attach(qr, Nr, Nc)
+    if (laerosol) Nc(2:,2:,1:) => sv0(2:i1,2:j1,1:k1,iNc)
 
     !$acc parallel loop collapse(3) default(present)
     do k = 1, k1
@@ -159,9 +165,6 @@ module modbulkmicro
           qrp(i,j,k)     = 0.0
           thlpmcr(i,j,k) = 0.0
           qtpmcr(i,j,k)  = 0.0
-          if (.not. laerosol) then
-            Nc(i,j,k) = Nc_0
-          end if
         enddo
       enddo
     enddo
@@ -226,7 +229,7 @@ module modbulkmicro
         do i = 2, i1
           ! Update mask prior to using it
           qrmask(i,j,k) = (qr(i,j,k) > qrmin .and. Nr(i,j,k) > 0.0)
-          qcmask(i,j,k) = (ql0(i,j,k) > qcmin .and. Nc(i,j,k) > 0.0)
+          qcmask(i,j,k) = (ql0(i,j,k) > qcmin)
           if (qrmask(i,j,k)) then
             qrbase = min(k, qrbase)
           endif
@@ -300,6 +303,23 @@ module modbulkmicro
       end do
     end if
 
+    ! Possible optimization: replace this with pointers
+    ! need to make sure that the in-cloud species are contiguous in sv array
+    ! or: copy them while transposing to (s,k,j,i)
+    do s = 1, n_species_active
+      itype = aerosol_get_type_in_cloud(s)
+      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
+      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
+      do k = 1, k1
+        do j = 2, j1
+          do i = 2, i1
+            qa_inc(i,j,k,s) = sv0(i,j,k,idx_c)
+            qa_inr(i,j,k,s) = sv0(i,j,k,idx_r)
+          end do
+        end do
+      end do
+    end do
+
     ! if there is nothing to do, we can return at this point
     ! if (min(qrbase,qcbase).gt.max(qrroof,qcroof)) return
     if (laerosol) then
@@ -322,7 +342,7 @@ module modbulkmicro
     end if
 
     if (laerosol) then
-      call scavenging(ql0, sed_qr, sv0(:,:,:,iNc), qrmask, rhof, delt, modes)
+      call scavenging(ql0, precep, Nc, qrmask, rhof, delt, qap_inc, qap_inr)
     end if
 
     if (laerosol) then
@@ -330,6 +350,20 @@ module modbulkmicro
         call modes(imod) % copy_out(svp, svm, delt)
       end do
     end if
+
+    do s = 1, n_species_active
+      itype = aerosol_get_type_in_cloud(s)
+      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
+      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
+      do k = 1, k1
+        do j = 2, j1
+          do i = 2, i1
+            svp(i,j,k,idx_c) = qap_inc(i,j,k,s)
+            svp(i,j,k,idx_r) = qap_inr(i,j,k,s)
+          end do
+        end do
+      end do
+    end do
 
     !*********************************************************************
     ! remove negative values and non physical low values

@@ -158,12 +158,16 @@
             k_br = 1000       !<
 
    real(field_r),allocatable,dimension(:,:,:) :: thlpmcr,qtpmcr
-   real(field_r),allocatable,dimension(:,:,:) :: Nrp,qrp
+   real(field_r),allocatable,dimension(:,:,:) :: Nrp,qrp,Ncp
    real(field_r),allocatable,dimension(:,:,:) :: precep !< precipitation (m/s)
 
    real(field_r), pointer :: Nc(:,:,:), Nr(:,:,:), qr(:,:,:)
+   real(field_r), allocatable :: qa_inc(:,:,:,:), qa_inr(:,:,:,:)
+   real(field_r), allocatable :: qap_inc(:,:,:,:), qap_inr(:,:,:,:)
 
   real(field_r) :: delt
+
+  real(field_r), parameter :: ncmin = 1E3
 
   logical ,allocatable,dimension(:,:,:):: qcmask,qrmask
 
