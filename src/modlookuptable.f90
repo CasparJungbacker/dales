@@ -95,6 +95,7 @@ module modlookuptable
   public :: LT2_get_loc        ! Get the index (row) of a value
   public :: LT2_get_col        ! Interpolate one column
   public :: LT2_get_col_at_loc ! Get one column at location
+  public :: LT2_get_col_inline ! Interpolate one column, inlined version
 
 contains
 
@@ -566,5 +567,44 @@ contains
     col_value = sum(w * my_lt%rows_cols(ix(1):ix(1)+1, &
          ix(2):ix(2)+1, col_ix))
   end function LT2_get_col_at_loc
+
+  !> Manually inlined version, a bit easier on the routine seq's
+  elemental function LT2_get_col_inline(my_lt, col_ix, x1, x2) result(col_value)
+    !$acc routine seq
+    type(LT2_t), intent(in) :: my_lt
+    integer,     intent(in) :: col_ix
+    real(dp),    intent(in) :: x1, x2
+
+    real(dp)        :: col_value
+    real(dp)        :: w(2,2)
+    real(dp)        :: frac(2)
+    integer         :: ix(2)
+    type(LT2_loc_t) :: loc
+
+    frac = ([x1, x2] - my_lt%x_min) * my_lt%inv_fac
+    loc%low_ix = ceiling(frac)
+    loc%low_frac = loc%low_ix - frac
+
+    ! Check bounds
+    where (loc%low_ix < 1)
+       loc%low_ix   = 1
+       loc%low_frac = 1
+    end where
+
+    where (loc%low_ix >= my_lt%n_points - 1)
+       loc%low_ix   = my_lt%n_points - 1
+       loc%low_frac = 0
+    end where
+
+    ! Bilinear interpolation
+    w(1, 1) = loc%low_frac(1) * loc%low_frac(2)
+    w(2, 1) = (1 - loc%low_frac(1)) * loc%low_frac(2)
+    w(1, 2) = loc%low_frac(1) * (1 - loc%low_frac(2))
+    w(2, 2) = (1 - loc%low_frac(1)) * (1 - loc%low_frac(2))
+    ix = loc%low_ix
+
+    col_value = sum(w * my_lt%rows_cols(ix(1):ix(1)+1, &
+         ix(2):ix(2)+1, col_ix))
+  end function LT2_get_col_inline
 
 end module modlookuptable
