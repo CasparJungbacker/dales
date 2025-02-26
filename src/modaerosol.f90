@@ -269,7 +269,7 @@ contains
       block
         integer :: my_modes(4) = [iNUS, iAIS, iACS, iCOS]
         do imod = 1, size(my_modes)
-          call mode_add_aerosol_new(modes(my_modes(imod)), itype=iso4)
+          call mode_add_aerosol(modes(my_modes(imod)), itype=iso4)
         end do
         call add_tracer('so4_c', long_name='so4 in-cloud mass concentration', unit='kg/kg')
         call add_tracer('so4_r', long_name='so4 in-rain mass concentration', unit='kg/kg')
@@ -281,7 +281,7 @@ contains
       block
         integer :: my_modes(2) = [iACS, iCOS]
         do imod = 1, size(my_modes)
-          call mode_add_aerosol_new(modes(my_modes(imod)), itype=iss)
+          call mode_add_aerosol(modes(my_modes(imod)), itype=iss)
         end do
         call add_tracer('ss_c', long_name='sea salt in-cloud mass concentration', unit='kg/kg')
         call add_tracer('ss_r', long_name='sea salt in-rain mass concentration', unit='kg/kg')
@@ -293,7 +293,7 @@ contains
       block
         integer :: my_modes(4) = [iAIS, iACS, iCOS, iAII]
         do imod = 1, size(my_modes)
-          call mode_add_aerosol_new(modes(my_modes(imod)), itype=ipom)
+          call mode_add_aerosol(modes(my_modes(imod)), itype=ipom)
         end do
         call add_tracer('pom_c', long_name='organic matter in-cloud mass concentration', unit='kg/kg')
         call add_tracer('pom_r', long_name='organic matter in-rain mass concentration', unit='kg/kg')
@@ -305,7 +305,7 @@ contains
       block
         integer :: my_modes(4) = [iAIS, iACS, iCOS, iAII]
         do imod = 1, size(my_modes)
-          call mode_add_aerosol_new(modes(my_modes(imod)), itype=ibc)
+          call mode_add_aerosol(modes(my_modes(imod)), itype=ibc)
         end do
         call add_tracer('bc_c', long_name='black carbon in-cloud mass concentration', unit='kg/kg')
         call add_tracer('bc_r', long_name='black carbon in-rain mass concentration', unit='kg/kg')
@@ -317,7 +317,7 @@ contains
       block
         integer :: my_modes(4) = [iACS, iCOS, iACI, iCOI]
         do imod = 1, size(my_modes)
-          call mode_add_aerosol_new(modes(my_modes(imod)), itype=idu)
+          call mode_add_aerosol(modes(my_modes(imod)), itype=idu)
         end do
         call add_tracer('du_c', long_name='mineral dust in-cloud mass concentration', unit='kg/kg')
         call add_tracer('du_r', long_name='mineral dust in-rain mass concentration', unit='kg/kg')
@@ -420,7 +420,7 @@ contains
   
   end subroutine mode_construct
 
-  subroutine mode_add_aerosol_new(self, itype)
+  subroutine mode_add_aerosol(self, itype)
     class(mode_t), intent(inout) :: self
     integer, intent(in) :: itype
     
@@ -436,7 +436,7 @@ contains
 
     self%tracer_idx(self%nspecies) = isv
 
-  end subroutine mode_add_aerosol_new
+  end subroutine mode_add_aerosol
 
   !> Allocate memory for mass/number concentrations and tendencies.
   subroutine mode_allocate(self)
