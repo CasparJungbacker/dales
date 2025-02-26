@@ -285,7 +285,6 @@ subroutine initbulkmicrostat
       p_sum = 0.0
       qr_sum = 0.0
       Dvr_sum_cl = 0.0
-      Nc_sum = 0.0
       !$acc loop collapse(2) reduction(+:c_count, r_count, p_count, p_sum_cl,&
       !$acc&                             Nr_sum, p_sum, qr_sum, Dvr_sum_cl)
       do j = 2, j1
@@ -301,11 +300,6 @@ subroutine initbulkmicrostat
             p_sum_cl = p_sum_cl + precep(i,j,k)
           endif
           Nr_sum = Nr_sum + Nr(i,j,k)
-          if (laerosol) then
-            Nc_sum = Nc_sum + modes(iINC) % conc(i,j,k,1)
-          else
-            Nc_sum = Nc_sum + Nc(i,j,k)
-          end if
           p_sum = p_sum + precep(i,j,k)
           qr_sum = qr_sum + qr(i,j,k)
           if (imicro==imicro_bulk .and. qr(i,j,k) > epsqr) then
@@ -318,7 +312,6 @@ subroutine initbulkmicrostat
       preccountav (k) = p_count
       prec_prcav  (k) = p_sum_cl
       Nrrainav    (k) = Nr_sum
-      Ncav        (k) = Nc_sum
       precav      (k) = p_sum
       qrav        (k) = qr_sum
       if (imicro==imicro_bulk) then
@@ -334,7 +327,6 @@ subroutine initbulkmicrostat
     call MPI_ALLREDUCE(MPI_IN_PLACE, Nrrainav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE, precav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE, qrav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
-    call MPI_ALLREDUCE(MPI_IN_PLACE, Ncav, k1, MPI_REAL8, MPI_SUM, comm3d, mpierr)
 
     !$acc kernels default(present)
     cloudcountmn(:) = cloudcountmn(:) +  cloudcountav(:) / ijtot
@@ -345,7 +337,6 @@ subroutine initbulkmicrostat
     Nrrainmn(:)     = Nrrainmn(:)     +  Nrrainav(:)     / ijtot
     precmn(:)       = precmn(:)       +  precav(:)       / ijtot
     qrmn(:)         = qrmn(:)         +  qrav(:)         / ijtot
-    Ncav(:) = Ncmn(:) + Ncav(:) / ijtot
     !$acc end kernels
 
   end subroutine dobulkmicrostat
@@ -561,7 +552,6 @@ subroutine initbulkmicrostat
         do k=1,k1
         vars(k,20) =sum(qrpmn  (k,2:nrfields))
         enddo
-        vars(:,24) = Ncmn(:)
         call writestat_nc(ncid_prof,nvar,ncname,vars(1:kmax,:),nrec_prof,kmax)
       end if
 
