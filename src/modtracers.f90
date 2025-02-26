@@ -47,6 +47,7 @@ module modtracers
   public :: allocate_tracers
   public :: exittracers
   public :: tracer_profs_from_netcdf
+  public :: get_tracer_index
 
   public :: tracer_prop
   public :: nsv_user
