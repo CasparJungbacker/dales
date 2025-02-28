@@ -24,7 +24,7 @@ module bulkmicro_sb
                           mygamma21, mygamma251
   use modmath,      only: inv_sqrt_two
   use modmicrodata, only: Nc_0, pirhow, qrmin, iqr, inr, rhow, eps0, qcmin, &
-                          ncmin
+                          ncmin, l_mur_cst, mur_cst
   use modprecision, only: field_r
   use modtimer,     only: timer_tic, timer_toc
 
@@ -92,12 +92,12 @@ contains
     call autoconversion(ql0, sv0(:,:,:,iqr), sv0(:,:,:,iNc), qa_inc, qa_inr, exnf, rhof, qcbase, qcroof, delt, &
                         thlpmcr, qtpmcr, qrp, Nrp, laerosol, Ncp, qap_inc, qap_inr)
     call bulkmicrotend
-    call accretion(ql0, qr, Nc, Nr, qa_inc, qa_inr, Dvr, lbdr, exnf, rhof, &
+    call accretion(ql0, qr, Nc, Nr, qa_inc, qa_inr, exnf, rhof, &
                    qcbase, qcroof, qrbase, qrroof, laerosol, thlpmcr, qtpmcr, &
                    qrp, Ncp, Nrp, qap_inc, qap_inr)
     call bulkmicrotend
     call evaporation(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,iNr), qvsl, tmp0, &
-                     esl, Dvr, lbdr, mur, xr, qa_inr, exnf, rhof, Nr, qrbase, &
+                     esl, qa_inr, exnf, rhof, Nr, qrbase, &
                      qrroof, laerosol, delt, qrp, Nrp, qtpmcr, thlpmcr, qap_inr, &
                      modes(iACS), modes(iCOS))
     call bulkmicrotend
@@ -109,8 +109,8 @@ contains
                                 sed_qr_=sed_qr)
 #else
     call sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
-                            l_lognormal, l_mur_cst, mur_cst, delt, Dvr, &
-                            lbdr, mur, xr, qrp, Nrp, precep, laerosol, qa_inr, qap_inr, sed_qr, n_species_active)
+                            l_lognormal, delt, &
+                            qrp, Nrp, precep, laerosol, qa_inr, qap_inr, sed_qr, n_species_active)
 #endif
     call bulkmicrotend
 
@@ -204,6 +204,54 @@ contains
     call timer_toc('bulkmicro_sb/calculate_rain_parameters')
 
   end subroutine calculate_rain_parameters
+
+  function calc_mur(qr, rho) result(mu)
+
+    real(field_r), intent(in) :: qr, rho
+    real(field_r)             :: mu
+    !$acc routine seq
+
+    if (.not. l_mur_cst) then
+      mu = min(30.0_field_r, -1 + 0.008_field_r / (qr * rho**0.6_field_r))
+    else
+      mu = mur_cst
+    end if
+
+  end function calc_mur
+
+  function calc_xr(rho, qr, nr) result(xr)
+
+    real(field_r), intent(in) :: rho, qr, nr
+    real(field_r)             :: xr
+    !$acc routine seq
+
+    xr = rho * qr / nr
+    xr = min(max(xr, xrmin), xrmax)
+
+  end function calc_xr
+
+  !> Compute mean rain/cloud drop diameter given its mass.
+  !! \param xr Mass of droplet.
+  function calc_dvr(xr) result(d)
+
+    real(field_r), intent(in) :: xr
+    real(field_r)             :: d
+    !$acc routine seq
+
+    d = (xr / pirhow)**(1._field_r/3)
+
+  end function calc_dvr
+
+  function calc_lbdr(mur, dr) result(lambda)
+
+    real(field_r), intent(in) :: mur
+    real(field_r), intent(in) :: dr
+    real(field_r)             :: lambda
+    !$acc routine seq
+
+    lambda = ((mur + 3) * (mur + 2) * (mur + 1))**(1.0_field_r/3) / dr
+
+  end function calc_lbdr
 
   !> Calculate the autoconversion term.
   !!
@@ -329,7 +377,7 @@ contains
   !! \param qtpmcr Tendency of total water mixing ratio.
   !! \param qrp Tendency of rain water mixing ratio.
   !! \param Nrp Tendency of rain drop number concentration.
-  subroutine accretion(ql, qr, Nc, Nr, qa_c, qa_r, Dvr, lbdr, exnf, rhof, &
+  subroutine accretion(ql, qr, Nc, Nr, qa_c, qa_r, exnf, rhof, &
                        qcbase, qcroof, qrbase, qrroof, laerosol, thlpmcr, &
                        qtpmcr, qrp, Ncp, Nrp, qap_c, qap_r)
 
@@ -339,8 +387,6 @@ contains
     real(field_r), intent(in)    :: Nr(2:,2:,:)
     real(field_r), intent(in)    :: qa_c(2:,2:,:,:)
     real(field_r), intent(in)    :: qa_r(2:,2:,:,:)
-    real(field_r), intent(in)    :: Dvr(2:,2:,:)
-    real(field_r), intent(in)    :: lbdr(2:,2:,:)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
     integer,       intent(in)    :: qcbase, qcroof, qrbase, qrroof
@@ -365,6 +411,7 @@ contains
     real(field_r) :: phi_br
     real(field_r) :: tau     !  internal time scale
     real(field_r) :: q_c, q_r
+    real(field_r) :: xr, dvr, mur, lbdr
 
     if (max(qrbase, qcbase) > min(qrroof, qcroof)) return
 
@@ -405,6 +452,7 @@ contains
 
     if (qrbase > qrroof) return
 
+    ! TODO: CJ: maybe put this in another subroutine
     !$acc parallel loop gang vector collapse(3) default(present) &
     !$acc private(q_r, sc, phi_br, br)
     do k = qrbase, qrroof
@@ -412,10 +460,15 @@ contains
         do i = 2, i1
           q_r = qr(i,j,k)
           if (q_r > qrmin) then
+            xr = calc_xr(rhof(k), q_r, Nr(i,j,k))
+            dvr = calc_dvr(xr)
+            mur = calc_mur(q_r, rhof(k))
+            lbdr = calc_lbdr(mur, dvr)
+
             sc = k_rr *rhof(k)* q_r * Nr(i,j,k)  &
-                 * (1 + kappa_r/lbdr(i,j,k)*pirhow**(1./3.))**(-9.)* (1.225/rhof(k))**0.5
-            if (Dvr(i,j,k) > 0.30E-3) then
-              phi_br = k_br * (Dvr(i,j,k)-D_eq)
+                 * (1 + kappa_r/lbdr*pirhow**(1./3.))**(-9.)* (1.225/rhof(k))**0.5
+            if (Dvr > 0.30E-3) then
+              phi_br = k_br * (dvr-D_eq)
               br = (phi_br + 1.) * sc
             else
               br = 0.
@@ -455,8 +508,8 @@ contains
   !! \param delt Time step size.
   !! \param qtpmcr Tendency of total water mixing ratio.
   !! \param thlpmcr Tendency of $\theta_l$.
-  subroutine evaporation(ql, qt, qr, qrm, Nrm, qvsl, tmp0, esl, Dvr, lbdr, mur, &
-                         xr, qa_r, exnf, rhof, Nr, qrbase, qrroof, laerosol, &
+  subroutine evaporation(ql, qt, qr, qrm, Nrm, qvsl, tmp0, esl, &
+                         qa_r, exnf, rhof, Nr, qrbase, qrroof, laerosol, &
                          delt, qrp, Nrp, qtpmcr, thlpmcr, qap_r, m_acs, m_cos)
 
     real(field_r), intent(in)    :: ql(2-ih:i1+ih,2-jh:j1+jh,1:k1)
@@ -467,10 +520,6 @@ contains
     real(field_r), intent(in)    :: qvsl(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: tmp0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: esl(2-ih:i1+ih,2-jh:j1+jh,1:k1)
-    real(field_r), intent(in)    :: Dvr(2:i1,2:j1,1:k1)
-    real(field_r), intent(in)    :: lbdr(2:i1,2:j1,1:k1)
-    real(field_r), intent(in)    :: mur(2:i1,2:j1,1:k1)
-    real(field_r), intent(in)    :: xr(2:i1,2:j1,1:k1)
     real(field_r), intent(in)    :: qa_r(2:,2:,:,:)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
@@ -494,7 +543,7 @@ contains
     real(field_r) :: S !< super or undersaturation
     real(field_r) :: G !< cond/evap rate of a drop
     real(field_r) :: evap, Nevap
-    real(field_r) :: mur_, lbdr_
+    real(field_r) :: xr, dvr, mur, lbdr
     real(field_r) :: dm, dm_fac, e, eps, evapt, f_evp, fm, fn, rho, v, dn
     integer :: itype, naer
     real(field_r) :: m_evp, v_evp, rho_evp
@@ -515,22 +564,24 @@ contains
       do j = 2, j1
         do i = 2, i1
           if (qr(i,j,k) > qrmin) then
-            mur_ = mur(i,j,k)
-            lbdr_ = lbdr(i,j,k)
+            xr = calc_xr(rhof(k), qr(i,j,k), Nr(i,j,k))
+            dvr = calc_dvr(xr)
+            mur = calc_mur(qr(i,j,k), rhof(k))
+            lbdr = calc_lbdr(mur, dvr)
 
-            numel = nint(mur_ * 100)
-            F = avf * mygamma21(numel)*Dvr(i,j,k) +  &
-               bvf*Sc_num**(1./3.)*(a_tvsb/nu_a)**0.5*mygamma251(numel)*Dvr(i,j,k)**(3./2.) * &
-               (1. - (1.0_field_r/2)   * (b_tvsb / a_tvsb)    *(lbdr_ / (    c_tvsb + lbdr_))**(mur_ + 2.5_field_r) &
-                   - (1.0_field_r/8)   * (b_tvsb / a_tvsb)**2 *(lbdr_ / (2 * c_tvsb + lbdr_))**(mur_ + 2.5_field_r) &
-                   - (1.0_field_r/16)  * (b_tvsb / a_tvsb)**3 *(lbdr_ / (3 * c_tvsb + lbdr_))**(mur_ + 2.5_field_r) &
-                   - (5.0_field_r/128) * (b_tvsb / a_tvsb)**4 *(lbdr_ / (4 * c_tvsb + lbdr_))**(mur_ + 2.5_field_r) )
+            numel = nint(mur * 100)
+            F = avf * mygamma21(numel)*dvr +  &
+               bvf*Sc_num**(1./3.)*(a_tvsb/nu_a)**0.5*mygamma251(numel)*dvr**(3./2.) * &
+               (1. - (1.0_field_r/2)   * (b_tvsb / a_tvsb)    *(lbdr / (    c_tvsb + lbdr))**(mur + 2.5_field_r) &
+                   - (1.0_field_r/8)   * (b_tvsb / a_tvsb)**2 *(lbdr / (2 * c_tvsb + lbdr))**(mur + 2.5_field_r) &
+                   - (1.0_field_r/16)  * (b_tvsb / a_tvsb)**3 *(lbdr / (3 * c_tvsb + lbdr))**(mur + 2.5_field_r) &
+                   - (5.0_field_r/128) * (b_tvsb / a_tvsb)**4 *(lbdr / (4 * c_tvsb + lbdr))**(mur + 2.5_field_r) )
             S = min(0.0_field_r, (qt(i,j,k) - ql(i,j,k)) / qvsl(i,j,k) - 1)
             G = (Rv * tmp0(i,j,k)) / (Dv * esl(i,j,k)) + rlv / (Kt * tmp0(i,j,k)) * (rlv / (Rv * tmp0(i,j,k)) - 1)
             G = 1/G
 
             evap = 2 * pi * Nr(i,j,k) * G * F * S / rhof(k)
-            Nevap = c_Nevap * evap * rhof(k) / xr(i,j,k)
+            Nevap = c_Nevap * evap * rhof(k) / xr
             
             ! TODO: replace svm reference by qr and nr?
             !if (evap < -svm(i,j,k,iqr)/delt) then
@@ -624,8 +675,7 @@ contains
   !! \param Nrp Tendency of rain drop number concentration.
   !! \param precep Precipitation.
   subroutine sedimentation_rain(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
-                                l_lognormal, l_mur_cst, mur_cst, delt, Dvr, lbdr, &
-                                mur, xr, qrp, Nrp, precep, laerosol, qa_inr, qap_inr, &
+                                l_lognormal, delt, qrp, Nrp, precep, laerosol, qa_inr, qap_inr, &
                                 sed_qr_, n_species_active)
 
     real(field_r), intent(in)    :: qr(2:i1,2:j1,1:k1)
@@ -637,14 +687,8 @@ contains
     integer,       intent(in)    :: qrroof
     logical,       intent(inout) :: qrmask(2:i1,2:j1,1:k1)
 
-    logical,       intent(in)    :: l_lognormal, l_mur_cst
-    real(field_r), intent(in)    :: mur_cst
+    logical,       intent(in)    :: l_lognormal
     real(field_r), intent(in)    :: delt
-
-    real(field_r), intent(inout) :: Dvr(2:i1,2:j1,1:k1)
-    real(field_r), intent(inout) :: lbdr(2:i1,2:j1,1:k1)
-    real(field_r), intent(inout) :: mur(2:i1,2:j1,1:k1)
-    real(field_r), intent(inout) :: xr(2:i1,2:j1,1:k1)
 
     real(field_r), intent(inout) :: qrp(2:i1,2:j1,1:k1)
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
@@ -652,7 +696,7 @@ contains
 
     logical,       intent(in)    :: laerosol 
     real(field_r), intent(in)    :: qa_inr(2:,2:,:,:)
-    real(field_r), intent(inout)    :: qap_inr(2:,2:,:,:)
+    real(field_r), intent(inout) :: qap_inr(2:,2:,:,:)
     real(field_r), intent(out)   :: sed_qr_(2:i1,2:j1,1:k1)
     integer,       intent(in)    :: n_species_active
 
@@ -665,6 +709,7 @@ contains
     real(field_r) :: wfall_Nr      !<  fall velocity for Nr
     real(field_r) :: sed_qr
     real(field_r) :: sed_Nr
+    real(field_r) :: xr, dvr, mur, lbdr
 
     real(field_r), allocatable :: qr_spl(:,:,:), Nr_spl(:,:,:), qa_spl(:,:,:,:)
 
@@ -704,9 +749,6 @@ contains
         ! lower the rain base by one level to include the rain fall
         ! from the previous step
         qrbase = max(1, qrbase - 1)
-
-        call calculate_rain_parameters(Nr_spl, qr_spl, rhof, l_mur_cst, mur_cst, &
-                                       qrbase, qrroof, qrmask, xr, Dvr, mur, lbdr)
       end if
 
       if (l_lognormal) then
@@ -714,9 +756,11 @@ contains
           do j = 2, j1
             do i = 2, i1
               if (qrmask(i,j,k)) then
+                xr = calc_xr(rhof(k), qr_spl(i,j,k), Nr_spl(i,j,k))
+                dvr = calc_dvr(xr)
+
                 ! correction for width of DSD
-                Dgr = (exp(4.5_field_r * (log(sig_gr))**2))**(-1.0_field_r/3) &
-                      * Dvr(i,j,k)
+                Dgr = (exp(4.5_field_r * (log(sig_gr))**2))**(-1.0_field_r/3) * Dvr
                 sed_qr = sed_flux(Nr_spl(i,j,k), Dgr, log(sig_gr)**2, D_s, 3)
                 sed_Nr = 1 / pirhow * sed_flux(Nr_spl(i,j,k), Dgr, log(sig_gr)**2, D_s, 0)
 
@@ -748,9 +792,13 @@ contains
           do j = 2, j1
             do i = 2, i1
               if (qrmask(i,j,k)) then
+                xr = calc_xr(rhof(k), qr(i,j,k), Nr(i,j,k))
+                dvr = calc_dvr(xr)
+                mur = calc_mur(qr(i,j,k), rhof(k))
+                lbdr = calc_lbdr(mur, dvr)
 
-                wfall_qr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+4))))
-                wfall_Nr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr(i,j,k))**(-1 * (mur(i,j,k)+1))))
+                wfall_qr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr)**(-1 * (mur+4))))
+                wfall_Nr = max(0._field_r, (a_tvsb - b_tvsb * (1 + c_tvsb / lbdr)**(-1 * (mur+1))))
 
                 sed_qr  = wfall_qr * qr_spl(i,j,k) * rhof(k) ! m/s * kg/m3
                 sed_Nr  = wfall_Nr * Nr_spl(i,j,k)
