@@ -346,7 +346,7 @@ contains
                 ! Move aerosol mass
                 do s = 1, n_species_active
                   qap_c(i,j,k,s) = qap_c(i,j,k,s) - au / ql_ * qa_c(i,j,k,s)
-                  qap_r(i,j,k,s) = qap_r(i,j,k,s) + au / ql_ * qa_r(i,j,k,s)
+                  qap_r(i,j,k,s) = qap_r(i,j,k,s) + au / ql_ * qa_c(i,j,k,s)
                 end do
               end if
            end if
@@ -442,7 +442,7 @@ contains
 
               do s = 1, n_species_active
                 qap_c(i,j,k,s) = qap_c(i,j,k,s) - ac / q_c * qa_c(i,j,k,s)
-                qap_r(i,j,k,s) = qap_r(i,j,k,s) + ac / q_c * qa_r(i,j,k,s)
+                qap_r(i,j,k,s) = qap_r(i,j,k,s) + ac / q_c * qa_c(i,j,k,s)
               end do
             end if
           end if

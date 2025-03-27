@@ -193,7 +193,7 @@ contains
               ncp(i,j,k) = ncp(i,j,k) - au / xc * rhof(k)
               do s = 1, naer
                 qap_c(i,j,k,s) = qap_c(i,j,k,s) - au / q_c * qa_c(i,j,k,s)
-                qap_r(i,j,k,s) = qap_r(i,j,k,s) + au / q_c * qa_r(i,j,k,s)
+                qap_r(i,j,k,s) = qap_r(i,j,k,s) + au / q_c * qa_c(i,j,k,s)
               end do
             end if
           end if
@@ -271,7 +271,7 @@ contains
 
               do s = 1, naer
                 qap_c(i,j,k,s) = qap_c(i,j,k,s) - ac / q_c * qa_c(i,j,k,s)
-                qap_r(i,j,k,s) = qap_r(i,j,k,s) + ac / q_c * qa_r(i,j,k,s)
+                qap_r(i,j,k,s) = qap_r(i,j,k,s) + ac / q_c * qa_c(i,j,k,s)
               end do
             end if
           end if

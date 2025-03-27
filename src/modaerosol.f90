@@ -361,6 +361,11 @@ contains
              qap_inc(2:i1,2:j1,k1,n_species_active), &
              qap_inr(2:i1,2:j1,k1,n_species_active))
 
+    qa_inc = 0
+    qa_inr = 0
+    qap_inc = 0
+    qap_inr = 0
+
     ! Setup the lookup tables for scavenging routines
     inc_tab_m = LT2_create([cldrad(1), aerrad(1)], [cldrad(10), aerrad(60)], &
                            [10, 60], 1)
