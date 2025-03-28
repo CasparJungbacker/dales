@@ -26,6 +26,8 @@ module modaerosol
                             cexpnr, i1, j1, k1, ih, jh, pi, nsv, rhow, kmax
   use modmath,        only: inv_sqrt_two
   use modmicrodata,   only: qcmin, qa_inc, qa_inr, qap_inc, qap_inr
+  use modfields,      only: sv0, svp, svm
+  use modmicrodata,   only: qcmin, qa_inc, qa_inr, qap_inc, qap_inr, delt
   use modmpi,         only: myid, D_MPI_BCAST, commwrld, mpierr
   use modprecision,   only: field_r
   use modtracers,     only: add_tracer, allocate_tracers, tracer_prop, &
@@ -41,6 +43,9 @@ module modaerosol
   private
    
   save
+
+  public :: aerosol_prepare
+  public :: aerosol_finalize
 
   public :: aerosol_get_index_in_mode
   public :: aerosol_get_index_in_cloud
@@ -404,6 +409,84 @@ contains
   subroutine exitaerosol
     if (.not. laerosol) return
   end subroutine exitaerosol
+
+  ! Prepares aerosol fields for microphysics calculations
+  subroutine aerosol_prepare
+
+    character(len=*), parameter :: routine = modname//'/aerosol_prepare'
+
+    integer :: i, j, k, s, imod
+    integer :: itype, idx_c, idx_r
+
+    if (.not. laerosol) return
+
+    call timer_tic(routine, 1)
+
+    ! TODO: Possible optimization: replace this with pointers
+    ! need to make sure that the in-cloud species are contiguous in sv array
+    ! or: copy them while transposing to (s,k,j,i)
+
+    ! Copy ambient mass and number concentrations to temp fields
+    do imod = 1, maxmodes
+      call modes(imod) % copy_in(sv0)
+    end do
+
+    do s = 1, n_species_active
+      itype = aerosol_get_type_in_cloud(s)
+      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
+      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
+      do k = 1, kmax
+        do j = 2, j1
+          do i = 2, i1
+            ! Copy mass concentrations
+            qa_inc(i,j,k,s) = max(sv0(i,j,k,idx_c), 0.0_field_r)
+            qa_inr(i,j,k,s) = max(sv0(i,j,k,idx_r), 0.0_field_r)
+            ! Reset tendency fields
+            qap_inc(i,j,k,s) = 0
+            qap_inr(i,j,k,s) = 0
+          end do
+        end do
+      end do
+    end do
+
+    call timer_toc(routine)
+
+  end subroutine aerosol_prepare
+
+  subroutine aerosol_finalize
+
+    character(len=*), parameter :: routine = modname//'/aerosol_finalize'
+
+    integer :: i, j, k, s, imod
+    integer :: itype, idx_c, idx_r
+
+    if (.not. laerosol) return
+
+    call timer_tic(routine, 1)
+
+    if (laerosol) then
+      do imod = 1, maxmodes
+        call modes(imod) % copy_out(svp, svm, delt)
+      end do
+    end if
+
+    do s = 1, n_species_active
+      itype = aerosol_get_type_in_cloud(s)
+      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
+      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
+      do k = 1, k1
+        do j = 2, j1
+          do i = 2, i1
+            svp(i,j,k,idx_c) = svp(i,j,k,idx_c) + qap_inc(i,j,k,s)
+            svp(i,j,k,idx_r) = svp(i,j,k,idx_r) + qap_inr(i,j,k,s)
+          end do
+        end do
+      end do
+    end do
+
+    call timer_toc(routine)
+
+  end subroutine aerosol_finalize
 
   !> Construct a mode
   !!

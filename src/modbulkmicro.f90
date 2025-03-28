@@ -134,7 +134,8 @@ module modbulkmicro
 !> Calculates the microphysical source term.
   subroutine bulkmicro
     use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging, &
-                          n_species_active, aerosol_names, aerosol_get_type_in_cloud
+                          n_species_active, aerosol_names, aerosol_get_type_in_cloud, &
+                          aerosol_prepare, aerosol_finalize
     use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
     use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
     use modbulkmicrostat, only : bulkmicrotend
@@ -297,28 +298,7 @@ module modbulkmicro
     endif
 #endif
 
-    if (laerosol) then
-      do imod = 1, maxmodes
-        call modes(imod) % copy_in(sv0)
-      end do
-    end if
-
-    ! Possible optimization: replace this with pointers
-    ! need to make sure that the in-cloud species are contiguous in sv array
-    ! or: copy them while transposing to (s,k,j,i)
-    do s = 1, n_species_active
-      itype = aerosol_get_type_in_cloud(s)
-      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
-      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
-      do k = 1, k1
-        do j = 2, j1
-          do i = 2, i1
-            qa_inc(i,j,k,s) = sv0(i,j,k,idx_c)
-            qa_inr(i,j,k,s) = sv0(i,j,k,idx_r)
-          end do
-        end do
-      end do
-    end do
+    call aerosol_prepare
 
     ! if there is nothing to do, we can return at this point
     ! if (min(qrbase,qcbase).gt.max(qrroof,qcroof)) return
@@ -345,25 +325,7 @@ module modbulkmicro
       call scavenging(ql0, precep, Nc, qrmask, rhof, delt, qap_inc, qap_inr)
     end if
 
-    if (laerosol) then
-      do imod = 1, maxmodes
-        call modes(imod) % copy_out(svp, svm, delt)
-      end do
-    end if
-
-    do s = 1, n_species_active
-      itype = aerosol_get_type_in_cloud(s)
-      idx_c = get_tracer_index(trim(aerosol_names(itype))//"_c")
-      idx_r = get_tracer_index(trim(aerosol_names(itype))//"_r")
-      do k = 1, k1
-        do j = 2, j1
-          do i = 2, i1
-            svp(i,j,k,idx_c) = qap_inc(i,j,k,s)
-            svp(i,j,k,idx_r) = qap_inr(i,j,k,s)
-          end do
-        end do
-      end do
-    end do
+    call aerosol_finalize
 
     !*********************************************************************
     ! remove negative values and non physical low values
