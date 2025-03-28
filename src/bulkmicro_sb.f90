@@ -71,7 +71,10 @@ module bulkmicro_sb
     x_s = xcmax         !< Drop mass separating the cloud and precipitation parts of the DSD.
 
   ! Procedures
-  public :: do_bulkmicro_sb
+  public :: autoconversion
+  public :: accretion
+  public :: evaporation
+  public :: sedimentation_rain
 
 contains
 
@@ -270,14 +273,12 @@ contains
   !! \param laerosol Switch for applying autoconversion to aerosols.
   !! \param m_inc In-cloud aerosol mode.
   !! \param m_inr In-rain aerosol mode.
-  subroutine autoconversion(ql, qr, Nc, qa_c, qa_r, exnf, rhof, qcbase, &
+  subroutine autoconversion(ql, qr, Nc, exnf, rhof, qcbase, &
                             qcroof, delt, thlpmcr, qtpmcr, qrp, Nrp, &
-                            laerosol, Ncp, qap_c, qap_r)
+                            laerosol, Ncp)
     real(field_r), intent(in)    :: ql(2:,2:,:)
     real(field_r), intent(in)    :: qr(2:,2:,:)
     real(field_r), intent(in)    :: Nc(2:,2:,:)
-    real(field_r), intent(in)    :: qa_c(2:,2:,:,:)
-    real(field_r), intent(in)    :: qa_r(2:,2:,:,:)
     real(field_r), intent(in)    :: exnf(:)
     real(field_r), intent(in)    :: rhof(:)
     integer,       intent(in)    :: qcbase, qcroof
@@ -289,8 +290,6 @@ contains
     real(field_r), intent(inout) :: qrp(2:,2:,:)
     real(field_r), intent(inout) :: Nrp(2:,2:,:)
     real(field_r), intent(inout) :: Ncp(2:,2:,:)
-    real(field_r), intent(inout) :: qap_c(2:,2:,:,:)
-    real(field_r), intent(inout) :: qap_r(2:,2:,:,:)
 
     character(*), parameter :: routine = modname//"::autoconversion"
 
@@ -338,16 +337,10 @@ contains
               
               if (laerosol) then
                 ! When aerosols are enabled, we need to take selfcollection into account
-                sc = -k_cc * ((nuc + 2) / (nuc + 1)) * rho0 / rhof(k) &
+                sc = -k_cc * (nuc + 2) / (nuc + 1) * rho0 / rhof(k) &
                      * (ql_ * rhof(k))**2
 
                 Ncp(i,j,k) = Ncp(i,j,k) + sc - au / xc * rhof(k)
-
-                ! Move aerosol mass
-                do s = 1, n_species_active
-                  qap_c(i,j,k,s) = qap_c(i,j,k,s) - au / ql_ * qa_c(i,j,k,s)
-                  qap_r(i,j,k,s) = qap_r(i,j,k,s) + au / ql_ * qa_c(i,j,k,s)
-                end do
               end if
            end if
         end do
@@ -377,16 +370,14 @@ contains
   !! \param qtpmcr Tendency of total water mixing ratio.
   !! \param qrp Tendency of rain water mixing ratio.
   !! \param Nrp Tendency of rain drop number concentration.
-  subroutine accretion(ql, qr, Nc, Nr, qa_c, qa_r, exnf, rhof, &
+  subroutine accretion(ql, qr, Nc, Nr, exnf, rhof, &
                        qcbase, qcroof, qrbase, qrroof, laerosol, thlpmcr, &
-                       qtpmcr, qrp, Ncp, Nrp, qap_c, qap_r)
+                       qtpmcr, qrp, Ncp, Nrp)
 
     real(field_r), intent(in)    :: ql(2:,2:,:)
     real(field_r), intent(in)    :: qr(2:,2:,:)
     real(field_r), intent(in)    :: Nc(2:,2:,:)
     real(field_r), intent(in)    :: Nr(2:,2:,:)
-    real(field_r), intent(in)    :: qa_c(2:,2:,:,:)
-    real(field_r), intent(in)    :: qa_r(2:,2:,:,:)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
     integer,       intent(in)    :: qcbase, qcroof, qrbase, qrroof
@@ -397,8 +388,6 @@ contains
     real(field_r), intent(inout) :: qrp(2:,2:,:)
     real(field_r), intent(inout) :: Ncp(2:,2:,:)
     real(field_r), intent(inout) :: Nrp(2:,2:,:)
-    real(field_r), intent(inout) :: qap_c(2:,2:,:,:)
-    real(field_r), intent(inout) :: qap_r(2:,2:,:,:)
 
     character(len=*), parameter :: routine = modname//"::accretion"
 
@@ -416,8 +405,6 @@ contains
     if (max(qrbase, qcbase) > min(qrroof, qcroof)) return
 
     call timer_tic('bulkmicro_sb/accretion', 1)
-
-    if (laerosol) naer = size(qa_c, dim=4)
 
     !$acc parallel loop gang vector collapse(3) default(present) &
     !$acc private(q_c, q_r, tau, phi, ac, xc)
@@ -439,11 +426,6 @@ contains
             if (laerosol) then
               xc = rhof(k) * q_c / (Nc(i,j,k) + eps0)
               Ncp(i,j,k) = Ncp(i,j,k) - ac / xc
-
-              do s = 1, n_species_active
-                qap_c(i,j,k,s) = qap_c(i,j,k,s) - ac / q_c * qa_c(i,j,k,s)
-                qap_r(i,j,k,s) = qap_r(i,j,k,s) + ac / q_c * qa_c(i,j,k,s)
-              end do
             end if
           end if
         end do

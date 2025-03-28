@@ -135,9 +135,10 @@ module modbulkmicro
   subroutine bulkmicro
     use modaerosol, only: laerosol, activation, modes, maxmodes, scavenging, &
                           n_species_active, aerosol_names, aerosol_get_type_in_cloud, &
-                          aerosol_prepare, aerosol_finalize
-    use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp
-    use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof
+                          aerosol_prepare, aerosol_finalize, iACS, iCOS, &
+                          aerosol_cloud_to_rain
+    use modglobal, only : i1,j1,kmax,k1,rdt,rk3step,timee,rlv,cp, dzf
+    use modfields, only : sv0,svm,svp,qtp,thlp,ql0,exnf,rhof, esl, qt0, qvsl, tmp0
     use modbulkmicrostat, only : bulkmicrotend
     use modmpi,    only : myid
     use modmicrodata, only : Nr, qr, Nrp, qrp, thlpmcr, qtpmcr, delt, &
@@ -146,6 +147,10 @@ module modbulkmicro
                              mur_cst, inr, iqr, l_sb, Nc, Nc_0, iNc, &
                              sed_qr, precep, qap_inc, qap_inr, qa_inc, qa_inr
     use bulkmicro_sb, only: do_bulkmicro_sb
+    use bulkmicro_sb, only: autoconversion_sb => autoconversion, &
+                            accretion_sb => accretion, &
+                            evaporation_sb => evaporation, &
+                            sedimentation_rain_sb => sedimentation_rain
     use bulkmicro_kk, only: do_bulkmicro_kk
     use modtracers,   only: get_tracer_index
     implicit none
@@ -315,7 +320,31 @@ module modbulkmicro
     !*********************************************************************
     if (l_rain) then
       if (l_sb) then
-        call do_bulkmicro_sb
+        call autoconversion_sb(ql0, qr, Nc, exnf, rhof, qcbase, qcroof, delt, &
+                thlpmcr, qtpmcr, qrp, Nrp, laerosol, Ncp)
+
+        call bulkmicrotend
+
+        call accretion_sb(ql0, qr, Nc, Nr, exnf, rhof, &
+                qcbase, qcroof, qrbase, qrroof, laerosol, thlpmcr, qtpmcr, &
+                qrp, Ncp, Nrp)
+
+        call aerosol_cloud_to_rain(ql0, qrp)
+
+        call bulkmicrotend
+
+        call evaporation_sb(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,iNr), qvsl, tmp0, &
+                esl, qa_inr, exnf, rhof, Nr, qrbase, &
+                qrroof, laerosol, delt, qrp, Nrp, qtpmcr, thlpmcr, qap_inr, &
+                modes(iACS), modes(iCOS))
+
+        call bulkmicrotend
+
+        call sedimentation_rain_sb(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+                l_lognormal, delt, &
+                qrp, Nrp, precep, laerosol, qa_inr, qap_inr, sed_qr, n_species_active)
+
+        call bulkmicrotend
       else
         call do_bulkmicro_kk
       end if

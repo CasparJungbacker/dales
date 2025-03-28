@@ -51,6 +51,9 @@ module modaerosol
   public :: aerosol_get_index_in_cloud
   public :: aerosol_get_type_in_cloud
 
+  !public :: aero_redistribute
+  public :: aerosol_cloud_to_rain
+
   public :: aerosol_names
   public :: n_species_active
   public :: rho_a
@@ -1038,6 +1041,41 @@ contains
       !$acc routine seq
       real(field_r), intent(in) :: x
       real(field_r) :: w, p
+  ! TODO: in the following subroutines aero_xxx, make sure that the arguments are similarly named
+  !> Moves aerosol mass from the in-cloud category to the in-rain category.
+  !! \param qc Cloud water content.
+  !! \param qcp Tendency of cloud water due to microphysical processes.
+  subroutine aerosol_cloud_to_rain(qc, qcp)
+
+    use modmicrodata, only: qa_c => qa_inc, qap_c => qap_inc, qap_r => qap_inr
+
+    real(field_r), intent(in) :: qc(2:,2:,:)
+    real(field_r), intent(in) :: qcp(2:,2:,:)
+
+    character(len=*), parameter :: routine = modname//'aerosol_cloud_to_rain'
+
+    integer       :: i, j, k, s
+    real(field_r) :: dqadt
+
+    call timer_tic(routine, 1)
+
+    !$acc parallel loop collapse(4) default(present) private(dqadt)
+    do s = 1, n_species_active
+      do k = 1, kmax
+        do j = 2, j1
+          do i = 2, i1
+            dqadt = qcp(i,j,k) / qc(i,j,k) * qa_c(i,j,k,s)
+            dqadt = merge(dqadt, 0.0_field_r, qc(i,j,k) > qcmin)
+            qap_c(i,j,k,s) = qap_c(i,j,k,s) - dqadt
+            qap_r(i,j,k,s) = qap_r(i,j,k,s) + dqadt
+          end do
+        end do
+      end do
+    end do
+
+    call timer_toc(routine)
+
+  end subroutine aerosol_cloud_to_rain
 
       ! Safeguard for x close to 0 or 1
       if ( abs( x ) <= 1E-15 ) then
