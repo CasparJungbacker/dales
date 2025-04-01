@@ -491,8 +491,8 @@ contains
   !! \param qtpmcr Tendency of total water mixing ratio.
   !! \param thlpmcr Tendency of $\theta_l$.
   subroutine evaporation(ql, qt, qr, qrm, Nrm, qvsl, tmp0, esl, &
-                         qa_r, exnf, rhof, Nr, qrbase, qrroof, laerosol, &
-                         delt, qrp, Nrp, qtpmcr, thlpmcr, qap_r, m_acs, m_cos)
+                         exnf, rhof, Nr, qrbase, qrroof, &
+                         delt, qrp, Nrp, qtpmcr, thlpmcr)
 
     real(field_r), intent(in)    :: ql(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: qt(2-ih:i1+ih,2-jh:j1+jh,1:k1)
@@ -502,44 +502,30 @@ contains
     real(field_r), intent(in)    :: qvsl(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: tmp0(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(in)    :: esl(2-ih:i1+ih,2-jh:j1+jh,1:k1)
-    real(field_r), intent(in)    :: qa_r(2:,2:,:,:)
     real(field_r), intent(in)    :: exnf(1:k1)
     real(field_r), intent(in)    :: rhof(1:k1)
     real(field_r), intent(in)    :: Nr(2:i1,2:j1,1:k1)
     integer,       intent(in)    :: qrbase, qrroof
-    logical,       intent(in)    :: laerosol
     real(field_r), intent(in)    :: delt
 
     real(field_r), intent(inout) :: qrp(2:i1,2:j1,1:k1)
     real(field_r), intent(inout) :: Nrp(2:i1,2:j1,1:k1)
     real(field_r), intent(inout) :: qtpmcr(2-ih:i1+ih,2-jh:j1+jh,1:k1)
     real(field_r), intent(inout) :: thlpmcr(2:i1,2:j1,1:k1)
-    real(field_r), intent(inout) :: qap_r(2:,2:,:,:)
-    type(mode_t),  intent(inout) :: m_acs
-    type(mode_t),  intent(inout) :: m_cos
 
-    integer       :: i,j,k,l
+    integer       :: i,j,k
     integer       :: numel
-    integer       :: idx
     real(field_r) :: F !< ventilation factor
     real(field_r) :: S !< super or undersaturation
     real(field_r) :: G !< cond/evap rate of a drop
     real(field_r) :: evap, Nevap
     real(field_r) :: xr, dvr, mur, lbdr
-    real(field_r) :: dm, dm_fac, e, eps, evapt, f_evp, fm, fn, rho, v, dn
-    integer :: itype, naer
-    real(field_r) :: m_evp, v_evp, rho_evp
 
     character(*), parameter :: routine = modname//"::evaporation"
-
-    real(field_r), parameter :: Dc = 1.0
-    integer :: src_idx, target_idx
 
     if (qrbase > qrroof) return
 
     call timer_tic('bulkmicro_sb01/evaporation', 1)
-
-    if(laerosol) naer = size(qa_r, dim=4)
 
     !$acc parallel loop collapse(3) default(present)
     do k = qrbase, qrroof
@@ -580,54 +566,6 @@ contains
 
             qtpmcr(i,j,k) = qtpmcr(i,j,k) - evap
             thlpmcr(i,j,k) = thlpmcr(i,j,k) + (rlv / (cp * exnf(k))) * evap
-
-            if (laerosol) then
-              ! Fraction of rain that evaporates
-              f_evp = - evap / (qr(i,j,k) + eps0) * delt
-              f_evp = max(min(f_evp, 1.0_field_r), 0.0_field_r)
-
-              ! Correction factor from Gong et al. (2006)
-              eps = (1 - exp(-2 * sqrt(f_evp)) * (1 + 2 * sqrt(f_evp) &
-                    + 2 * f_evp + (4.0_field_r/3) * f_evp**(3.0_field_r/2))) &
-                    * (1 - f_evp) + f_evp * f_evp
-
-              ! Compute the mass and volume of the evaporated aerosol
-              m_evp = 0
-              v_evp = 0
-              do l = 1, naer
-                evapt = eps * f_evp * qa_r(i,j,k,l) / delt
-                qap_r(i,j,k,l) = qap_r(i,j,k,l) - evapt
-                
-                ! Evaporation can't be a source
-                evapt = max(0.0_field_r, evapt)
-
-                m_evp = m_evp + evapt
-                v_evp = v_evp + evapt / rho_a(l)
-              end do
-
-              rho_evp = m_evp / (v_evp + eps0)
-
-              Nevap = max(0._field_r, -1 * Nevap)
-
-              Dn = 1E6 * (6 * m_evp / (pi * Nevap * rho_evp * + eps0))**(1.0_field_r / 3) &
-                   * exp(-(3.0_field_r / 2) * log(1.5_field_r)**2)
-              Dm = Dn * exp(3 * log(1.5_field_r)**2)
-
-              Fn = 0.5_field_r * erfc(-log(Dc/Dn) / log(1.5_field_r) * inv_sqrt_two)
-              Fm = 0.5_field_r * erfc(-log(Dc/Dm) / log(1.5_field_r) * inv_sqrt_two)
-
-              m_acs%np(i,j,k) = m_acs%np(i,j,k) + Fn * Nevap
-              m_cos%np(i,j,k) = m_cos%np(i,j,k) + (1 - Fn) * Nevap
-
-              do l = 1, naer
-                evapt = eps * f_evp * qa_r(i,j,k,l) / delt
-                itype = aerosol_get_type_in_cloud(l)
-                target_idx = aerosol_get_index_in_mode(itype, m_acs)
-                m_acs%qp(i,j,k,target_idx) = m_acs%qp(i,j,k,target_idx) + Fm * evapt
-                target_idx = aerosol_get_index_in_mode(itype, m_cos)
-                m_cos%qp(i,j,k,target_idx) = m_cos%qp(i,j,k,target_idx) + (1 - Fm) * evapt
-              end do
-            end if
           end if
         end do
       end do

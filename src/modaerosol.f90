@@ -51,7 +51,7 @@ module modaerosol
   public :: aerosol_get_index_in_cloud
   public :: aerosol_get_type_in_cloud
 
-  !public :: aero_redistribute
+  public :: aerosol_redistribute
   public :: aerosol_cloud_to_rain
 
   public :: aerosol_names
@@ -1085,8 +1085,15 @@ contains
         p = - huge(1.0_field_r)
         return
       end if
+  !> Redistribute aerosols over ACS and COS modes after evaporation of rain/cloud water
+  subroutine aerosol_redistribute(q, qp, np, qa, delt, qap)
 
       w = -log( ( 1.0 - x ) * ( 1.0 + x ) )
+    real(field_r), intent(in)    :: q(2:,2:,:)
+    real(field_r), intent(in)    :: qp(2:,2:,:)
+    real(field_r), intent(in)    :: np(2:,2:,:)
+    real(field_r), intent(in)    :: qa(2:,2:,:,:)
+    real(field_r), intent(in)    :: delt
 
       if ( w < 6.250000 ) then
           w = w - 3.125000;
@@ -1156,5 +1163,67 @@ contains
         end if
       p = p * x;      
     end function erfinv
+    real(field_r), intent(inout) :: qap(2:,2:,:,:)
+
+    character(len=*), parameter :: routine = modname//'::aero_redistribute'
+    real(field_r), parameter :: Dc = 1
+
+    integer               :: i, j, k, s, itype, target_idx
+    real(field_r)         :: f_evp, eps, evapt
+    real(field_r)         :: m_evp, v_evp, rho_evp, n_evp, dn, dm, fn, fm
+    type(mode_t), pointer :: m_acs, m_cos
+
+    m_acs => modes(iACS)
+    m_cos => modes(iCOS)
+
+    do k = 1, kmax
+      do j = 2, j1
+        do i = 2, i1
+          f_evp = (- qp(i,j,k) * delt) / (q(i,j,k))
+          f_evp = max(min(f_evp, 1.0_field_r), 0.0_field_r)
+
+          ! Correction factor from Gong et al. (2006)
+          eps = (1 - exp(-2 * sqrt(f_evp)) * (1 + 2 * sqrt(f_evp) &
+                  + 2 * f_evp + (4.0_field_r/3) * f_evp**(3.0_field_r/2))) &
+                  * (1 - f_evp) + f_evp * f_evp
+
+          ! Compute the mass and volume of the evaporated aerosol
+          m_evp = 0
+          v_evp = 0
+          do s = 1, n_species_active
+            evapt = eps * f_evp * qa(i,j,k,s) / delt
+            qap(i,j,k,s) = qap(i,j,k,s) - evapt
+
+            evapt = max(0.0_field_r, evapt)
+
+            m_evp = m_evp + evapt
+            v_evp = v_evp + evapt / rho_a(s)
+          end do
+
+          rho_evp = m_evp / (v_evp + 1E-20)
+          n_evp = max(0.0_field_r, -1 * np(i,j,k))
+
+          dn = 1E6 * (6 * m_evp / (pi * n_evp * rho_evp))**(1.0_field_r / 3) &
+               * exp(-(3.0_field_r / 2) * log(1.5_field_r)**2)
+          dm = dn * exp(3 * log(1.5_field_r)**2)
+
+          fn = 0.5_field_r * erfc(-log(dc/dn) / log(1.5_field_r) / sqrt(2.0_field_r))
+          fm = 0.5_field_r * erfc(-log(dc/dm) / log(1.5_field_r) / sqrt(2.0_field_r))
+
+          m_acs%np(i,j,k) = m_acs%np(i,j,k) + Fn * n_evp
+          m_cos%np(i,j,k) = m_cos%np(i,j,k) + (1 - fn) * n_evp
+
+          do s = 1, n_species_active
+            evapt = eps * f_evp * qa(i,j,k,s) / delt
+            itype = aerosol_get_type_in_cloud(s)
+            target_idx = aerosol_get_index_in_mode(itype, m_acs)
+            m_acs%qp(i,j,k,target_idx) = m_acs%qp(i,j,k,target_idx) + fm * evapt
+            target_idx = aerosol_get_index_in_mode(itype, m_cos)
+            m_cos%qp(i,j,k,target_idx) = m_cos%qp(i,j,k,target_idx) + (1 - fm) * evapt
+          end do
+        end do
+      end do
+    end do
+  end subroutine aerosol_redistribute
 
 end module modaerosol

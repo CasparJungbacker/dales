@@ -333,18 +333,35 @@ module modbulkmicro
 
         call bulkmicrotend
 
-        call evaporation_sb(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,iNr), qvsl, tmp0, &
-                esl, qa_inr, exnf, rhof, Nr, qrbase, &
-                qrroof, laerosol, delt, qrp, Nrp, qtpmcr, thlpmcr, qap_inr, &
-                modes(iACS), modes(iCOS))
+        block
 
-        call bulkmicrotend
+          real(field_r), allocatable :: qr_tmp(:,:,:), Nr_tmp(:,:,:)
 
-        call sedimentation_rain_sb(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
+          allocate(qr_tmp(2:i1,2:j1,1:k1), Nr_tmp(2:i1,2:j1,1:k1))
+
+          qr_tmp = 0
+          Nr_tmp = 0
+
+          call evaporation_sb(ql0, qt0, qr, svm(:,:,:,iqr), svm(:,:,:,iNr), qvsl, tmp0, &
+                  esl, exnf, rhof, Nr, qrbase, &
+                  qrroof, delt, qr_tmp, Nr_tmp, qtpmcr, thlpmcr)
+
+          call aerosol_redistribute(qr, qr_tmp, Nr_tmp, qa_inr, delt, qap_inr)
+
+          qrp = qrp + qr_tmp
+          Nrp = Nrp + Nr_tmp
+
+          call bulkmicrotend
+
+          call sedimentation_rain_sb(qr, Nr, rhof, dzf, qrbase, qrroof, qrmask, &
                 l_lognormal, delt, &
                 qrp, Nrp, precep, laerosol, qa_inr, qap_inr, sed_qr, n_species_active)
 
-        call bulkmicrotend
+          deallocate(qr_tmp, Nr_tmp)
+
+          call bulkmicrotend
+
+        end block
       else
         call do_bulkmicro_kk
       end if
