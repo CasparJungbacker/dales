@@ -105,10 +105,6 @@ if( ENABLE_RRTMG )
   add_compile_definitions( USE_RRTMG )
 endif()
 
-# GPU stuff
-
-include( dales_find_cuda )
-
 if( ENABLE_ACC )
   find_package( OpenACC COMPONENTS Fortran QUIET )
   if( OpenACC_Fortran_FOUND )
@@ -124,9 +120,28 @@ if( ENABLE_ACC )
   add_compile_definitions( DALES_GPU )
 endif()
 
-# For GPU builds and/or NVTX profiling, we need the CUDA toolkit
-if( ENABLE_ACC OR ENABLE_NVTX )
+# Find the GPU runtime. Start by looking for CUDA, then HIP if CUDA is not
+# available. CUDA is also needed for NVTX
+
+include( dales_find_cuda )
+include( dales_find_hip )
+
+if( ENABLE_ACC )
   dales_find_cuda()
+  if( NOT HAVE_CUDA )
+    dales_find_hip()
+  endif()
+endif()
+
+if( ENABLE_ACC AND NOT (HAVE_CUDA OR HAVE_HIP))
+  ecbuild_error( "Could not find GPU runtime" )
+endif()
+
+add_compile_definitions( USE_HIP )
+
+# Disable automatic asynchronious kernel execution on Cray
+if( ENABLE_ACC AND CMAKE_Fortran_COMPILER_ID MATCHES Cray )
+  ecbuild_add_fortran_flags( "-h acc_model=auto_async_none" )
 endif()
 
 include( dales_compile_options )
