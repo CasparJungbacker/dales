@@ -213,8 +213,8 @@ contains
     divmaxl= 0.
     divtotl= 0.
 
-    !$acc parallel loop collapse(3) default(present) private(div, divmaxl, divtotl) &
-    !$acc& reduction(max:divmaxl) reduction(+:divtotl)
+    !$acc parallel loop collapse(3) default(present) private(div) &
+    !$acc reduction(max:divmaxl) reduction(+:divtotl) copy(divmaxl, divtotl)
     do k=1,kmax
       do j=2,j1
         do i=2,i1

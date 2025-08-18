@@ -117,6 +117,7 @@ subroutine tstep_update
   real,save     :: courtotmax=-1,peclettot=-1
   real          :: courold, cfl_sq_l, cfl_sq, peclettotl, pecletold, pe_ekm, pe_ekh, min_size_sq
   logical,save  :: spinup=.true.
+  real :: a(1), b(1)
 
   call timer_tic('tstep/tstep_update', 0)
 
@@ -132,7 +133,8 @@ subroutine tstep_update
         pecletold = peclettot
         peclettotl = 0.0
         cfl_sq_l = -1.0
-        !$acc parallel loop collapse(3) default(present) reduction(max:cfl_sq_l, peclettotl)
+        !$acc parallel loop collapse(3) default(present) &
+        !$acc reduction(max:cfl_sq_l, peclettotl) copy(cfl_sq_l, peclettotl)
         do k = 1, kmax
           do j = 2, j1
             do i = 2, i1
@@ -148,8 +150,10 @@ subroutine tstep_update
             enddo
           enddo
         enddo
-        call D_MPI_ALLREDUCE(cfl_sq_l,cfl_sq,1,MPI_MAX,comm3d,mpierr)
+
+        call D_MPI_ALLREDUCE(cfl_sq_l, cfl_sq, 1,MPI_MAX,comm3d,mpierr)
         call D_MPI_ALLREDUCE(peclettotl,peclettot,1,MPI_MAX,comm3d,mpierr)
+
         courtotmax = sqrt(cfl_sq)
 
         if ( pecletold>0) then
@@ -179,7 +183,8 @@ subroutine tstep_update
       if (ladaptive) then
         peclettotl = 1e-5
         cfl_sq_l = -1.0
-        !$acc parallel loop collapse(3) default(present) reduction(max:cfl_sq_l, peclettotl)
+        !$acc parallel loop collapse(3) default(present) reduction(max:cfl_sq_l, peclettotl) &
+        !$acc copy(cfl_sq_l, peclettotl)
         do k = 1, kmax
           do j = 2, j1
             do i = 2, i1

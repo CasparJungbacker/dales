@@ -359,7 +359,7 @@ contains
    thl0av = thl0av/ijtot
    qt0av  = qt0av /ijtot
    ql0av  = ql0av /ijtot
-   sv0av  = sv0av /ijtot
+   if (nsv > 0) sv0av  = sv0av /ijtot
    if (timee < 0.01 .or. .not. lconstexner) then
      exnf   = 1-grav*zf/(cp*thls)
      exnh   = 1-grav*zh/(cp*thls)
@@ -837,7 +837,8 @@ contains
     ! Sanity checks
     Tl_min = 400
     PrDiff_min = 100
-    !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min)
+    !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min) &
+    !$acc copy(Tl_min, PrDiff_min)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -995,7 +996,8 @@ contains
 
     Tl_min = 400
     PrDiff_min = 100
-    !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min)
+    !$acc parallel loop collapse(3) reduction(min:Tl_min, PrDiff_min) &
+    !$acc copy(Tl_min, PrDiff_min)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1

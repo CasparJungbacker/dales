@@ -910,7 +910,8 @@ contains
 
     thlsl = 0.0
     qtsl = 0.0
-    !$acc parallel loop collapse(2) default(present) reduction(+: thlsl, qtsl)
+    
+    !$acc parallel loop collapse(2) default(present) reduction(+:thlsl, qtsl) copy(thlsl, qtsl)
     do j = 2, j1
       do i = 2, i1
         thlsl = thlsl + tskin(i,j)
