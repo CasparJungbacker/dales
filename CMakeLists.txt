@@ -137,8 +137,6 @@ if( ENABLE_ACC AND NOT (HAVE_CUDA OR HAVE_HIP))
   ecbuild_error( "Could not find GPU runtime" )
 endif()
 
-add_compile_definitions( USE_HIP )
-
 # Disable automatic asynchronious kernel execution on Cray
 if( ENABLE_ACC AND CMAKE_Fortran_COMPILER_ID MATCHES Cray )
   ecbuild_add_fortran_flags( "-h acc_model=auto_async_none" )
