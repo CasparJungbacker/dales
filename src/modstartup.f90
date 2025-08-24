@@ -99,7 +99,7 @@ contains
     use modthermodynamics, only : initthermodynamics,lqlnr, chi_half
     use modmicrophysics,   only : initmicrophysics
     use modsubgrid,        only : initsubgrid
-    use modmpi,            only : initmpi,commwrld,myid,myidx,cmyidy,nprocx,nprocy,mpierr,periods &
+    use modmpi,            only : initmpi,commwrld,myid,myidx,cmyidy,nprocx,nprocy,nprocs_restart,mpierr,periods &
                                 , D_MPI_BCAST
     use tstep,             only : inittstep
     use modchem,           only : initchem
@@ -124,7 +124,7 @@ contains
         iexpnr,lwarmstart,startfile,ltotruntime, runtime,dtmax,wctime,dtav_glob,timeav_glob,&
         trestart,irandom,randthl,randqt,krand,nsv,courant,peclet,ladaptive,author,&
         krandumin, krandumax, randu,&
-        nprocx,nprocy,loutdirs, lstart_netcdf
+        nprocx,nprocy,nprocs_restart,loutdirs, lstart_netcdf
     namelist/DOMAIN/ &
         itot,jtot,kmax,kmax_soil,&
         xsize,ysize,&
@@ -202,6 +202,7 @@ contains
     call D_MPI_BCAST(periods,2,0,commwrld,mpierr)
     call D_MPI_BCAST(nprocx ,1,0,commwrld,mpierr)
     call D_MPI_BCAST(nprocy ,1,0,commwrld,mpierr)
+    call D_MPI_BCAST(nprocs_restart ,1,0,commwrld,mpierr)
 
     ! Initialize MPI
     call initmpi

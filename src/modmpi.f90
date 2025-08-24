@@ -51,6 +51,8 @@ save
   integer  :: myid
   integer  :: myidx, myidy
   integer  :: nprocs
+  integer  :: nprocs_work
+  integer  :: nprocs_restart = 0
   integer  :: nprocx = 1
   integer  :: nprocy = 0
   integer  :: mpierr
@@ -61,6 +63,19 @@ save
 
   character(8) :: cmyid
   character(3) :: cmyidx, cmyidy
+
+  integer            :: my_mpi_function
+  integer, parameter :: mpi_function_work = 0
+  integer, parameter :: mpi_function_restart = 1
+
+  ! Intracommunicators
+  type(MPI_COMM) :: comm_work
+  type(MPI_COMM) :: comm_restart
+  type(MPI_COMM) :: comm_work_restart
+  type(MPI_COMM) :: my_function_comm
+
+  ! Intercommunicators
+  type(MPI_COMM) :: comm_work_2_restart
 
   !------------------------------------------------------------------------------
   ! D_MPI_INTERFACE
@@ -277,7 +292,7 @@ contains
   ! Initializes the world communicator within dales. Optionally this communicator is passed from an external caller.
   subroutine initmpicomm(comm)
     implicit none
-    type(MPI_COMM), intent(in),optional  :: comm
+    type(MPI_COMM), intent(in), optional :: comm
     logical                              :: init
 
     call MPI_INITIALIZED(init,mpierr)
@@ -310,7 +325,6 @@ contains
     call checkmpierror(mpierr, 'MPI_COMM_SIZE')
   end subroutine initmpicomm
 
-
 ! This routine does the setup of the MPI mesh
 ! NPROCS
 !        is the number of processors, this is set at run time, ie. mpirun -np 10
@@ -331,83 +345,171 @@ contains
     integer dims(2)
     logical periods(2)
 
-! Specify the # procs in each direction.
-! specifying a 0 means that MPI will try to find a useful # procs in
-! the corresponding direction
+    type(MPI_COMM) :: peer_comm
+    integer        :: p_work_0, p_restart_0
+    integer        :: my_color
 
-    dims(1) = nprocx
-    dims(2) = nprocy
-
-! directions 1 and 2 are chosen periodic
-
-    periods(1) = .true.
-    periods(2) = .true.
-
-! find suitable # procs in each direction
- ! if either nprocx = 0 or nprocy = 0 a value is computed automatically
- ! considering the total number of processors but not the itot,jtot grid size
     call MPI_COMM_SIZE( MPI_COMM_WORLD, nprocs, mpierr)
 
-    call checkmpierror(mpierr, 'MPI_COMM_SIZE')
+    ! First, check if we have enough processes at all
+    nprocs_work = nprocs - nprocs_restart
 
-    call MPI_DIMS_CREATE( nprocs, 2, dims, mpierr )
-    if (mpierr /= MPI_SUCCESS) then
-       if (myid == 0) then
-          print *, 'MPI grid setup failed. '
-          print *, '  nprocx', nprocx
-          print *, '  nprocy', nprocy
-          print *, '  nprocs', nprocs
-          print *, 'nprocx * nprocy = nprocs is required but could not be achieved.'
-       endif
-    endif
-    call checkmpierror(mpierr, 'MPI_DIMS_CREATE')
+    if (nprocs_work < 1) then
+      error stop "Not enough processes available for work!" !DALESERROR
+    end if
 
-    nprocx = dims(1)
-    nprocy = dims(2)
+    ! Root procs
+    p_work_0 = 0
+    p_restart_0 = nprocs_work
 
-! create the Cartesian communicator, denoted by the integer comm3d
+    if (myid < p_restart_0) then
+      my_mpi_function = mpi_function_work
+    else
+      my_mpi_function = mpi_function_restart
+    end if
 
-    call MPI_CART_CREATE(MPI_COMM_WORLD, 2, dims, periods, .true., &
-                         comm3d, mpierr )
-    call checkmpierror(mpierr, 'MPI_CART_CREATE')
+    ! Create intracommunicators
+    call mpi_comm_split(commwrld, my_mpi_function, myid, my_function_comm, &
+                        mpierr)
 
-! Get my processor number in this communicator
+    ! Make a new MPI communicator spanning the work and restart ranks.
+    ! Note that this will be equal to commwrld for now, but this will change
+    ! when we add I/O and prefetch ranks.
+    if (nprocs_restart > 0) then
+      my_color = merge(2, mpi_undefined, my_mpi_function == mpi_function_work &
+        .or. my_mpi_function == mpi_function_restart)
+      call mpi_comm_split(commwrld, my_color, myid, comm_work_restart, mpierr)
+    end if
 
-    call MPI_COMM_RANK( comm3d, myid, mpierr )
-    call checkmpierror(mpierr, 'MPI_COMM_RANK')
+    call mpi_comm_dup(commwrld, peer_comm, mpierr)
 
-! when applying boundary conditions, we need to know which processors
-! are neighbours in all 3 directions
-! these are determined with the aid of the MPI routine MPI_CART_SHIFT,
+    ! Make an intercommunicator for communication between work and restart PE's
+    block
+      integer :: remote_leader
 
-    call MPI_CART_SHIFT( comm3d, 0,  1, nbrwest,  nbreast ,   mpierr )
-    call checkmpierror(mpierr, 'MPI_CART_SHIFT')
-    call MPI_CART_SHIFT( comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr )
-    call checkmpierror(mpierr, 'MPI_CART_SHIFT')
+      remote_leader = &
+        merge(p_work_0, p_restart_0, my_mpi_function == mpi_function_work)
 
-! Setup the row- and column- communicators
-    call MPI_Cart_sub( comm3d, (/.TRUE.,.FALSE./), commrow, mpierr )
-    call checkmpierror(mpierr, 'MPI_Cart_sub')
-    call MPI_Cart_sub( comm3d, (/.FALSE.,.TRUE./), commcol, mpierr )
-    call checkmpierror(mpierr, 'MPI_Cart_sub')
+      if (nprocs_restart > 0 &
+        .and. (my_mpi_function == mpi_function_work .or. &
+               my_mpi_function == mpi_function_restart)) then
+              
+        call mpi_intercomm_create(my_function_comm, 0, peer_comm, &
+                                  remote_leader, 1, comm_work_2_restart, &
+                                  mpierr)
+      else 
+        comm_work_2_restart = MPI_COMM_NULL
+      end if
 
-! Get the processors ranks in these communicators
-    call MPI_COMM_RANK( commrow, myidx, mpierr )
-    call checkmpierror(mpierr, 'MPI_COMM_RANK')
-    call MPI_COMM_RANK( commcol, myidy, mpierr )
-    call checkmpierror(mpierr, 'MPI_COMM_RANK')
+    end block
+
+    ! --------------------
+    ! Decompose the domain
+    ! --------------------
+
+    ! If the user provides a custom domain decomposition, check if
+    ! it's possible
+    if (nprocx > 1 .and. nprocy > 1 &
+        .and. nprocx * nprocy < nprocs_work) then
+      print *, "Requested domain decomposition not available:"
+      print *, "  available work PE's: ", nprocs_work 
+      print *, "  nprocx:              ", nprocx 
+      print *, "  nprocy:              ", nprocy 
+      error stop
+    end if
+
+    if (my_mpi_function == mpi_function_work) then
+      call decompose_domain()
+    else
+      comm3d = MPI_COMM_NULL
+      commrow = MPI_COMM_NULL
+      commcol = MPI_COMM_NULL
+    end if
+
+    ! Done, print some information
 
     if(myid==0)then
-      CPU_program0 = MPI_Wtime()
-      write(*,*) 'MPI mesh nprocx, nprocy: ', nprocx, nprocy
+      CPU_program0 = MPI_Wtime() ! Should go somewhere else?
+    end if
+
+    if (my_process_is_stdio()) then
+      write(6, '(2(A,I0))') "Number of processors for work: ", nprocs_work, &
+        & ", restart: ", nprocs_restart
+      write(6, '(A,I0,A,I0)') "Decomposition: nprocx = ", nprocx, &
+        & ", nprocy = ", nprocy
     end if
 
     !write(*,*)'myid, myidx, myidy, n, e, s, w = ', myid, myidx, myidy, nbrnorth, nbreast, nbrsouth, nbrwest
-    write(cmyid,'(a,i3.3,a,i3.3)') 'x', myidx, 'y', myidy
-    write(cmyidx,'(i3.3)') myidx
-    write(cmyidy,'(i3.3)') myidy
+    if (my_process_is_work()) then
+      write(cmyid,'(a,i3.3,a,i3.3)') 'x', myidx, 'y', myidy
+      write(cmyidx,'(i3.3)') myidx
+      write(cmyidy,'(i3.3)') myidy
+    end if
 
+    if (my_process_is_restart()) then
+      print *, "I am doing nothing..."
+      do while (.true.)
+        call sleep(1)
+        print *, "I am still doing nothing..."
+      end do
+    end if
+
+  contains
+    subroutine decompose_domain()
+      integer :: dims(2)
+      logical :: periods(2)
+
+      ! Specify the # procs in each direction.
+      ! specifying a 0 means that MPI will try to find a useful # procs in
+      ! the corresponding direction
+
+      dims(1) = nprocx
+      dims(2) = nprocy
+
+      periods(1) = .true.
+      periods(2) = .true.
+
+      call mpi_dims_create(nprocs_work, 2, dims, mpierr)
+      call checkmpierror(mpierr, 'MPI_DIMS_CREATE')
+
+      ! Create the Cartesian communicator, denoted by the integer comm3d.
+      ! Note that this is created from my_function_comm, which should be 
+      ! the work PE comm. 
+      call mpi_cart_create(my_function_comm, 2, dims, periods, .true., &
+                          comm3d, mpierr )
+      call checkmpierror(mpierr, 'MPI_CART_CREATE')
+
+      nprocx = dims(1)
+      nprocy = dims(2)
+
+      ! Get my processor number in this communicator
+      call mpi_comm_rank(comm3d, myid, mpierr)
+      call checkmpierror(mpierr, 'MPI_COMM_RANK')
+
+      ! when applying boundary conditions, we need to know which processors
+      ! are neighbours in all 3 directions
+      ! these are determined with the aid of the MPI routine MPI_CART_SHIFT,
+
+      call mpi_cart_shift( comm3d, 0,  1, nbrwest,  nbreast ,   mpierr )
+      call checkmpierror(mpierr, 'MPI_CART_SHIFT')
+      call mpi_cart_shift( comm3d, 1,  1, nbrsouth, nbrnorth,   mpierr )
+      call checkmpierror(mpierr, 'MPI_CART_SHIFT')
+
+      ! Setup the row- and column- communicators
+      call mpi_cart_sub(comm3d, (/.TRUE.,.FALSE./), commrow, mpierr)
+      call checkmpierror(mpierr, 'MPI_Cart_sub')
+      call mpi_cart_sub(comm3d, (/.FALSE.,.TRUE./), commcol, mpierr)
+      call checkmpierror(mpierr, 'MPI_Cart_sub')
+
+      ! Get the processors ranks in these communicators
+      call mpi_comm_rank(commrow, myidx, mpierr)
+      call checkmpierror(mpierr, 'MPI_COMM_RANK')
+      call mpi_comm_rank(commcol, myidy, mpierr)
+      call checkmpierror(mpierr, 'MPI_COMM_RANK')
+
+    end subroutine decompose_domain
   end subroutine initmpi
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1982,4 +2084,24 @@ contains
     end if
 
   end subroutine closeboundaries
+
+  logical function my_process_is_work()
+    my_process_is_work = my_mpi_function == mpi_function_work
+  end function my_process_is_work
+  
+  logical function my_process_is_restart()
+    my_process_is_restart = my_mpi_function == mpi_function_restart
+  end function my_process_is_restart
+
+  character(7) function my_function_char()
+    if (my_process_is_work()) then
+      my_function_char = "work   "
+    else
+      my_function_char = "restart"
+    end if
+  end function
+
+  logical function my_process_is_stdio()
+    my_process_is_stdio = myid == 0
+  end function my_process_is_stdio
 end module
