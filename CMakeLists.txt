@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
-project( DALES VERSION 5.0.0 LANGUAGES Fortran )
+project( DALES VERSION 5.0.0 LANGUAGES Fortran C CXX )
 
 # Disable Intel's MKL FFTW
 set( FFTW_ENABLE_MKL OFF )
@@ -53,6 +53,10 @@ ecbuild_add_option( FEATURE ACC
 ecbuild_add_option( FEATURE RRTMG
                     DESCRIPTION "Build with legacy RRTMG libraries"
                     ADVANCED DEFAULT ON )
+
+ecbuild_add_option( FEATURE PLUTO
+                    DESCRIPTION "Build with ECMWF Pluto library for memory management"
+                    DEFAULT OFF )
 
 # Check for required dependencies
 
@@ -131,6 +135,11 @@ endif()
 # Find the fortran-support library (included). This library can be compiled with
 # OpenACC support, so it's probably best to place it after 
 include ( dales_add_fortran_support )
+
+# Optional: Pluto library for memory management.
+if ( ENABLE_PLUTO )
+  include ( dales_add_pluto )
+endif()
 
 include( dales_compile_options )
 add_subdirectory( src )

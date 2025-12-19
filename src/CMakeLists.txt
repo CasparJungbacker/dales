@@ -261,6 +261,7 @@ ecbuild_add_executable( TARGET dales
                           $<$<BOOL:${ENABLE_HYPRE}>:${HYPRE_LIB}>
                           $<$<BOOL:${ENABLE_ACC}>:CUDA::cufft>
                           $<$<BOOL:${ENABLE_NVTX}>:CUDA::nvToolsExt>
+                          $<$<BOOL:${ENABLE_PLUTO}>:pluto_f>
 )
 # Temporary
 if( ENABLE_ACC )
