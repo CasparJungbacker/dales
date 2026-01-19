@@ -2,7 +2,7 @@
 #include <cuda.h>
 
 /* TODO: make this dynamic */
-static constexpr int BLOCK_DIM { 66 };
+static constexpr int BLOCK_DIM { 512 };
 
 template<typename T>
 __global__ void reduction_scalar( T* input, T* output, int n) {
@@ -29,37 +29,38 @@ __global__ void reduction_scalar( T* input, T* output, int n) {
     if (idx_l == 0) {
         atomicAdd(output, smem[0]);
     }
-}	
+}
 
 template<typename T>
 __global__ void reduction_interior(T* input, T* output, int nh, int itot, int jtot) {
 
-    // Flattened index, assuming 1 block per y-level.
-    int gid = blockIdx.y * blockDim.x + threadIdx.x;
+    int tid = threadIdx.x;
 
     // Compute i and j indices
-    int i = threadIdx.x;
-    int j = blockIdx.y;
+    int i = nh + threadIdx.x;
+    int j = nh + blockIdx.y;
+
+    int gid = i + j * (itot + 2 * nh);
 
     __shared__ T smem[BLOCK_DIM];
 
-    if (i >= nh && j >= nh && i < itot + nh && j < jtot + nh) {
-        smem[i] = input[gid];
+    if (i <= itot + nh && j <= jtot + nh) {
+        smem[tid] = input[gid];
     } else {
-        smem[i] = static_cast<T>(0);
+        smem[tid] = static_cast<T>(0);
     }
 
     __syncthreads();
 
     for (int stride = itot / 2; stride >= 1; stride >>= 1) {
-        if (i < stride) {
-            smem[i + nh] += smem[i + nh + stride];
+        if (tid < stride) {
+            smem[tid] += smem[tid + stride];
         }
         __syncthreads();
     }
 
-    if (i == 0) {
-        atomicAdd(output, smem[nh]);
+    if (tid == 0) {
+        atomicAdd(output, smem[0]);
     }
 
 }
@@ -78,8 +79,8 @@ extern "C" {
     }
 
     void reduction_2d_float(float* input, float* output, int nh, int itot, int jtot) {
-        dim3 grid(1, jtot + 2 * nh, 1);
-        dim3 block(itot + 2 * nh, 1, 1);
+        dim3 grid(1, jtot, 1);
+        dim3 block(itot, 1, 1);
         reduction_interior<float><<<grid, block>>>(input, output, nh, itot, jtot);
         cudaDeviceSynchronize();
     }
@@ -94,8 +95,8 @@ extern "C" {
 
 int main() {
 
-    const int itot = 66;
-    const int jtot = 66;
+    const int itot = 512;
+    const int jtot = 512;
     const int nh = 1;
 
     const int size = (itot + 2*nh)*(jtot + 2*nh);
