@@ -42,7 +42,7 @@ __global__ void reduction_interior(T* input, T* output, int nh, int itot, int jt
 
     int gid = i + j * (itot + 2 * nh);
 
-    __shared__ T smem[BLOCK_DIM];
+    extern __shared__ T smem[];
 
     if (i <= itot + nh && j <= jtot + nh) {
         smem[tid] = input[gid];
@@ -81,16 +81,19 @@ extern "C" {
     void reduction_2d_float(float* input, float* output, int nh, int itot, int jtot) {
         dim3 grid(1, jtot, 1);
         dim3 block(itot, 1, 1);
-        reduction_interior<float><<<grid, block>>>(input, output, nh, itot, jtot);
+	size_t smem_size = itot * sizeof(float);
+        reduction_interior<float><<<grid, block, smem_size>>>(input, output, nh, itot, jtot);
         cudaDeviceSynchronize();
     }
 
+    /*
     void reduction_2d_double(double* input, double* output, int nh, int itot, int jtot) {
         dim3 grid(1, jtot + 2 * nh);
         dim3 block(itot + 2 * nh, 1);
         reduction_interior<double><<<grid, block>>>(input, output, nh, itot, jtot);
         cudaDeviceSynchronize();
     }
+    */
 }
 
 int main() {
