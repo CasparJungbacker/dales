@@ -1,5 +1,5 @@
 # DALES source files
-set( dales_srcs
+list( APPEND dales_srcs
 	advec_2nd.f90
 	advec_5th.f90
 	advec_6th.f90
@@ -227,6 +227,14 @@ set( rrtmgp_srcs
 	${PROJECT_SOURCE_DIR}/external/RTE-RRTMGP/examples/mo_simple_netcdf.F90
 )
 
+# Extra's
+if( CMAKE_CUDA_COMPILER )
+	list( APPEND extra_srcs
+		support/gpu/cuda/modreduction_cuda.f90
+		support/gpu/cuda/cuda_reduction.cu
+	)
+endif()
+
 if( "${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU" )
 	set_source_files_properties( ${rrtmg_lw_srcs} PROPERTIES COMPILE_FLAGS -Wno-error=implicit-interface )
 	set_source_files_properties( ${rrtmg_sw_srcs} PROPERTIES COMPILE_FLAGS -Wno-error=implicit-interface )
@@ -247,6 +255,7 @@ ecbuild_add_executable( TARGET dales
                           $<$<BOOL:${ENABLE_RRTMG}>:${rrtmg_sw_srcs}>
                           ${rrtmgp_srcs}
                           ${CMAKE_CURRENT_BINARY_DIR}/modversion.f90
+													${extra_srcs}
                         DEPENDS tag_git_version
                         INCLUDES
                           ${NetCDF_Fortran_INCLUDE_DIR}
@@ -255,7 +264,7 @@ ecbuild_add_executable( TARGET dales
                           MPI::MPI_Fortran
                           NetCDF::NetCDF_Fortran
                           NetCDF::NetCDF_C
-													fortran-support::fortran-support
+		          fortran-support::fortran-support
                           $<$<BOOL:${ENABLE_ACC}>:OpenACC::OpenACC_Fortran>
                           $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3>
                           $<$<BOOL:${ENABLE_FFTW}>:FFTW::fftw3f>
