@@ -24,6 +24,7 @@ module modslabaverage
   use modglobal, only: imax, jmax, ijtot
   use modmpi,    only: mpi_allreduce, mpi_in_place, mpi_real4, mpi_real8, mpi_integer, &
                        mpi_sum, comm3d, mpierr
+  use device_reductions, only: reduction_profile
 
   implicit none
 
@@ -81,6 +82,16 @@ contains
       norm_fac = 1.0_real32 / (imax * jmax)
     end if
 
+#if defined(_OPENACC)
+    call reduction_profile(field, nh, ie - is + 1, je - js + 1, ke, avg, 1)
+
+    !$acc parallel loop gang(static:1) default(present) async(1)
+    do k = ks, ke
+      avg(k) = avg(k) * norm_fac
+    end do
+
+    !$acc wait
+#else
     !$acc parallel loop gang default(present)
     do k = ks, ke
       fld_sum = 0
@@ -92,6 +103,7 @@ contains
       end do
       avg(k) = fld_sum * norm_fac
     end do
+#endif
 
     ! TODO: experiment with non-blocking allreduce
     if (do_global) then
@@ -142,17 +154,26 @@ contains
       norm_fac = 1.0_real64 / (imax * jmax)
     end if
 
-    !$acc parallel loop gang default(present)
+    call reduction_profile(field, nh, ie - is + 1, je - js + 1, ke, avg, opt_stream=1)
+
+    !$acc parallel loop gang(static:1) default(present) async(1)
     do k = ks, ke
-      fld_sum = 0
-      !$acc loop vector collapse(2) reduction(+: fld_sum)
-      do j = js, je
-        do i = is, ie
-          fld_sum = fld_sum + field(i,j,k)
-        end do
-      end do
-      avg(k) = fld_sum * norm_fac
+      avg(k) = avg(k) * norm_fac
     end do
+
+    !$acc wait
+
+    !!$acc parallel loop gang default(present)
+    !do k = ks, ke
+    !  fld_sum = 0
+    !  !$acc loop vector collapse(2) reduction(+: fld_sum)
+    !  do j = js, je
+    !    do i = is, ie
+    !      fld_sum = fld_sum + field(i,j,k)
+    !    end do
+    !  end do
+    !  avg(k) = fld_sum * norm_fac
+    !end do
 
     if (do_global) then
       !$acc host_data use_device(avg)
