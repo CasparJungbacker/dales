@@ -3,10 +3,63 @@
 
 inline int next_pow_of_2(int x) { return pow(2, ceil(log(x) / log(2))); };
 
-template<typename T>
+enum reduction_t {
+		sum_t,
+		max_t,
+		min_t
+};
+
+template<typename T, reduction_t F>
+__device__ T reduction(T x, T y) {
+		T retval;
+		switch(F) {
+				case (sum_t):
+						retval = x + y;
+						break;
+				case (max_t):
+						retval = fmax(x, y);
+						break;
+				case (min_t):
+						retval = fmin(x, y);
+						break;
+		}
+		return retval;
+}
+
+template<typename T, unsigned int nthreads, reduction_t F>
+__inline__ __device__ void block_reduce(volatile T* vals, const int tid) {
+
+		if (nthreads >= 512 && tid < 256) { vals[tid] = reduction<T, F>(vals[tid], vals[tid + 256]); }
+
+		__syncthreads();
+
+		if (nthreads >= 256 && tid < 128) { vals[tid] = reduction<T, F>(vals[tid], vals[tid + 128]); }
+
+		__syncthreads();
+
+		if (nthreads >= 128 && tid < 64) { vals[tid] = reduction<T, F>(vals[tid], vals[tid + 64]); }
+
+		__syncthreads();
+
+		if (tid < 32) {
+				T result = vals[tid];
+
+				if (nthreads >= 64) { result = reduction<T, F>(result, vals[tid + 32]); }
+
+				result = reduction<T, F>(result, __shfl_down_sync(0xffffffff, result, 16));
+				result = reduction<T, F>(result, __shfl_down_sync(0xffffffff, result, 8));
+				result = reduction<T, F>(result, __shfl_down_sync(0xffffffff, result, 4));
+				result = reduction<T, F>(result, __shfl_down_sync(0xffffffff, result, 2));
+				result = reduction<T, F>(result, __shfl_down_sync(0xffffffff, result, 1));
+
+				if (tid == 0) { vals[tid] = result; }
+		}
+}
+
+template<typename T, unsigned int nthreads>
 __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, int jtot, int ktot) {
 		int i = threadIdx.x;
-		int j = blockIdx.y;
+		int j = blockIdx.y * 2;
 		int k = blockIdx.z;
 		int ijk = i + j * (itot + 2 * nh) + nh * (1 + itot + 2 * nh) + k * ((itot + 2 * nh) * (jtot + 2 * nh));
 		
@@ -18,7 +71,10 @@ __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, in
 		for (unsigned int tile = 0; tile < itot / blockDim.x + 1; tile++) {
 				unsigned int offset = tile * blockDim.x;
 				if (i + offset < itot) {
-						sum += input[ijk + offset]; 
+						sum += input[ijk + offset];
+						if (j < jtot - 1) {
+								sum += input[ijk + offset + itot + 2 * nh];
+						}
 				}	
 		}
 
@@ -26,13 +82,7 @@ __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, in
 		
 		__syncthreads();
 
-		// TODO: unroll and use warp primitives
-		for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-				if (i < stride) {
-						smem[i] += smem[i + stride];
-				}
-				__syncthreads();
-		}
+		block_reduce<T, nthreads, sum_t>(smem, i);
 
 		if (i == 0) {
 				atomicAdd(&output[k], smem[0]);
@@ -46,30 +96,66 @@ extern "C" {
 																			cudaStream_t stream) {
 				const unsigned int blockdim = next_pow_of_2(itot / 2);
 				const size_t smem_size = blockdim * sizeof(float);
-        const dim3 grid(1, jtot, ktot);
+        const dim3 grid(1, jtot / 2, ktot);
         const dim3 block(blockdim, 1, 1);
-        reduction_profile_halo<float><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+				switch (blockdim) {
+						case (512):
+        				reduction_profile_halo<float, 512><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (256):
+        				reduction_profile_halo<float, 256><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (128):
+        				reduction_profile_halo<float, 128><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (64):
+        				reduction_profile_halo<float, 64><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (32):
+        				reduction_profile_halo<float, 32><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (16):
+        				reduction_profile_halo<float, 16><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+				}
     }
 
     void reduction_profile_halo_double(double* input, double* output, int nh, int itot, int jtot, int ktot, 
 																			 cudaStream_t stream) {
 				const unsigned int blockdim = next_pow_of_2(itot / 2);
 				const size_t smem_size = blockdim * sizeof(double);
-        const dim3 grid(1, jtot, ktot);
+        const dim3 grid(1, jtot / 2, ktot);
         const dim3 block(blockdim, 1, 1);
-				reduction_profile_halo<double><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+				switch (blockdim) {
+						case (512):
+        				reduction_profile_halo<double, 512><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (256):
+        				reduction_profile_halo<double, 256><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (128):
+        				reduction_profile_halo<double, 128><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (64):
+        				reduction_profile_halo<double, 64><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (32):
+        				reduction_profile_halo<double, 32><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+						case (16):
+        				reduction_profile_halo<double, 16><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot, ktot);
+								break;
+				}
     }
 
 }
 
-#ifdef ENABLE_MAIN
-
 int main() {
 
-    const int itot = 1024;
-    const int jtot = 1024;
-		const int ktot = 80;
-    const int nh = 1;
+    constexpr int itot = 1024;
+    constexpr int jtot = 1024;
+		constexpr int ktot = 5;
+    constexpr int nh = 1;
 
     const int size = (itot + 2*nh)*(jtot + 2*nh)*ktot;
 		const int ijtot = (itot + 2 * nh) * (jtot + 2 * nh);
@@ -111,15 +197,17 @@ int main() {
 
     cudaMemcpy(dev_input, h_input, bytes, cudaMemcpyHostToDevice);
 
-		const size_t nthreads = max(16, min(next_pow_of_2(itot/2), 1024));
+		const size_t nthreads = max(16, min(next_pow_of_2(itot/2), 512));
 
 		std::cout << nthreads << "\n";
 
-		const dim3 grid(1, jtot, ktot);
+		const dim3 grid(1, jtot / 2, ktot);
 		const dim3 block(nthreads, 1, 1);
 		const size_t smem_size = nthreads * sizeof(float);
 
-		reduction_profile_halo<float><<<grid, block, smem_size>>>(dev_input, dev_output, nh, itot, jtot, ktot);
+		reduction_profile_halo<float, itot / 2><<<grid, block, smem_size>>>(dev_input, dev_output, nh, itot, jtot, ktot);
+
+		cudaDeviceSynchronize();
 
 		for (int k = 0; k < ktot; k++) {
 				h_output[k] = static_cast<float>(0);
@@ -139,5 +227,3 @@ int main() {
 
     return 0;
 }
-
-#endif
