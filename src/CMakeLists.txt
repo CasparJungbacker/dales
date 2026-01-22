@@ -230,8 +230,13 @@ set( rrtmgp_srcs
 # Extra's
 if( CMAKE_CUDA_COMPILER )
 	list( APPEND extra_srcs
-		support/gpu/cuda/modreduction_cuda.f90
 		support/gpu/cuda/cuda_reduction.cu
+	)
+endif()
+
+if( ${ENABLE_ACC} )
+	list( APPEND extra_srcs
+		support/device_reductions.f90
 	)
 endif()
 
