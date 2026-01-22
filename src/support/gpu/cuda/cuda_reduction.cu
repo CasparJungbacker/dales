@@ -4,69 +4,11 @@
 inline int next_pow_of_2(int x) { return pow(2, ceil(log(x) / log(2))); };
 
 template<typename T>
-__global__ void reduction_scalar(T* input, T* output, int n) {
-    int idx_l = threadIdx.x;
-    int idx_g = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
-
-    extern __shared__ int smem_pointer[];
-		T* smem = reinterpret_cast<T*>(smem_pointer);
-
-    if (idx_g + blockDim.x < n) {
-        smem[idx_l] = input[idx_g] + input[idx_g + blockDim.x]; 
-    } else {
-				smem[idx_l] = static_cast<T>(0);
-    }
-
-    __syncthreads();
-
-    for (int stride = blockDim.x / 2; stride >= 1; stride >>= 1) {
-	  		if (idx_l < stride && idx_g + stride < n) {
-						smem[idx_l] += smem[idx_l + stride]; 
-				}
-				__syncthreads();
-    }
-
-    if (idx_l == 0) {
-				atomicAdd(output, smem[0]);
-    }
-}
-
-template<typename T>
-__global__ void reduction_scalar_halo(T* input, T* output, int nh, int itot, int jtot) {
-    int i = threadIdx.x;
-    int j = blockIdx.y;
-    int ij  = i + j * (itot + 2 * nh) + nh * (1 + itot + 2 * nh);
-
-		extern __shared__ int smem_pointer[];
-		T* smem = reinterpret_cast<T*>(smem_pointer);
-
-    if (i < itot / 2) {
-        smem[i] = input[ij] + input[ij + itot / 2];
-    } else {
-        smem[i] = static_cast<T>(0);
-    }
-
-    __syncthreads();
-
-    for (int stride = blockDim.x; stride >= 1; stride >>= 1) {
-        if (i < stride) {
-            smem[i] += smem[i + stride];
-        }
-        __syncthreads();
-    }
-
-    if (i == 0) {
-        atomicAdd(output, smem[0]);
-    }
-
-}
-
-template<typename T>
 __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, int jtot, int ktot) {
 		int i = threadIdx.x;
 		int j = blockIdx.y;
 		int k = blockIdx.z;
-		size_t ijk = i + j * (itot + 2 * nh) + nh * (1 + itot + 2 * nh) + k * ((itot + 2 * nh) * (jtot + 2 * nh));
+		int ijk = i + j * (itot + 2 * nh) + nh * (1 + itot + 2 * nh) + k * ((itot + 2 * nh) * (jtot + 2 * nh));
 		
 		extern __shared__ int smem_pointer[];
 		T* smem = reinterpret_cast<T*>(smem_pointer);
@@ -99,40 +41,6 @@ __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, in
 
 // Interface part, which we link to the Fortran code
 extern "C" {
-		
-    void reduction_scalar_float(float* input, float* output, int n, cudaStream_t stream) {
-				const size_t blockdim = next_pow_of_2(n / 2);	
-				const size_t nblocks = (n + blockdim - 1) / blockdim;
-				const size_t smem_size = blockdim * sizeof(float);
-				const dim3 grid(nblocks, 1, 1);
-				const dim3 blocks(nblocks, 1, 1);
-        reduction_scalar<float><<<grid, blocks, smem_size, stream>>>(input, output, n); 
-    }
-
-    void reduction_scalar_double(double* input, double* output, int n, cudaStream_t stream) {
-				const size_t blockdim = next_pow_of_2(n / 2);	
-				const size_t nblocks = (n + blockdim - 1) / blockdim;
-				const size_t smem_size = blockdim * sizeof(double);
-				const dim3 grid(nblocks, 1, 1);
-				const dim3 blocks(nblocks, 1, 1);
-        reduction_scalar<double><<<grid, blocks, smem_size, stream>>>(input, output, n); 
-    }
-
-    void reduction_scalar_halo_float(float* input, float* output, int nh, int itot, int jtot, cudaStream_t stream) {
-				const size_t blockdim = next_pow_of_2(itot / 2);
-				const size_t smem_size = blockdim * sizeof(float);
-        const dim3 grid(1, jtot, 1);
-        const dim3 block(blockdim, 1, 1);
-        reduction_scalar_halo<float><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot);
-    }
-
-    void reduction_scalar_halo_double(double* input, double* output, int nh, int itot, int jtot, cudaStream_t stream) {
-				const size_t blockdim = next_pow_of_2(itot / 2);
-				const size_t smem_size = blockdim * sizeof(double);
-        const dim3 grid(1, jtot, 1);
-        const dim3 block(blockdim, 1, 1);
-				reduction_scalar_halo<double><<<grid, block, smem_size, stream>>>(input, output, nh, itot, jtot);
-    }
 
     void reduction_profile_halo_float(float* input, float* output, int nh, int itot, int jtot, int ktot, 
 																			cudaStream_t stream) {
