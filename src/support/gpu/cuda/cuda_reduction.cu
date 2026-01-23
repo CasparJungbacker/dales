@@ -3,6 +3,12 @@
 
 inline int next_pow_of_2(int x) { return pow(2, ceil(log(x) / log(2))); };
 
+/* Some form of "thread coarsening": each block does multiple slices of y.
+ * The optimal value of this parameter is highly system-dependent (I think).
+ * On an RTX 5070, I get pretty good results with 4.
+ */
+constexpr unsigned int COARSE_FACTOR { 4 };
+
 enum reduction_t {
 		sum_t,
 		max_t,
@@ -68,14 +74,28 @@ __global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, in
 
 		T sum = static_cast<T>(0);
 
-		for (unsigned int tile = 0; tile < itot / blockDim.x + 1; tile++) {
-				unsigned int offset = tile * blockDim.x;
-				if (i + offset < itot) {
-						sum += input[ijk + offset];
-						if (j < jtot - 1) {
-								sum += input[ijk + offset + itot + 2 * nh];
-						}
-				}	
+template<typename T, unsigned int nthreads>
+__global__ void reduction_profile_halo(T* input, T* output, int nh, int itot, int jtot, int ktot) {
+		int i = threadIdx.x;
+		int j = blockIdx.y * COARSE_FACTOR;
+		int k = blockIdx.z;
+		int ijk = i + j * (itot + 2 * nh) + nh * (1 + itot + 2 * nh) + k * ((itot + 2 * nh) * (jtot + 2 * nh));
+		
+		extern __shared__ int smem_pointer[];
+		T* smem = reinterpret_cast<T*>(smem_pointer);
+
+		T sum = static_cast<T>(0);
+
+		for (unsigned int tilex = 0; tilex < itot / blockDim.x + 1; tilex++) {
+				#pragma unroll
+				for (unsigned int tiley = 0; tiley < COARSE_FACTOR; tiley++) {
+					if (j + tiley < jtot) {
+							unsigned int offset = tilex * blockDim.x + tiley * (itot + 2 * nh);
+							if (i + tilex * blockDim.x < itot) {
+									sum += input[ijk + offset];
+							}	
+					}
+				}
 		}
 
 		smem[i] = sum;
@@ -124,7 +144,7 @@ extern "C" {
 																			 cudaStream_t stream) {
 				const unsigned int blockdim = next_pow_of_2(itot / 2);
 				const size_t smem_size = blockdim * sizeof(double);
-        const dim3 grid(1, jtot / 2, ktot);
+        const dim3 grid(1, jtot / COARSE_FACTOR + 1, ktot);
         const dim3 block(blockdim, 1, 1);
 				switch (blockdim) {
 						case (512):
@@ -152,8 +172,8 @@ extern "C" {
 
 int main() {
 
-    constexpr int itot = 1024;
-    constexpr int jtot = 1024;
+    constexpr int itot = 64;
+    constexpr int jtot = 64;
 		constexpr int ktot = 5;
     constexpr int nh = 1;
 
@@ -201,7 +221,7 @@ int main() {
 
 		std::cout << nthreads << "\n";
 
-		const dim3 grid(1, jtot / 2, ktot);
+		const dim3 grid(1, jtot / COARSE_FACTOR + 1, ktot);
 		const dim3 block(nthreads, 1, 1);
 		const size_t smem_size = nthreads * sizeof(float);
 
