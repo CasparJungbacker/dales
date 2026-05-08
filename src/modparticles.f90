@@ -672,7 +672,7 @@ contains
       !output
         if (myid==0) then
           open(ifoutput,file='partstat.'//cexpnr,position='append',action='write')
-          write(ifoutput,'(//A,/A,F5.0,A,F7.0,A)') &
+          write(ifoutput,'(//A,/A,F5.0,A,I7.0,A)') &
           '#--------------------------------------------------------'      &
           ,'#',(timeav),'--- AVERAGING TIMESTEP --- '      &
           ,timee      &
