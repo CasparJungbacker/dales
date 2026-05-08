@@ -78,6 +78,7 @@ set( dales_srcs
 	modnudgeboundary.f90
 	modnvtx.f90
 	modopenboundary.f90
+	modparticles.f90
 	modpois_data.f90
 	modpois.f90
 	modprecision.f90
