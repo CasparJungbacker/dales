@@ -156,6 +156,35 @@ contains
     if (ierror /= MPI_SUCCESS) call abort
   end subroutine D_MPI_RECV_REAL64_R1
 
+!>D_MPI_SENDRECV
+  subroutine D_MPI_SENDRECV_INT32_S(sendbuf, sendcount, dest, sendtag, recvbuf, recvcount, source, recvtag, comm, status, ierror)
+    implicit none
+    integer(int32), intent(inout) :: sendbuf, recvbuf
+    integer :: sendcount, dest, sendtag, recvcount, source, recvtag, ierror
+    type(MPI_COMM) :: comm
+    type(MPI_STATUS) :: status
+    call MPI_SENDRECV(sendbuf, sendcount, MPI_INTEGER4, dest, sendtag, recvbuf, recvcount, MPI_INTEGER4, source, recvtag, comm, status, ierror)
+    if (ierror /= MPI_SUCCESS) call abort
+  end subroutine D_MPI_SENDRECV_INT32_S
+  subroutine D_MPI_SENDRECV_REAL32_R1(sendbuf, sendcount, dest, sendtag, recvbuf, recvcount, source, recvtag, comm, status, ierror)
+    implicit none
+    real(real32), contiguous, intent(inout) :: sendbuf(:), recvbuf(:)
+    integer :: sendcount, dest, sendtag, recvcount, source, recvtag, ierror
+    type(MPI_COMM) :: comm
+    type(MPI_STATUS) :: status
+    call MPI_SENDRECV(sendbuf, sendcount, MPI_REAL4, dest, sendtag, recvbuf, recvcount, MPI_REAL4, source, recvtag, comm, status, ierror)
+    if (ierror /= MPI_SUCCESS) call abort
+  end subroutine D_MPI_SENDRECV_REAL32_R1
+  subroutine D_MPI_SENDRECV_REAL64_R1(sendbuf, sendcount, dest, sendtag, recvbuf, recvcount, source, recvtag, comm, status, ierror)
+    implicit none
+    real(real64), contiguous, intent(inout) :: sendbuf(:), recvbuf(:)
+    integer :: sendcount, dest, sendtag, recvcount, source, recvtag, ierror
+    type(MPI_COMM) :: comm
+    type(MPI_STATUS) :: status
+    call MPI_SENDRECV(sendbuf, sendcount, MPI_REAL8, dest, sendtag, recvbuf, recvcount, MPI_REAL8, source, recvtag, comm, status, ierror)
+    if (ierror /= MPI_SUCCESS) call abort
+  end subroutine D_MPI_SENDRECV_REAL64_R1
+
 !>D_MPI_BCAST
   subroutine D_MPI_BCAST_REAL32_S(buffer, count, root, comm, ierror)
     implicit none

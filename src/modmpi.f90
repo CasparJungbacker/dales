@@ -96,6 +96,11 @@ interface D_MPI_ISEND
     procedure :: D_MPI_RECV_REAL32_R1
     procedure :: D_MPI_RECV_REAL64_R1
   end interface
+  interface D_MPI_SENDRECV
+    procedure :: D_MPI_SENDRECV_INT32_S
+    procedure :: D_MPI_SENDRECV_REAL32_R1
+    procedure :: D_MPI_SENDRECV_REAL64_R1
+  end interface
   interface D_MPI_BCAST
     procedure :: D_MPI_BCAST_LOGICAL_S
     procedure :: D_MPI_BCAST_INT64_S
