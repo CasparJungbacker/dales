@@ -152,7 +152,7 @@ program DALES
   !use modstress,       only : initstressbudget, stressbudgetstat, exitstressbudget
 
   !use modtilt,         only : inittilt, tiltedgravity, tiltedboundary, exittilt
-  !use modparticles,    only : initparticles, particles, exitparticles
+  use modparticles,    only : initparticles, particles, exitparticles
   use modnudge,        only : initnudge, nudge, exitnudge
   use modnudgeboundary, only : initnudgeboundary, nudgeboundary, exitnudgeboundary
   use modtestbed,      only : testbednudge, exittestbed
@@ -218,7 +218,7 @@ program DALES
   call initradfield
   call initlsmstat
   !call initdepstat
-  !call initparticles
+  call initparticles
   call initnudge
   call initnudgeboundary
   call initbudget
@@ -388,7 +388,7 @@ program DALES
           call cloudfield
           call fielddump
           call radfield
-          !call particles
+          call particles
     
           call budgetstat
           call varbudget
@@ -428,7 +428,7 @@ program DALES
   call exitradstat
   call exitlsmstat
   !call exitdepstat
-  !call exitparticles
+  call exitparticles
   call exitnudge
   call exitnudgeboundary
   call exittestbed
