@@ -591,7 +591,7 @@ contains
           do j=jstart, jend
              do i=2,i1
                 icol=i-1+(j-jstart)*imax
-                nc_slice(icol,k) = sv0(i,j,k,iNc)
+                nc_slice(icol,k) = sv0(i,j,k,iNc) + 1
              end do
           end do
        end do
