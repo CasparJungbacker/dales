@@ -19,7 +19,7 @@
 !> Module for nudging prognostic fields to some provided profiles.
 module modnudge
   use fortran_support, only: int2string
-  use modglobal, only: i1, j1, ih, jh, kmax, rdt, dzh, pi
+  use modglobal, only: i1, j1, ih, jh, kmax, rdt, dzh, pi, rdt, zf
   use modprecision, only: field_r
   use modtimer,     only: timer_tic, timer_toc
   use modlogging, only: finish
@@ -44,6 +44,7 @@ module modnudge
   logical :: lsvnudge = .false.
   
   ! For these, we set no default values, as they are highly case-specific.
+  logical       :: lrlx = .false. !< Whether to apply a relaxation layer in the free troposphere.
   real(field_r) :: z_rlx_min = -1 !< Lower bound of the nudging relaxation layer.
   real(field_r) :: z_rlx_max = -1 !< Upper bound of the nudging relaxation layer.
 
@@ -96,7 +97,7 @@ contains
 
     namelist /NAMNUDGE/ lnudge, lunudge, lvnudge, lwnudge, lthlnudge, &
                         lqtnudge, lsvnudge, tnudgefac, ltthlnudge, &
-                        z_rlx_min, z_rlx_max
+                        lrlx, z_rlx_min, z_rlx_max
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
@@ -114,6 +115,7 @@ contains
     call D_MPI_BCAST(lqtnudge, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(tnudgefac, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(ltthlnudge, 1, 0, comm3d, mpierr)
+    call D_MPI_BCAST(lrlx, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(z_rlx_min, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(z_rlx_max, 1, 0, comm3d, mpierr)
 
@@ -200,8 +202,7 @@ contains
         if (myid == 0) then
           call nchandle_error(nf90_inq_varid(ncid, "qt_nud", varid))
           call nchandle_error(nf90_get_var(ncid, varid, qtnudge(1:kmax,:)))
-          call nchandle_error(nf90_inq_varid(ncid, "nudging_constant_qt", &
-                              varid))
+          call nchandle_error(nf90_inq_varid(ncid, "nudging_constant_qt", varid))
           call nchandle_error(nf90_get_var(ncid, varid, tqtnudge(1:kmax,:)))
         end if
       end if
@@ -395,7 +396,8 @@ contains
     if (lvnudge) call nudge_field(v0av, vnudge, tvnudge, t, dtm, dtp, vp)
     if (lwnudge) call nudge_field(w0av, wnudge, twnudge, t, dtm, dtp, wp)
     if (lthlnudge) call nudge_field(thl0av, thlnudge, tthlnudge, t, dtm, dtp, thlp)
-    if (lqtnudge) call nudge_field(qt0av, qtnudge, tqtnudge, t, dtm, dtp, qtp)
+    if (lqtnudge) call nudge_field(qt0av, qtnudge, tqtnudge, t, dtm, dtp, qtp, &
+                                   lrlx=lrlx, z_rlx_min=z_rlx_min, z_rlx_max=z_rlx_max)
 
     if (lsvnudge) then
       do n = 1, nsv
@@ -440,6 +442,7 @@ contains
     real(field_r) :: currtnudge
     logical       :: do_relax
 
+    do_relax = .false.
     if (present(lrlx)) do_relax = lrlx
 
     if (do_relax) then
@@ -454,8 +457,8 @@ contains
             currtnudge = max(1.0_field_r * rdt, &
                              timescale(k,t) * dtp + timescale(k,t + 1) * dtm)
             phi_p(i,j,k) = phi_p(i,j,k) - (phi_av(k) - (phi_tgt(k,t) * dtp + &
-                           phi_tgt(k,t + 1) * dtm)) / (currtnudge * &
-                           gamma_nudge(zf(k), z_rlx_min, z_rlx_max))
+                           phi_tgt(k,t + 1) * dtm)) / (currtnudge) &
+                           * gamma_nudge(zf(k), z_rlx_min, z_rlx_max)
           end do
         end do
       end do
