@@ -115,6 +115,7 @@ contains
     call D_MPI_BCAST(lqtnudge, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(tnudgefac, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(ltthlnudge, 1, 0, comm3d, mpierr)
+    call D_MPI_BCAST(lsvnudge, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(lrlx, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(z_rlx_min, 1, 0, comm3d, mpierr)
     call D_MPI_BCAST(z_rlx_max, 1, 0, comm3d, mpierr)
