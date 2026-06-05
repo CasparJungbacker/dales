@@ -165,6 +165,7 @@ program DALES
   use modemission,     only : emission
   use modopenboundary, only : openboundary_ghost,openboundary_tend,openboundary_phasevelocity,openboundary_turb
   use modstat_profiles, only: init_profiles, sample_profiles, write_profiles, exit_profiles
+  use modprofdump,     only : initprofdump, profdump
   use modibm,          only : applyibm, zerowallvelocity
   use modibmdata,      only : lpoislast
   use modlatsponge,    only : lateral_sponge
@@ -232,6 +233,7 @@ program DALES
   ! call initchem
   call initsampling
   call initfielddump
+  call initprofdump
   call initsamptend
   call initheterostats
   call initcanopy
@@ -397,6 +399,7 @@ program DALES
           !call projection
           call cloudfield
           call fielddump
+          call profdump
           call radfield
           !call particles
 
