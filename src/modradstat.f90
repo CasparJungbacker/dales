@@ -263,8 +263,7 @@ contains
     integer :: k
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,k1
        lwdav(k)  = 0.
        lwuav(k)  = 0.
@@ -290,8 +289,7 @@ contains
     call slabsum(thltendav ,1,k1,thlprad ,2-ih,i1+ih,2-jh,j1+jh,1,k1,2,i1,2,j1,1,k1)
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,kmax
        thllwtendav(k) = (abs(lwdav(k+1)) - abs(lwuav(k+1)) - abs(lwdav(k)) + abs(lwuav(k)) )/(rhof(k)*exnf(k)*cp*dzf(k))
        thlswtendav(k) = (abs(swdav(k+1)) - abs(swuav(k+1)) - abs(swdav(k)) + abs(swuav(k)) )/(rhof(k)*exnf(k)*cp*dzf(k))
@@ -300,8 +298,7 @@ contains
 
  !    ADD SLAB AVERAGES TO TIME MEAN
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,k1
        lwumn(k)       = lwumn(k)       + lwuav(k)       / ijtot
        lwdmn(k)       = lwdmn(k)       + lwdav(k)       / ijtot
@@ -319,16 +316,14 @@ contains
     if (lradclearair) then
         call radclearair
         !$acc parallel loop default(present)
-        !$omp target teams loop defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop
         do k=1,kmax
           thllwtendcaav(k) = (-lwdcaav(k+1) - lwucaav(k+1) + lwdcaav(k) + lwucaav(k))/(rhof(k)*exnf(k)*cp*dzf(k))
           thlswtendcaav(k) = (-swdcaav(k+1) - swucaav(k+1) + swdcaav(k) + swucaav(k))/(rhof(k)*exnf(k)*cp*dzf(k))
         enddo
 
         !$acc parallel loop default(present)
-        !$omp target teams loop defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop
         do k=1,k1
            thllwtendcamn(k) = thllwtendcamn(k) + thllwtendcaav(k) / ijtot
            thlswtendcamn(k) = thlswtendcamn(k) + thlswtendcaav(k) / ijtot
@@ -353,8 +348,7 @@ contains
 
     real :: exnersurf
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,k1
        lwdcaav(k)  = 0.
        lwucaav(k)  = 0.
@@ -405,8 +399,7 @@ contains
  !    ADD SLAB AVERAGES TO TIME MEAN
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,k1
        lwucamn(k) = lwucamn(k) + lwucaav(k)/ijtot
        lwdcamn(k) = lwdcamn(k) + lwdcaav(k)/ijtot
@@ -433,8 +426,7 @@ contains
       nsecs   = mod(nsecs,60)
 
       !$acc parallel loop default(present)
-      !$omp target teams loop defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop
       do k=1,k1
          lwumn(k)   = lwumn(k)    /nsamples
          lwdmn(k)   = lwdmn(k)    /nsamples
@@ -544,8 +536,7 @@ contains
     end if ! end if(myid==0)
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,k1
        lwumn(k) = 0.0
        lwdmn(k) = 0.0

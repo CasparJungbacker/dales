@@ -260,8 +260,7 @@ contains
       call slabavg(field, nh, slab_average, local=lprocblock)
 
       !$acc parallel loop vector default(present) async
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = 1, kmax
         profiles(k,idx) = profiles(k,idx) + slab_average(k)
       end do
@@ -296,8 +295,7 @@ contains
       call slabavg(field, mask, nh, slab_average, local=lprocblock)
 
       !$acc parallel loop vector default(present) async
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = 1, kmax
         profiles(k,idx) = profiles(k,idx) + slab_average(k)
       end do
@@ -313,8 +311,7 @@ contains
     if (write_stats) then
 
       !$acc parallel loop collapse(2) default(present)
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do n = 1, nvar
         do k = 1, kmax
           profiles(k,n) = profiles(k,n) / nsamples
@@ -331,8 +328,7 @@ contains
 
       ! Reset averages
       !$acc parallel loop collapse(2) default(present) async
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do n = 1, nvar
         do k = 1, kmax
           profiles(k,n) = 0

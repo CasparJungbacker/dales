@@ -512,8 +512,7 @@ contains
     real :: logz
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         logz = log(zf(1) / z0m(i,j))
@@ -534,8 +533,7 @@ contains
 
     if (lmostlocal) then
       !$acc parallel loop collapse(2) default(present)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable)
+       !$omp target teams loop collapse(2)
       do j = 2, j1
         do i = 2, i1
           ra(i,j) = 1. / (Cs(i,j) * horv(i,j))
@@ -543,8 +541,7 @@ contains
       end do
     else
       !$acc parallel loop collapse(2) default(present)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable)
+       !$omp target teams loop collapse(2)
       do j = 2, j1
         do i = 2, i1
           ra(i,j) = 1. / (Cs(i,j) * horvav)
@@ -562,8 +559,7 @@ contains
     integer :: i, j
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         tskin(i,j) = thls
@@ -584,8 +580,7 @@ contains
 
     ! TODO: check if splitting these loops speeds things up on the GPU (async)
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         tskin(i,j) = min(max(thlflux(i,j) / (Cs(i,j) * horv(i,j)), -10.), 10.) + thl0(i,j,1)
@@ -597,8 +592,7 @@ contains
     lthls = 0.0
     qts = 0.0
     !$acc parallel loop collapse(2) default(present) reduction(+: thls, qts)
-    !$omp target teams loop reduction(+:lthls,qts) collapse(2)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop reduction(+:lthls,qts) collapse(2)
     do j = 2, j1
       do i = 2, i1
         lthls = lthls + tskin(i,j)
@@ -627,8 +621,7 @@ contains
     real :: upcu, vpcv
 
     !$acc parallel loop collapse(2) default(present) private(upcu, vpcv)
-    !$omp target teams loop private(upcu,vpcv) collapse(2)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(upcu,vpcv) collapse(2)
     do j = 2, j1
       do i = 2, i1
         upcu = 0.5 * (u0(i,j,1) + u0(i+1,j,1)) + cu
@@ -657,8 +650,7 @@ contains
 
     if (lmostlocal) then
       !$acc parallel loop collapse(2) default(present)
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do j = 2, j1
         do i = 2, i1
           ustar(i,j) = sqrt(Cm(i,j)) * horv(i,j)
@@ -667,8 +659,7 @@ contains
       end do
     else
       !$acc parallel loop collapse(2) default(present)
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do j = 2, j1
         do i = 2, i1
           ustar(i,j) = sqrt(Cm(i,j)) * horvav
@@ -698,8 +689,7 @@ contains
     integer :: i, j
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         ustar(i,j) = ustin
@@ -736,8 +726,7 @@ contains
       wtsurfl = 0.0
       wqsurfl = 0.0
       !$acc parallel loop collapse(2) default(present) reduction(+: ustl, wtsurfl, wqsurfl)
-      !$omp target teams loop reduction(+:ustl,wtsurfl,wqsurfl) collapse(2)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop reduction(+:ustl,wtsurfl,wqsurfl) collapse(2)
       do j = 2, j1
         do i = 2, i1
           ustl = ustl + ustar(i,j)
@@ -757,8 +746,7 @@ contains
       call presc_surface_flux
     else
       !$acc parallel loop collapse(2) default(present)
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do j = 2, j1
         do i = 2, i1
           thlflux(i,j) = - (thl0(i,j,1) - tskin(i,j)) / ra(i,j)
@@ -769,8 +757,7 @@ contains
       ! Passive scalars
       if (nsv > 0) then
         !$acc parallel loop collapse(3) default(present)
-        !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(3)
         do n = 1, nsv
           do j = 2, j1
             do i = 2, i1
@@ -782,8 +769,7 @@ contains
 
       if (lCO2Ags) then
         !$acc parallel loop collapse(3) default(present)
-        !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(3)
         do n = 1, indCO2
           do j = 2, j1
             do i = 2, i1
@@ -804,8 +790,7 @@ contains
     integer :: i, j, n
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         thlflux(i,j) = wtsurf
@@ -815,8 +800,7 @@ contains
 
     if (nsv > 0) then
       !$acc parallel loop collapse(3) default(present) async(2)
-      !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(3)
       do n = 1, nsv
         do j = 2, j1
           do i = 2, i1
@@ -843,8 +827,7 @@ contains
     scaling = 1.0 / (fkar * zf(1))
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         phimzf = phim(zf(1) / obl(i,j))
@@ -877,8 +860,7 @@ contains
     if(isurf <= 2) then
       qts = 0.
       !$acc parallel loop collapse(2) default(present) reduction(+: qts)
-      !$omp target teams loop reduction(+:qts) collapse(2)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop reduction(+:qts) collapse(2)
       do j = 2, j1
         do i = 2, i1
           exner      = (ps / pref0)**(rd/cp)
@@ -914,8 +896,7 @@ contains
 
     if (lneutral) then
       !$acc parallel loop collapse(2) default(present)
-      !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop collapse(2)
       do j = 1, j2
         do i = 1, i2
           obl(i,j) = -1.e10
@@ -924,7 +905,7 @@ contains
       oblav = -1.e10
     else 
       !$acc serial default(present) copy(oblav)
-      !$omp target map(tofrom:oblav) defaultmap(present:allocatable)
+      !$omp target map(tofrom:oblav)
       retval = calc_obl_iter(thl0av(1), qt0av(1), real(thls), real(qts), &
                              zf(1), z0mav, z0hav, u0av(1), v0av(1), oblav)
       !$acc end serial
@@ -932,8 +913,7 @@ contains
 
       if (lmostlocal) then
         !$acc parallel loop collapse(2) default(present)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j = 2, j1
           do i = 2, i1
             upcu = 0.5_real64 * (u0(i,j,1) + u0(i+1,j,1)) + cu 
@@ -945,8 +925,7 @@ contains
         end do
       else
         !$acc parallel loop collapse(2) default(present)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j = 1, j2
           do i = 1, i2
             obl(i,j) = oblav

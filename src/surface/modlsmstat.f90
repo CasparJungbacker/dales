@@ -204,8 +204,7 @@ contains
     end if
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,kdim_soil
        tsoilav(k)  = 0.
        phiwav(k)  = 0.
@@ -222,8 +221,7 @@ contains
  !    ADD SLAB AVERAGES TO TIME MEAN
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,kdim_soil
        phiwmn(k) = phiwmn(k) + phiwav(k)/ijtot
        tsoilmn(k) = tsoilmn(k) + tsoilav(k)/ijtot
@@ -262,8 +260,7 @@ contains
       nsecs   = mod(nsecs,60)
 
       !$acc parallel loop default(present)
-      !$omp target teams loop defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop
       do k=1,kdim_soil
          phiwmn(k)   = phiwmn(k)    /nsamples
          tsoilmn(k)   = tsoilmn(k)    /nsamples
@@ -323,8 +320,7 @@ contains
     end if ! end if(myid==0)
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k=1,kdim_soil
        phiwmn(k) = 0.0
        tsoilmn(k) = 0.0

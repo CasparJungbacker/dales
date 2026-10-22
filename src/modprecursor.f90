@@ -359,8 +359,7 @@ contains
     ! North
     if (myidy == 0) then
       !$acc parallel loop gang vector collapse(3) default(present) async
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 1, nudgedepthgr
           do i = 2, i1
@@ -374,8 +373,7 @@ contains
     ! South
     if (myidy == nprocy - 1) then
       !$acc parallel loop gang vector collapse(3) default(present) async
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = j1 - nudgedepthgr + 1, j1
           do i = 2, i1
@@ -390,8 +388,7 @@ contains
     ! West
     if (myidx == 0) then
       !$acc parallel loop gang vector collapse(3) default(present) async
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 1, nudgedepthgr
@@ -405,8 +402,7 @@ contains
     ! East
     if (myidx == nprocx - 1) then
       !$acc parallel loop gang vector collapse(3) default(present) async
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = i1 - nudgedepthgr + 1, i1

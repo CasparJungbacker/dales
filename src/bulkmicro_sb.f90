@@ -132,8 +132,7 @@ contains
     k_au = k_c / (20 * x_s)
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qcbase, qcroof
       do j = 2, j1
         do i = 2, i1
@@ -221,8 +220,7 @@ contains
     end if
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = max(qrbase,qcbase), min(qrroof, qcroof)
       do j = 2, j1
         do i = 2, i1
@@ -251,8 +249,7 @@ contains
     end if
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qrbase, qrroof
       do j = 2, j1
         do i = 2, i1
@@ -345,8 +342,7 @@ contains
     end if
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qrbase, qrroof
       do j = 2, j1
         do i = 2, i1
@@ -649,8 +645,7 @@ contains
     real(field_r), save :: dt_spl
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -680,8 +675,7 @@ contains
     do jn = 1, n_spl ! time splitting loop
       if (jn == 1) then
         !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
         do k = 1, k1
           do j = 2, j1
             do i = 2, i1
@@ -695,8 +689,7 @@ contains
       else
         !Copy from tmp into spl
         !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
         do k = 1, k1
           do j = 2, j1
             do i = 2, i1
@@ -716,8 +709,7 @@ contains
       if (jn == 1) then
         if (l_lognormal) then
           !$acc parallel loop collapse(3) default(present) private(Dgr)
-!!$omp target teams loop private(dgr) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(dgr) collapse(3)
           do k = qrbase, qrroof
             do j = 2, j1
               do i = 2, i1
@@ -738,8 +730,7 @@ contains
           end do
         else ! l_lognormal
           !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
           do k = qrbase, qrroof
             do j = 2, j1
               do i = 2, i1
@@ -770,8 +761,7 @@ contains
         k = 1
           if (l_lognormal) then
             !$acc parallel loop collapse(2) default(present) private(Dgr)
-!!$omp target teams loop private(dgr) collapse(2)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(dgr) collapse(2)
             do j = 2, j1
               do i = 2, i1
                 if (qr_spl(i,j,k) > qrmin) then
@@ -799,8 +789,7 @@ contains
             end do
           else ! l_lognormal
             !$acc parallel loop collapse(2) default(present)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
             do j = 2, j1
               do i = 2, i1
                 if (qr_spl(i,j,k) > qrmin) then
@@ -825,8 +814,7 @@ contains
 
       if (l_lognormal) then
         !$acc parallel loop collapse(3) default(present) private(Dgr)
-!!$omp target teams loop private(dgr) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(dgr) collapse(3)
         do k = sedimbase, qrroof
           do j = 2, j1
             do i = 2, i1
@@ -867,8 +855,7 @@ contains
         end do
       else
         !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
         do k = sedimbase, qrroof
           do j = 2, j1
             do i = 2, i1
@@ -912,8 +899,7 @@ contains
     delt_inv = 1.0 / delt
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qrbase, qrroof
       do j = 2, j1
         do i = 2, i1

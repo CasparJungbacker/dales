@@ -250,8 +250,7 @@ contains
       wtime = MPI_Wtime()
 
       !$acc parallel loop collapse(3) default(present)
-      !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !$omp target teams loop collapse(3)
       do k=1,k1
          do j=2-jh,j1+jh
             do i=2-ih,i1+ih
@@ -303,8 +302,7 @@ contains
     end if
     
     !$acc parallel loop collapse(3) default(present)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop collapse(3)
     do k=1,k1
        do j=2-jh,j1+jh
           do i=2-ih,i1+ih
@@ -562,8 +560,7 @@ subroutine radpar
   call timer_tic('modradiation/radprof', 1)
 
   !$acc parallel loop collapse(3) default(present)
-  !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-  !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+  !$omp target teams loop collapse(3)
   do k=1,kmax
      do j=2,j1
         do i=2,i1

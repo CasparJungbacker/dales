@@ -84,8 +84,7 @@ contains
       end if
 
       !$acc parallel loop collapse(3) default(present) private(xr)
-!!$omp target teams loop private(xr) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(xr) collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1

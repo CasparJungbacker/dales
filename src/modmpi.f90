@@ -440,8 +440,7 @@ contains
 !$omp target enter data map(to:sendn,sends,recvn,recvs)
 
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, jh
         do i = 1, xl
@@ -466,8 +465,7 @@ contains
 
     ! Write back buffers
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, jh
         do i = 1, xl
@@ -482,8 +480,7 @@ contains
 
     ! Single processor, make sure the field is periodic
     !$acc kernels default(present) async
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     a(:,sy-jh:sy-1,:) = a(:,ey-jh+1:ey,:)
     a(:,ey+1:ey+jh,:) = a(:,sy:sy+jh-1,:)
     !$acc end kernels
@@ -499,8 +496,7 @@ contains
 !$omp target enter data map(to:sende,sendw,recve,recvw)
 
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, yl
         do i = 1, ih
@@ -525,8 +521,7 @@ contains
 
     ! Write back buffers
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, yl
         do i = 1, ih
@@ -541,8 +536,7 @@ contains
 
     ! Single processor, make sure the field is periodic
     !$acc kernels default(present) async
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     a(sx-ih:sx-1,:,:) = a(ex-ih+1:ex,:,:)
     a(ex+1:ex+ih,:,:) = a(sx:sx+ih-1,:,:)
     !$acc end kernels
@@ -842,8 +836,7 @@ contains
 !$omp target enter data map(to:sendn,sends,recvn,recvs)
 
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, jh
         do i = 1, xl
@@ -869,8 +862,7 @@ contains
 
     ! Write back buffers
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, jh
         do i = 1, xl
@@ -885,8 +877,7 @@ contains
 
     ! Single processor, make sure the field is periodic
     !$acc kernels default(present) async
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     a(:,sy-jh:sy-1,:) = a(:,ey-jh+1:ey,:)
     a(:,ey+1:ey+jh,:) = a(:,sy:sy+jh-1,:)
     !$acc end kernels
@@ -902,8 +893,7 @@ contains
 !$omp target enter data map(to:sende,sendw,recve,recvw)
 
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, yl
         do i = 1, ih
@@ -928,8 +918,7 @@ contains
 
     ! Write back buffers
     !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
     do k = 1, zl
       do j = 1, yl
         do i = 1, ih
@@ -944,8 +933,7 @@ contains
 
     ! Single processor, make sure the field is periodic
     !$acc kernels default(present) async
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     a(sx-ih:sx-1,:,:) = a(ex-ih+1:ex,:,:)
     a(ex+1:ex+ih,:,:) = a(sx:sx+ih-1,:,:)
     !$acc end kernels
@@ -1125,8 +1113,7 @@ contains
       end do
       !$acc end kernels
 #else
-      !$omp target teams loop defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !$omp target teams loop
       do k = kbs, kes
          do j = jbs, jes
             do i = ibs, ies
@@ -1177,7 +1164,7 @@ contains
       end do
       !$acc end kernels
 #else
-      !$omp target teams loop defaultmap(present:aggregate)
+      !$omp target teams loop
       do k = kbs, kes
          do j = jbs, jes
             do i = ibs, ies
@@ -1236,8 +1223,7 @@ contains
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3, sum_lcl4, sum_lcl5)
 !!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4,&
-!!$omp sum_lcl5) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp sum_lcl5)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1284,8 +1270,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1329,8 +1314,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3, sum_lcl4)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1373,8 +1357,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1415,8 +1398,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1454,8 +1436,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1493,8 +1474,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1528,8 +1508,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     !$acc end kernels
@@ -1574,8 +1553,7 @@ contains
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3, sum_lcl4, sum_lcl5)
 !!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4,&
-!!$omp sum_lcl5) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp sum_lcl5)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1622,8 +1600,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1668,8 +1645,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3, sum_lcl4)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3,sum_lcl4)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1712,8 +1688,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1754,8 +1729,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2, sum_lcl3)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2,sum_lcl3)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1793,8 +1767,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     aver3(:) = sum2d(:,3)
@@ -1832,8 +1805,7 @@ contains
       !$acc enter data create(sum2d)
 !$omp target enter data map(alloc:sum2d)
       !$acc parallel loop gang default(present) private(sum_lcl1, sum_lcl2)
-!!$omp target teams loop private(sum_lcl1,sum_lcl2)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sum_lcl1,sum_lcl2)
       do k = kbs, kes
         sum_lcl1 = 0.0
         sum_lcl2 = 0.0
@@ -1867,8 +1839,7 @@ contains
 !!$omp target update to(sum2d)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     aver1(:) = sum2d(:,1)
     aver2(:) = sum2d(:,2)
     !$acc end kernels

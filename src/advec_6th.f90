@@ -46,8 +46,7 @@ subroutine hadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   integer :: i,j,k
 
   !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = jstart, jend
       do i = istart, iend
@@ -86,8 +85,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 1
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(1)) * ( &
@@ -100,8 +98,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   k = 2
   !CvH do 2nd order for influx and 4th order for outflux
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -118,8 +115,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   k = 3
   !CvH do 6th order for outflux and 4th for influx
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -138,8 +134,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   k = kmax-1
   !CvH do 6th order for influx and 4th order for outflux
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -158,8 +153,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   k = kmax
   !CvH do 4th order for influx and 2nd order for outflux
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -174,8 +168,7 @@ subroutine vadvecc_6th(a_in, a_out,istart,iend,jstart,jend)
   end do
 
   !$acc parallel loop collapse(3) default(present) async(2)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 4, kmax-2
     do j = jstart, jend
       do i = istart, iend
@@ -211,8 +204,7 @@ subroutine hadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
   integer :: i,j,k
 
   !$acc parallel loop collapse(3) default(present) async(1)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = jstart, jend
       do i = istart, iend
@@ -251,8 +243,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
 
   k = 1
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(1)) * ( &
@@ -265,8 +256,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
 
   k = 2
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -282,8 +272,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
 
   k = 3
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -301,8 +290,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
 
   k = kmax-1
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -320,8 +308,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
 
   k = kmax
   !$acc parallel loop collapse(2) default(present) async(1)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -336,8 +323,7 @@ subroutine vadvecu_6th(a_in,a_out,istart,iend,jstart,jend)
   enddo
 
   !$acc parallel loop collapse(3) default(present) async(2)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 4, kmax-2
     do j = jstart, jend
       do i = istart, iend
@@ -372,8 +358,7 @@ subroutine hadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
   integer :: i,j,k
 
   !$acc parallel loop collapse(3) default(present) async(2)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = jstart, jend
       do i = istart, iend
@@ -411,8 +396,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 1
   !$acc parallel loop collapse(2) default(present) async(3)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(1)) * ( &
@@ -425,8 +409,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 2
   !$acc parallel loop collapse(2) default(present) async(3)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -442,8 +425,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 3
   !$acc parallel loop collapse(2) default(present) async(3)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -461,8 +443,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = kmax-1
   !$acc parallel loop collapse(2) default(present) async(3)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -480,8 +461,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = kmax
   !$acc parallel loop collapse(2) default(present) async(3)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobf(k)) * ( &
@@ -496,8 +476,7 @@ subroutine vadvecv_6th(a_in, a_out,istart,iend,jstart,jend)
   enddo
 
   !$acc parallel loop collapse(3) default(present) async(4)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 4, kmax-2
     do j = jstart, jend
       do i = istart, iend
@@ -531,8 +510,7 @@ subroutine hadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
   integer :: i,j,k
 
   !$acc parallel loop collapse(3) default(present) async(3)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 2, kmax
     do j = jstart, jend
       do i = istart, iend
@@ -572,8 +550,7 @@ subroutine vadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 2
   !$acc parallel loop collapse(2) default(present) async(5)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobh(k)) * ( &
@@ -589,8 +566,7 @@ subroutine vadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = 3
   !$acc parallel loop collapse(2) default(present) async(5)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobh(k)) * ( &
@@ -608,8 +584,7 @@ subroutine vadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = kmax-1
   !$acc parallel loop collapse(2) default(present) async(5)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobh(k)) * ( &
@@ -627,8 +602,7 @@ subroutine vadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
 
   k = kmax
   !$acc parallel loop collapse(2) default(present) async(5)
-!!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(2)
   do j = jstart, jend
     do i = istart, iend
       a_out(i,j,k) = a_out(i,j,k) - ( (1/rhobh(k)) * ( &
@@ -643,8 +617,7 @@ subroutine vadvecw_6th(a_in, a_out,istart,iend,jstart,jend)
   end do
 
   !$acc parallel loop collapse(3) default(present) async(6)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
   do k = 4, kmax-2
     do j = jstart, jend
       do i = istart, iend

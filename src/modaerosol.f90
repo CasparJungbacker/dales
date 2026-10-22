@@ -203,8 +203,7 @@ contains
 
     if (rk3step == 3 .or. timee < 0.01) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -301,8 +300,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc private(dm, fn, n_act, w0, dncdt, fm, tend_n, tend_m, st)
 !!$omp target teams loop private(dm,fn,n_act,w0,dncdt,fm,tend_n,tend_m,&
-!!$omp st) collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp st) collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -431,8 +429,7 @@ contains
     m_inr => modes_h(iINR)
 
     !$acc parallel loop collapse(4) default(present) private(dqadt)
-!!$omp target teams loop private(dqadt) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(dqadt) collapse(4)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -512,8 +509,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc private(f_evp, eps, evapm, evapn, dn, dm, fn, fm)
 !!$omp target teams loop private(f_evp,eps,evapm,evapn,dn,dm,fn,fm)&
-!!$omp collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -621,8 +617,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc private(f_evp, eps, evapm, evapn, dn, dm, fn, fm)
 !!$omp target teams loop private(f_evp,eps,evapm,evapn,dn,dm,fn,fm)&
-!!$omp collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -716,8 +711,7 @@ contains
     dt_spl = delt / real(n_spl, kind=field_r)
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -728,8 +722,7 @@ contains
     end do
 
     !$acc parallel loop collapse(4) default(present)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -742,8 +735,7 @@ contains
 
     do ts = 1, n_spl
       !$acc parallel loop collapse(3) default(present) private(sed_nr)
-!!$omp target teams loop private(sed_nr) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(sed_nr) collapse(3)
       do k = qrbase, qrroof
         do j = 2, j1 
           do i = 2, i1
@@ -790,8 +782,7 @@ contains
     end do
 
     !$acc parallel loop collapse(4) default(present)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1

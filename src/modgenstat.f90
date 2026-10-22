@@ -586,8 +586,7 @@ contains
     !--------------------------------------------------------
 
      !$acc parallel loop default(present)
-     !$omp target teams loop defaultmap(present:aggregate)&
-     !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+     !$omp target teams loop
      do k=1,k1
         qlhav(k) = 0.0
         u2av(k) = 0.0
@@ -638,8 +637,7 @@ contains
 
      if (nsv > 0) then
         !$acc parallel loop collapse(2) default(present)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+        !$omp target teams loop collapse(2)
         do n=1,nsv
            do k=1,k1
               sv2av(k,n) = 0.0
@@ -658,8 +656,7 @@ contains
     !------------------------------------------
 
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -670,8 +667,7 @@ contains
     enddo
 
     !$acc parallel loop default(present) async(1)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k = 1, k1
       cfracav(k) = cfracav(k)+count(ql0(2:i1,2:j1,k)>0)
     end do
@@ -693,8 +689,7 @@ contains
     end if
 
     !$acc parallel loop default(present) async(1)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop
     do k=1,k1
        umav(k)    = umav(k)    / ijtot + cu
        vmav(k)    = vmav(k)    / ijtot + cv
@@ -710,8 +705,7 @@ contains
 
     if (nsv > 0) then
        !$acc parallel loop collapse(2) default(present) async(1)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+       !$omp target teams loop collapse(2)
        do n=1,nsv
           do k=1,k1
              svmav(k,n) = svmav(k,n) / ijtot
@@ -784,8 +778,7 @@ contains
     ! NOTE: reduction on array seems unsupported
     !$omp target teams loop private(upcu,vpcv,ilratio)&
     !$omp reduction(+:sqlhav,swthlsub,swqtsub,swthvsub,suwsub,&
-    !$omp svwsub,shurav,sclwav,scliav) collapse(2)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp svwsub,shurav,sclwav,scliav) collapse(2)
     do j = 2, j1
       do i = 2, i1
         sqlhav = sqlhav + ql0h(i,j,1)
@@ -815,7 +808,7 @@ contains
       end do
     end do
 
-    !$omp target defaultmap(present:allocatable)
+    !$omp target
     qlhav(1)=sqlhav
     wthlsub(1)=swthlsub
     wqtsub(1)=swqtsub
@@ -838,8 +831,7 @@ contains
     !$acc&         hurav_s, clwav_s, cliav_s, plwav_s, pliav_s) async(1)
     !$omp target teams loop private(qlhav_s,wqlsub_s,wqlres_s,wthlsub_s,&
     !$omp wthlres_s,wthvsub_s,wthvres_s,wqtsub_s,wqtres_s,uwres_s,vwres_s,&
-    !$omp uwsub_s,vwsub_s,hurav_s,clwav_s,cliav_s,plwav_s,pliav_s)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp uwsub_s,vwsub_s,hurav_s,clwav_s,cliav_s,plwav_s,pliav_s)
     do k = 2, kmax
       qlhav_s = 0.0
       wthlsub_s = 0.0
@@ -982,8 +974,7 @@ contains
 
     if (iqr > 0) then
        !$acc parallel loop gang default(present) private(plwav_s, pliav_s, ilratio) async(1)
-       !$omp target teams loop private(plwav_s,pliav_s,ilratio)&
-       !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+       !$omp target teams loop private(plwav_s,pliav_s,ilratio)
        do k = 1, kmax
           plwav_s = 0
           pliav_s = 0
@@ -1035,8 +1026,7 @@ contains
            call halflev_kappa(sv0(:,:,:,n),sv0h)
         else
           !$acc parallel loop collapse(3) default(present) async(1)
-           !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-           !$omp defaultmap(present:allocatable)
+           !$omp target teams loop collapse(3)
           do k = 2, k1
             do j = 2, j1
               do i = 2, i1    ! note: sv0h only defined and only used for k=2...
@@ -1049,8 +1039,7 @@ contains
         !$acc wait(1)
 
         !$acc parallel loop default(present) private(wsvres_s)
-        !$omp target teams loop private(wsvres_s)&
-        !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+        !$omp target teams loop private(wsvres_s)
         do k = 2, kmax
           wsvres_s = 0.0
           !$acc loop collapse(2) reduction(+: wsvres_s)
@@ -1143,7 +1132,7 @@ contains
     ! FIXME: GPU divergence
 
     !$acc parallel loop default(present) async(1)
-    !!$omp target teams loop defaultmap(present:allocatable)
+    !!$omp target teams loop
     do k=1,k1
        cfracav(k) = cfracav(k) / ijtot
        qlhav(k)   = qlhav(k)  /ijtot
@@ -1181,8 +1170,7 @@ contains
 
     if (nsv > 0) then
       !$acc parallel loop collapse(2) default(present) async(1)
-      !!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-      !!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !!$omp target teams loop collapse(2)
       do n=1,nsv
          do k=1,k1
             wsvsub(k,n) = wsvsub(k,n) / ijtot
@@ -1198,8 +1186,7 @@ contains
     ! 5 ADD SLAB AVERAGES TO TIME MEAN
     !---------------------------------
     !$acc parallel loop default(present) async(1)
-    !!$omp target teams loop defaultmap(present:aggregate)&
-    !!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !!$omp target teams loop
     do k=1,k1
        umn(k)     = umn(k)     + umav(k)
        vmn(k)     = vmn(k)     + vmav(k)
@@ -1249,8 +1236,7 @@ contains
 
     if (nsv > 0) then
        !$acc parallel loop collapse(2) default(present) async(1)
-       !!$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+       !!$omp target teams loop collapse(2)
        do n=1,nsv
           do k=1,k1
              svmmn(k,n)  = svmmn(k,n)  + svmav(k,n)
@@ -1290,8 +1276,7 @@ contains
     end if
 
     !$acc parallel loop default(present) private(prof_s) async
-    !$omp target teams loop private(prof_s) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop private(prof_s)
     do k = 1, k1
       prof_s = 0.0
       !$acc loop collapse(2) reduction(+: prof_s)
@@ -1333,8 +1318,7 @@ contains
       allocate(tmn   (k1), thmn  (k1))
 
       !$acc parallel loop default(present)
-      !$omp target teams loop defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !$omp target teams loop
       do k=1,k1
          umn(k)    = umn(k)    /nsamples
          vmn(k)    = vmn(k)    /nsamples
@@ -1392,8 +1376,7 @@ contains
 
       if (nsv > 0) then
          !$acc parallel loop collapse(2) default(present)
-         !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-         !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+         !$omp target teams loop collapse(2)
          do n=1,nsv
             do k=1,k1
                svmmn(k,n)  = svmmn(k,n)  / nsamples
@@ -1413,8 +1396,7 @@ contains
   !     ------------------------------------------
 
       !$acc parallel loop default(present) copy(thmn, tmn)
-      !$omp target teams loop map(tofrom:thmn,tmn) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable)
+      !$omp target teams loop map(tofrom:thmn,tmn)
       do k=1,k1
          thmn(k) = thlmn(k) + (rlv/cp)*qlmn(k)/exnf(k)
          tmn(k)  = thmn(k)*exnf(k)
@@ -1734,8 +1716,7 @@ contains
     end if ! end if(myid==0)
 
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop
     do k=1,k1
        qlmnlast(k)=qlmn(k)
        wthvtmnlast(k)=wthvtmn(k)
@@ -1796,8 +1777,7 @@ contains
 
     if (nsv > 0) then
        !$acc parallel loop collapse(2) default(present)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+       !$omp target teams loop collapse(2)
        do n=1,nsv
           do k=1,k1
              svmmn(k,n)   = 0.

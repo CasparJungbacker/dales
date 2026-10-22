@@ -126,8 +126,7 @@ contains
 !$omp ccsz,ccgz,ccrz2,ccsz2,ccgz2)
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     precep=0
     !$acc end kernels
 !!$omp end target
@@ -180,8 +179,7 @@ contains
     ! reset microphysics tendencies
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     qrp=0
     thlpmcr=0
     qtpmcr=0
@@ -190,8 +188,7 @@ contains
 
     ! Density corrected fall speed parameters, see Tomita 2008
     !$acc parallel loop default(present)
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
     do k=1,k1
        ccrz(k)=ccr*(1.29/rhobf(k))**0.5
        ccsz(k)=ccs*(1.29/rhobf(k))**0.5
@@ -204,8 +201,7 @@ contains
     end do
 
     !$acc parallel loop collapse(3) default(present) reduction(+: qrsum,qrsmall)
-!!$omp target teams loop reduction(+:qrsum,qrsmall) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop reduction(+:qrsum,qrsmall) collapse(3)
     do k=1,k1
     do j=2,j1
     do i=2,i1
@@ -228,8 +224,7 @@ contains
 
     if(l_warm) then !partitioning and determination of intercept parameter
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -239,8 +234,7 @@ contains
       enddo
     else
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -252,8 +246,7 @@ contains
 
     if(l_warm) then !partitioning and determination of intercept parameter
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -269,8 +262,7 @@ contains
       enddo
     elseif(l_graupel) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -286,8 +278,7 @@ contains
       enddo
     else
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -366,8 +357,7 @@ contains
 
     ! apply final microphysics tendency
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -403,8 +393,7 @@ contains
     if(l_berry.eqv..true.) then ! Berry/Hsie autoconversion
     !$acc parallel loop collapse(3) default(present) private(qll,qli,ddisp,lwc,autl,tc,times,auti,aut)
 !!$omp target teams loop private(qll,qli,ddisp,lwc,autl,tc,times,auti,&
-!!$omp aut) collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp aut) collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -428,8 +417,7 @@ contains
       enddo
     else ! Lin/Kessler autoconversion as in Khairoutdinov and Randall, 2006
       !$acc parallel loop collapse(3) default(present) private(qll,qli,tc,autl,auti,aut)
-!!$omp target teams loop private(qll,qli,tc,autl,auti,aut) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(qll,qli,tc,autl,auti,aut) collapse(3)
       do k=1,kmax
       do j=2,j1
       do i=2,i1
@@ -473,8 +461,7 @@ contains
     !$acc parallel loop collapse(3) default(present) private(qll,qli,qrr,qrs,qrg,&
     !$acc&             gaccrl,gaccsl,gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc)
 !!$omp target teams loop private(qll,qli,qrr,qrs,qrg,gaccrl,gaccsl,&
-!!$omp gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp gaccgl,gaccri,gaccsi,gaccgi,accr,accs,accg,acc) collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -535,8 +522,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc& private(ssl,ssi,ventr,vents,ventg,thfun,evapdepr,evapdeps,evapdepg,devap)
 !!$omp target teams loop private(ssl,ssi,ventr,vents,ventg,thfun,&
-!!$omp evapdepr,evapdeps,evapdepg,devap) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp evapdepr,evapdeps,evapdepg,devap) collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -594,15 +580,13 @@ contains
     dt_spl = delt/real(n_spl) !fixed time step
 
     !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     sed_qr = 0 ! reset sedimentation fluxes
     !$acc end kernels
 !!$omp end target
 
     !$acc parallel loop collapse(3) default(present) private(vtr,vts,vtg,vtf)
-!!$omp target teams loop private(vtr,vts,vtg,vtf) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(vtr,vts,vtg,vtf) collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -625,8 +609,7 @@ contains
 
     !  advect precipitation using upwind scheme
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -641,15 +624,13 @@ contains
 
         ! reset fluxes at each step of loop
         !$acc kernels default(present)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
         sed_qr = 0
         !$acc end kernels
 !!$omp end target
 
         !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
         do k=1,kmax
         do j=2,j1
         do i=2,i1
@@ -672,8 +653,7 @@ contains
         enddo
 
         !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
         do k=1,kmax
         do j=2,j1
         do i=2,i1
@@ -688,8 +668,7 @@ contains
 
     ! no thl and qt tendencies build in, implying no heat transfer between precipitation and air
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k=1,kmax
     do j=2,j1
     do i=2,i1
@@ -715,8 +694,7 @@ contains
     real(field_r) :: corr !< Correction value [-/s]
 
     !$acc parallel loop collapse(3) default(present) private(corr) async(1)
-!!$omp target teams loop private(corr) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(corr) collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -746,8 +724,7 @@ contains
     s3 = size(field, 3)
 
     !$acc parallel loop collapse(3) default(present) async(1)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, s3
       do j = 1, s2
         do i = 1, s1
@@ -771,8 +748,7 @@ contains
     s3 = size(src, 3)
 
     !$acc parallel loop collapse(3) default(present) async(1)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, s3
       do j = 1, s2
         do i = 1, s1

@@ -226,8 +226,7 @@ subroutine calc_liquid_reservoir
     rk3coef = rdt / (4. - dble(rk3step))
     if(rk3step == 1) then
        !$acc parallel loop collapse(2) default(present) async(1)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable)
+       !$omp target teams loop collapse(2)
        do j=1,j2
           do i=1,i2
              wlm(i,j) = wl(i,j)
@@ -237,8 +236,7 @@ subroutine calc_liquid_reservoir
 
     !$acc parallel loop collapse(2) default(present) async(1)
     ! BUG: remove defaultmap as precep array might be unallocated
-    !$omp target teams loop collapse(2) &
-    !$omp map(present: wl,wlm,wl_max,tile,rhof,cveg,throughfall,interception)
+    !$omp target teams loop collapse(2)
     do j=2, j1
         do i=2, i1
             wl_tend_dew = 0
@@ -309,8 +307,7 @@ subroutine calc_theta_mean(tile)
     real :: theta_lim
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=1,j2
        do i=1,i2
           tile%phiw_mean(i,j) = 0.
@@ -319,8 +316,7 @@ subroutine calc_theta_mean(tile)
 
     do k=1, kmax_soil
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2,j1
             do i=2,i1
                 si = soil_index(i,j,k)
@@ -356,8 +352,7 @@ subroutine calc_canopy_resistance_js
     k = kmax_soil
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             ! si = soil_index(i,j,k)
@@ -370,8 +365,7 @@ subroutine calc_canopy_resistance_js
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -387,8 +381,7 @@ subroutine calc_canopy_resistance_js
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -408,8 +401,7 @@ subroutine calc_canopy_resistance_js
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             si = soil_index(i,j,k)
@@ -423,8 +415,7 @@ subroutine calc_canopy_resistance_js
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             ! Calculate canopy and soil resistance
@@ -935,8 +926,7 @@ subroutine calc_stability
   ! Calculate properties shared by all tiles:
   ! Absolute wind speed difference, and virtual potential temperature atmosphere
   !$acc parallel loop collapse(2) default(present) async(1)
-  !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-  !$omp defaultmap(present:allocatable)
+  !$omp target teams loop collapse(2)
   do j=2,j1
       do i=2,i1
           du = 0.5*(u0(i,j,1) + u0(i+1,j,1)) + cu
@@ -966,8 +956,7 @@ subroutine calc_obuk_ustar_ra(tile)
     real :: thvs
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             !if (tile%frac(i,j) > 0) then
@@ -989,8 +978,7 @@ subroutine calc_obuk_ustar_ra(tile)
     end do
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             !if (tile%frac(i,j) > 0) then
@@ -1020,15 +1008,14 @@ subroutine calc_tile_bcs(tile)
         rs_lim, fH, fLE, fG, num, denom, Ta, qsat_new, Qnet
 
     !$acc kernels default(present) async(1)
-    !$omp target defaultmap(present:aggregate)
+    !$omp target
     rhocp_i(1) = 1. / (rhof(1) * cp)
     rholv_i(1) = 1. / (rhof(1) * rlv)
     !$acc end kernels
     !$omp end target
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2, j1
         do i=2, i1
            ! if (tile%frac(i,j) > 0) then
@@ -1109,8 +1096,7 @@ subroutine calc_water_bcs(tile)
     real :: esats
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2, j1
       do i=2, i1
         !if (tile%frac(i,j) > 0) then
@@ -1169,7 +1155,7 @@ subroutine calc_bulk_bcs
     real, pointer :: ustar_3D(:,:,:)
 
     !$acc kernels default(present) async(1)
-    !$omp target defaultmap(present:aggregate)
+    !$omp target
     rhocp_i(1) = 1. / (rhof(1) * cp)
     rholv_i(1) = 1. / (rhof(1) * rlv)
     !$acc end kernels
@@ -1187,8 +1173,7 @@ subroutine calc_bulk_bcs
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             H(i,j) = 0
@@ -1207,8 +1192,7 @@ subroutine calc_bulk_bcs
     if (tile(ilu)%lunum == lu_slb) then
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             do ilu=1,nlu
@@ -1231,8 +1215,7 @@ subroutine calc_bulk_bcs
     else
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             do ilu=1,nlu
@@ -1251,8 +1234,7 @@ subroutine calc_bulk_bcs
 
     if (enable_slurb) then
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             ! we subtract the urban contribution to the skin temperature, to add the urban radiative temperature instead.
@@ -1261,8 +1243,7 @@ subroutine calc_bulk_bcs
     enddo
     end if
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -1274,8 +1255,7 @@ subroutine calc_bulk_bcs
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -1292,8 +1272,7 @@ subroutine calc_bulk_bcs
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -1308,8 +1287,7 @@ subroutine calc_bulk_bcs
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -1326,8 +1304,7 @@ subroutine calc_bulk_bcs
     enddo
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
 
@@ -1397,8 +1374,7 @@ subroutine interpolate_soil(fieldh, field, iinterp, acc)
     if (iinterp == iinterp_amean) then
         do k=2,kmax_soil
             !$acc parallel loop collapse(2) default(present) async(1) if(acc)
-            !$omp target teams loop collapse(2) if(acc)&
-            !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+            !$omp target teams loop collapse(2) if(acc)
             do j=2,j1
                 do i=2,i1
                     fieldh(i,j,k) = 0.5*(field(i,j,k-1) + field(i,j,k))
@@ -1408,8 +1384,7 @@ subroutine interpolate_soil(fieldh, field, iinterp, acc)
     else if (iinterp == iinterp_gmean) then
         do k=2,kmax_soil
             !$acc parallel loop collapse(2) default(present) async(1) if(acc)
-            !$omp target teams loop collapse(2) if(acc)&
-            !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+            !$omp target teams loop collapse(2) if(acc)
             do j=2,j1
                 do i=2,i1
                     fieldh(i,j,k) = sqrt(field(i,j,k-1) * field(i,j,k))
@@ -1419,8 +1394,7 @@ subroutine interpolate_soil(fieldh, field, iinterp, acc)
     else if (iinterp == iinterp_hmean) then
         do k=2,kmax_soil
             !$acc parallel loop collapse(2) default(present) async(1) if(acc)
-            !$omp target teams loop collapse(2) if(acc)&
-            !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+            !$omp target teams loop collapse(2) if(acc)
             do j=2,j1
                 do i=2,i1
                     fieldh(i,j,k) = ((dz_soil(k-1)+dz_soil(k))*field(i,j,k-1)*field(i,j,k)) / &
@@ -1431,8 +1405,7 @@ subroutine interpolate_soil(fieldh, field, iinterp, acc)
     else if (iinterp == iinterp_max) then
         do k=2,kmax_soil
             !$acc parallel loop collapse(2) default(present) async(1) if(acc)
-            !$omp target teams loop collapse(2) if(acc)&
-            !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+            !$omp target teams loop collapse(2) if(acc)
             do j=2,j1
                 do i=2,i1
                     fieldh(i,j,k) = max(field(i,j,k-1), field(i,j,k))
@@ -1459,8 +1432,7 @@ subroutine calc_thermal_properties
     ! Calculate diffusivity heat
     do k=1,kmax_soil
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2,j1
             do i=2,i1
                 si = soil_index(i,j,k)
@@ -1502,8 +1474,7 @@ subroutine calc_hydraulic_properties
     ! Calculate diffusivity and conductivity soil moisture
     do k=1,kmax_soil
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2,j1
             do i=2,i1
                 si = soil_index(i,j,k)
@@ -1537,8 +1508,7 @@ subroutine calc_hydraulic_properties
     ! Optionally, set free drainage bottom BC
     if (lfreedrainage) then
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=1,j2
            do i=1,i2
               gammash(i,j,1) = gammash(i,j,2)
@@ -1546,8 +1516,7 @@ subroutine calc_hydraulic_properties
         end do
     else
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=1,j2
            do i=1,i2
               gammash(i,j,1) = 0.
@@ -1570,8 +1539,7 @@ subroutine calc_root_water_extraction
     real, parameter :: fac = 1./(rhow * rlv)
 
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k=1,kmax_soil
        do j=1,j2
           do i=1,i2
@@ -1584,8 +1552,7 @@ subroutine calc_root_water_extraction
           cycle
       else
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2, j1
           do i=2, i1
               LE = tile(ilu)%frac(i,j) * tile(ilu)%LE(i,j)
@@ -1623,8 +1590,7 @@ subroutine integrate_t_soil
     rk3coef = rdt / (4. - dble(rk3step))
     if(rk3step == 1) then
        !$acc parallel loop collapse(3) default(present) async(1)
-       !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable)
+       !$omp target teams loop collapse(3)
        do k=1,kmax_soil
           do j=1,j2
              do i=1,i2
@@ -1637,8 +1603,7 @@ subroutine integrate_t_soil
     ! Top soil layer
     k = kmax_soil
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             si = soil_index(i,j,k)
@@ -1652,8 +1617,7 @@ subroutine integrate_t_soil
     ! Bottom soil layer
     k = 1
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             tend = ((lambdah(i,j,k+1) * (tsoil(i,j,k+1) - tsoil(i,j,k)) * dzhi_soil(k+1)))*dzi_soil(k)
@@ -1665,8 +1629,7 @@ subroutine integrate_t_soil
     ! Interior
     do k=2,kmax_soil-1
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2,j1
             do i=2,i1
                 tend = ((lambdah(i,j,k+1) * (tsoil(i,j,k+1) - tsoil(i,j,k  )) * dzhi_soil(k+1)) &
@@ -1695,8 +1658,7 @@ subroutine integrate_theta_soil
     rk3coef = rdt / (4. - dble(rk3step))
     if(rk3step == 1) then
        !$acc parallel loop collapse(3) default(present) async(1)
-       !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-       !$omp defaultmap(present:allocatable)
+       !$omp target teams loop collapse(3)
        do k=1,kmax_soil
           do j=1,j2
              do i=1,i2
@@ -1711,8 +1673,7 @@ subroutine integrate_theta_soil
      ! Top soil layer
     k = kmax_soil
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
           do ilu=1,nlu
@@ -1729,8 +1690,7 @@ subroutine integrate_theta_soil
     ! Bottom soil layer
     k = 1
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=2,j1
         do i=2,i1
             tend = ((lambdash(i,j,k+1) * (phiw(i,j,k+1) - phiw(i,j,k)) * dzhi_soil(k+1)))*dzi_soil(k) &
@@ -1743,8 +1703,7 @@ subroutine integrate_theta_soil
     ! Interior
     do k=2,kmax_soil-1
         !$acc parallel loop collapse(2) default(present) async(1)
-        !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(2)
         do j=2,j1
             do i=2,i1
                 tend = ((lambdash(i,j,k+1) * (phiw(i,j,k+1) - phiw(i,j,k  )) * dzhi_soil(k+1)) &

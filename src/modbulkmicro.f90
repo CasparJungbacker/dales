@@ -190,8 +190,7 @@ module modbulkmicro
     real(field_r), allocatable :: qrp_tmp(:,:,:), nrp_tmp(:,:,:), ncp_tmp(:,:,:), qlp_tmp(:,:,:)
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -207,8 +206,7 @@ module modbulkmicro
 
     if (laerosol) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -238,8 +236,7 @@ module modbulkmicro
       Nrsum = 0.00
       !$acc parallel loop collapse(3) default(present) reduction(+: qrsum_neg, qrsum, Nrsum_neg, Nrsum)
 !!$omp target teams loop reduction(+:qrsum_neg,qrsum,nrsum_neg,nrsum)&
-!!$omp collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -276,8 +273,7 @@ module modbulkmicro
     qcbase = k1 + 1
     qcroof = 1 - 1
     !$acc parallel loop collapse(3) default(present) reduction(min:qrbase,qcbase)
-!!$omp target teams loop reduction(min:qrbase,qcbase) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop reduction(min:qrbase,qcbase) collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -296,8 +292,7 @@ module modbulkmicro
 
     if (qrbase.le.k1 .or. qcbase.le.k1) then
       !$acc parallel loop collapse(3) default(present) reduction(max:qrroof,qcroof)
-!!$omp target teams loop reduction(max:qrroof,qcroof) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop reduction(max:qrroof,qcroof) collapse(3)
       do k = min(qrbase,qcbase), k1
         do j = 2, j1
           do i = 2, i1
@@ -462,8 +457,7 @@ module modbulkmicro
       ! remove negative values and non physical low values
       !*********************************************************************
       !$acc parallel loop collapse(3) default(present) private(qr_cor, Nr_cor)
-!!$omp target teams loop private(qr_cor,nr_cor) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(qr_cor,nr_cor) collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -501,8 +495,7 @@ module modbulkmicro
     end if
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -519,8 +512,7 @@ module modbulkmicro
       call aerosol_finish
 
       !$acc parallel loop collapse(3) default(present) private(nc_cor)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, k1
         do j = 2, j1
           do i = 2, i1
@@ -578,8 +570,7 @@ module modbulkmicro
     csed = c_St*(3./(4.*pi*rhow))**(2./3.)*exp(5.*log(sig_g)**2.)
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qcbase, qcroof
       do j = 2, j1
         do i = 2, i1
@@ -642,8 +633,7 @@ module modbulkmicro
     !$omp target enter data map(alloc:qr_spl,nr_spl)
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, k1
       do j = 2, j1
         do i = 2, i1
@@ -656,8 +646,7 @@ module modbulkmicro
     do ts = 1, n_spl ! Time splitting loop
       ! TODO: check if compiler succesfully unswitches and inlines function calls.
       !$acc parallel loop gang vector collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = qrbase, qrroof
         do j = 2, j1
           do i = 2, i1
@@ -697,8 +686,7 @@ module modbulkmicro
     end do
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = qrbase, qrroof
       do j = 2, j1
         do i = 2, i1

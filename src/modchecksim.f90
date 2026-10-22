@@ -307,8 +307,7 @@ contains
     !$acc parallel loop gang default(present) &
     !$acc private(velx_max, vely_max, velz_max, velmag_max, ekm_max)
     !$omp target teams loop private(velx_max,vely_max,velz_max,velmag_max,&
-    !$omp ekm_max) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp ekm_max)
     do k = 1, kmax
       velx_max = 0
       vely_max = 0
@@ -371,8 +370,7 @@ contains
     !$acc parallel loop collapse(3) default(present) private(div) &
     !$acc reduction(max:divmax) reduction(+:divtot)
     !$omp target teams loop private(div) reduction(max:divmax)&
-    !$omp reduction(+:divtot) collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp reduction(+:divtot) collapse(3)
     do k=1,kmax
       do j=2,j1
         do i=2,i1

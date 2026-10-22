@@ -227,8 +227,7 @@ contains
     if (this%nspecies > 0) then
 
       !$acc parallel loop collapse(3) default(present) async wait(1)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1
@@ -239,8 +238,7 @@ contains
       end do
 
       !$acc parallel loop collapse(4) default(present) async wait(1)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
       do s = 1, this%nspecies 
         do k = 1, kmax 
           do j = 2, j1
@@ -286,8 +284,7 @@ contains
     if (this%nspecies > 0) then
 
       !$acc parallel loop collapse(3) default(present) async wait(1)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1
@@ -300,8 +297,7 @@ contains
       end do
 
       !$acc parallel loop collapse(4) default(present) async wait(1)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
       do s = 1, this%nspecies
         do k = 1, kmax
           do j = 2, j1
@@ -394,8 +390,7 @@ contains
     call timer_tic(routine, 3)
 
     !$acc parallel loop collapse(4) default(present) async wait(1)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
     do s = 1, this%nspecies 
       do k = 1, kmax 
         do j = 2, j1
@@ -436,8 +431,7 @@ contains
     call timer_tic(routine, 3)
 
     !$acc parallel loop collapse(4) default(present) async wait(1)
-!!$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(4)
     do s = 1, this%nspecies
       do k = 1, kmax
         do j = 2, j1

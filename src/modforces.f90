@@ -80,8 +80,7 @@ contains
   ! Apply pressure gradient calculated from geostrophic wind speeds (lcoriol) or imposed pressure gradient (lpressgrad)
   if (lcoriol .or. lpressgrad) then
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k=1,k1
        do j=2-jh,j1+jh
           do i=2-ih,i1+ih
@@ -94,8 +93,7 @@ contains
 
   if (imicro == imicro_bulk3) then
      !$acc parallel loop collapse(3) default(present) async(2)
-     !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-     !$omp defaultmap(present:allocatable)
+     !$omp target teams loop collapse(3)
      do k = 2, kmax
         do j = 2, j1
            do i = 2, i1
@@ -114,8 +112,7 @@ contains
      iqr = get_tracer_index("qr")
      if(iqr>0) then
         !$acc parallel loop collapse(3) default(present) async(2)
-        !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(3)
         do k = 2, kmax
           do j = 2, j1
             do i = 2, i1
@@ -127,8 +124,7 @@ contains
      else
         ! just buoyancy, no precipitation
         !$acc parallel loop collapse(3) default(present) async(2)
-        !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-        !$omp defaultmap(present:allocatable)
+        !$omp target teams loop collapse(3)
         do k = 2, kmax
           do j = 2, j1
             do i = 2, i1
@@ -143,8 +139,7 @@ contains
 !     special treatment for lowest full level: k=1
 !     --------------------------------------------
   !$acc parallel loop collapse(2) default(present) async(3)
-  !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-  !$omp defaultmap(present:allocatable)
+  !$omp target teams loop collapse(2)
   do j=2-jh,j1+jh
      do i=2-ih,i1+ih
         wp(:,:,1) = 0
@@ -192,8 +187,7 @@ contains
 
   if ( lopenbc ) then
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = sx, i1
@@ -205,8 +199,7 @@ contains
     end do
 
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 1, kmax
       do j = sy, j1
         do i = 2, i1
@@ -218,8 +211,7 @@ contains
     end do
 
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 2, kmax
       do j = 2, j1
         do i = 2, i1
@@ -236,8 +228,7 @@ contains
     ! special treatment for lowest full level: k=1
     ! --------------------------------------------
     !$acc parallel loop collapse(2) default(present) async(2)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         wp(i,j,1) = 0.0
@@ -247,8 +238,7 @@ contains
   else ! lopenbc
     ! Efficient fused kernel for periodic bc
     !$acc parallel loop collapse(3) default(present) async(1)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 2, kmax
       do j = 2, j1
         do i = 2, i1
@@ -273,8 +263,7 @@ contains
     ! special treatment for lowest full level: k=1
     ! --------------------------------------------
     !$acc parallel loop collapse(2) default(present) async(2)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j = 2, j1
       do i = 2, i1
         up(i,j,1) = up(i,j,1)  + cv*om23 &
@@ -331,8 +320,7 @@ contains
   call timer_tic('modforces/lstend', 0)
 
   !$acc parallel loop collapse(3) default(present) async(1)
-  !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-  !$omp defaultmap(present:allocatable)
+  !$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = 2, j1
       do i = 2, i1
@@ -351,8 +339,7 @@ contains
 
   if (lmomsubs) then
     !$acc parallel loop collapse(3) default(present) async(2)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k = 1, kmax
       do j = 1, j1
         do i = 1, i1
@@ -372,8 +359,7 @@ contains
   !$acc wait
 
   !$acc parallel loop collapse(3) default(present) async(1)
-  !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-  !$omp defaultmap(present:allocatable)
+  !$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = 2, j1
       do i = 2, i1
@@ -388,8 +374,7 @@ contains
   ! Only do above for scalars if there are any scalar fields
   if (nsv > 0) then
     !$acc parallel loop collapse(4) default(present) async(2)
-    !$omp target teams loop collapse(4) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(4)
     do n = 1, nsv
       do k = 1, kmax
         do j = 1, j1

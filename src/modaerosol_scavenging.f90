@@ -166,8 +166,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc private(sed_qr, rm, gamma_n, gamma_m, st)
 !!$omp target teams loop private(sed_qr,rm,gamma_n,gamma_m,st)&
-!!$omp collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -248,8 +247,7 @@ contains
     !$acc parallel loop collapse(3) default(present) &
     !$acc private(rc, rm, gamma_n, gamma_m, limit, st)
 !!$omp target teams loop private(rc,rm,gamma_n,gamma_m,limit,st)&
-!!$omp collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1

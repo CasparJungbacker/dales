@@ -112,8 +112,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
         do j=1,jtot
           do i=1,itot
@@ -128,8 +127,7 @@ contains
       n3 = this%konx
       
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n2
@@ -149,8 +147,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n2
@@ -189,8 +186,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -205,8 +201,7 @@ contains
       n3 = this%konx
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n2
@@ -226,8 +221,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n2
@@ -266,8 +260,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -278,8 +271,7 @@ contains
       end do
 
       !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
       do k = 1, kmax
         do j = 1, jtot
          do i = 1, itot
@@ -295,8 +287,7 @@ contains
       n3 = this%konx
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocy-1
         do k = 1, n3
           do j = 1, n2
@@ -317,8 +308,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocy-1
         do k = 1, n3
           do i = 1, n1
@@ -357,8 +347,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -369,8 +358,7 @@ contains
       end do
 
       !$acc parallel loop collapse(3) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(3)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(3)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -386,8 +374,7 @@ contains
       n3 = this%konx
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocy-1
         do k = 1, n3
           do i = 1, n1
@@ -408,8 +395,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocy-1
         do k = 1, n3
           do j = 1, n2
@@ -448,8 +434,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 1, jtot
           do i = 1, itot
@@ -464,8 +449,7 @@ contains
       n3 = this%konx
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do i = 1, n2
@@ -486,8 +470,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n1
@@ -526,8 +509,7 @@ contains
 
     if (nprocs == 1) then
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k=1,kmax
         do j=1,jtot
           do i=1,itot
@@ -542,8 +524,7 @@ contains
       n3 = this%konx
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do j = 1, n1
@@ -564,8 +545,7 @@ contains
 !$omp target update to(buffer)
 
       !$acc parallel loop collapse(4) default(present) private(ii)
-!!$omp target teams loop private(ii) collapse(4)&
-!!$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+!!$omp target teams loop private(ii) collapse(4)
       do n = 0, nprocx-1
         do k = 1, n3
           do i = 1, n2

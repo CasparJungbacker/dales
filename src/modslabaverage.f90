@@ -82,8 +82,7 @@ contains
     end if
 
     !$acc parallel loop gang default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k = ks, ke
       fld_sum = 0
       !$acc loop vector collapse(2) reduction(+: fld_sum)
@@ -150,8 +149,7 @@ contains
     end if
 
     !$acc parallel loop gang default(present)
-    !$omp target teams loop defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop
     do k = ks, ke
       fld_sum = 0
       !$acc loop vector collapse(2) reduction(+: fld_sum)
@@ -225,8 +223,7 @@ contains
 !!$omp target data map(alloc:n_cells_tot)
 
       !$acc parallel loop gang default(present)
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = ks, ke
         fld_sum = 0
         n_cells = 0
@@ -255,8 +252,7 @@ contains
       end if
 
       !$acc parallel loop gang default(present)
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = ks, ke
         avg(k) = merge(avg(k) / n_cells_tot(k), fillvalue_, n_cells_tot(k) > 0)
       end do
@@ -317,8 +313,7 @@ contains
 !!$omp target data map(alloc:n_cells_tot)
 
       !$acc parallel loop gang default(present)
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = ks, ke
         fld_sum = 0
         n_cells = 0
@@ -347,8 +342,7 @@ contains
       end if
 
       !$acc parallel loop gang default(present)
-!!$omp target teams loop defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop
       do k = ks, ke
         avg(k) = merge(avg(k) / n_cells_tot(k), fillvalue_, n_cells_tot(k) > 0)
       end do

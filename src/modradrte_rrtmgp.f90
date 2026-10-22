@@ -538,8 +538,7 @@ contains
     ! Make sure the SW output is 0 if sun is down.
     ! If the sun is down, rrtmgp does not initialize the sw fluxes arrays, so we need to set them to zero here to avoid uninitialized values in the output.
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do i=1,ncol
       do k=1,nlay+1
         swUp_slice(i,k) = 0.
@@ -550,8 +549,7 @@ contains
 
     if(doclearsky) then
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
      do i=1,ncol
       do k=1,nlay+1
           swUpCS_slice(i,k) = 0.
@@ -594,8 +592,7 @@ contains
 
     ! Set up layer values within the DALES domain
     !$acc parallel loop collapse(3) default(present) private(icol)
-    !$omp target teams loop private(icol) collapse(3)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(icol) collapse(3)
     do k=1,kmax
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
@@ -610,8 +607,7 @@ contains
 
     ! Set up temperature interface values
     !$acc parallel loop collapse(3) default(present) private(icol)
-    !$omp target teams loop private(icol) collapse(3)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(icol) collapse(3)
     do k=2,nlay
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
@@ -621,8 +617,7 @@ contains
       enddo
     enddo
     !$acc parallel loop collapse(2) default(present) private(icol)
-    !$omp target teams loop private(icol) collapse(2)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(icol) collapse(2)
     do j=jstart, jend
       do i=2,i1 !i1=imax+1
         icol=i-1+(j-jstart)*imax
@@ -634,8 +629,7 @@ contains
 
     ! Setup cloud properties (above the DALES domain everyhting is set to zero)
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(2)
     do j=1,nlay
        do i=1,ncol,nlay+1
           if (i <= nlay) then
@@ -652,8 +646,7 @@ contains
 
     if (inc > 0) then
        !$acc parallel loop collapse(3) default(present) private(icol)
-       !$omp target teams loop private(icol) collapse(3)&
-       !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+       !$omp target teams loop private(icol) collapse(3)
        do k=1,kmax
           do j=jstart, jend
              do i=2,i1
@@ -664,8 +657,7 @@ contains
        end do
     else
        !$acc parallel loop collapse(3) default(present) private(icol)
-       !$omp target teams loop private(icol) collapse(3)&
-       !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+       !$omp target teams loop private(icol) collapse(3)
        do k=1,kmax
           do j=jstart, jend
              do i=2,i1
@@ -678,8 +670,7 @@ contains
 
     !$acc parallel loop collapse(3) default(present) private(icol,ilratio,layerMass,qcl,qci,B_function)
     !$omp target teams loop private(icol,ilratio,layermass,qcl,qci,&
-    !$omp b_function) collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp b_function) collapse(3)
     do k=1,kmax
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
@@ -744,8 +735,7 @@ contains
     jend   =  ibatch    * jmax/nbatch + 1
 
     !$acc parallel loop collapse(3) default(present) private(icol)
-    !$omp target teams loop private(icol) collapse(3)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(icol) collapse(3)
     do k=1,k1
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
@@ -760,8 +750,7 @@ contains
       enddo
     enddo
     !$acc parallel loop collapse(2) default(present) private(icol)
-    !$omp target teams loop private(icol) collapse(2)&
-    !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+    !$omp target teams loop private(icol) collapse(2)
     do j=jstart, jend
       do i=2,i1 !i1=imax+1
         icol=i-1+(j-jstart)*imax
@@ -774,8 +763,7 @@ contains
 
     if(doclearsky) then
       !$acc parallel loop collapse(3) default(present) private(icol)
-      !$omp target teams loop private(icol) collapse(3)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop private(icol) collapse(3)
       do k=1,k1
         do j=jstart, jend
           do i=2,i1 !i1=imax+1
@@ -788,8 +776,7 @@ contains
         enddo
       enddo
       !$acc parallel loop collapse(2) default(present) private(icol)
-      !$omp target teams loop private(icol) collapse(2)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop private(icol) collapse(2)
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
           icol=i-1+(j-jstart)*imax
@@ -802,8 +789,7 @@ contains
     endif
 
     !$acc parallel loop collapse(3) default(present)
-    !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop collapse(3)
     do k=1,kmax
       do j=jstart, jend
         do i=2,i1
@@ -856,8 +842,7 @@ contains
       ! Albedos can be computed as a function of solarZenithAngleCos,
       ! so it makes sense to keep the init here
       !$acc parallel loop collapse(2) default(present) private(icol)
-      !$omp target teams loop private(icol) collapse(2)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop private(icol) collapse(2)
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
           icol=i-1+(j-jstart)*imax
@@ -884,8 +869,7 @@ contains
     jstart = (ibatch-1) * jmax/nbatch + 2
     jend   =  ibatch    * jmax/nbatch + 1
       !$acc parallel loop collapse(2) default(present) private(icol)
-      !$omp target teams loop private(icol) collapse(2)&
-      !$omp defaultmap(present:aggregate) defaultmap(present:allocatable)
+      !$omp target teams loop private(icol) collapse(2)
       do j=jstart, jend
         do i=2,i1 !i1=imax+1
           icol=i-1+(j-jstart)*imax

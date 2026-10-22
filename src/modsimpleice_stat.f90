@@ -72,8 +72,7 @@ contains
 !!$omp target data map(alloc:is_cloud,is_rain,is_precip)
 
       !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1

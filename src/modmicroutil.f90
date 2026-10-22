@@ -34,8 +34,7 @@ contains
     integer :: i, j, k
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, size(field, dim=3)
       do j = 1, size(field, dim=2)
         do i = 1, size(field, dim=1)
@@ -54,8 +53,7 @@ contains
     integer :: i, j, k
 
     !$acc parallel loop collapse(3) default(present)
-!!$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable)
+!!$omp target teams loop collapse(3)
     do k = 1, size(field, dim=3)
       do j = 1, size(field, dim=2)
         do i = 1, size(field, dim=1)

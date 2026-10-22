@@ -232,8 +232,7 @@ contains
   case(0) !do nothing
   case(1)
     !$acc kernels default(present) async(1)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     do k=ksp,kmax
       up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
       vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
@@ -245,8 +244,7 @@ contains
 !!$omp end target
     if(lcoriol) then
       !$acc kernels default(present) async(1)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
       do k=ksp,kmax
         up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*((1./(geodamptime*rnu0))*tsc(k))
         vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*((1./(geodamptime*rnu0))*tsc(k))
@@ -256,8 +254,7 @@ contains
     end if
   case(2)
       !$acc parallel loop collapse(3) default(present) async(1)
-      !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !$omp target teams loop collapse(3)
       do k=ksp,kmax
          do j=2-jh,j1+jh
             do i=2-ih,i1+ih
@@ -271,8 +268,7 @@ contains
       end do
   case(3)
     !$acc kernels default(present) async(1)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     do k=ksp,kmax
       up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
       vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
@@ -284,8 +280,7 @@ contains
 !!$omp end target
   case(-1)
     !$acc kernels default(present) async(1)
-!!$omp target defaultmap(present:aggregate)&
-!!$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+!!$omp target
     up(:,:,:) = up(:,:,:) - unudge * ( sum((u0av(1:kmax) - ug(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax)) ) / rdt
     vp(:,:,:) = vp(:,:,:) - unudge * ( sum((v0av(1:kmax) - vg(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax)) ) / rdt
     !$acc end kernels
@@ -300,8 +295,7 @@ contains
 
   if ( .not. lopenbc ) then
     !$acc parallel loop collapse(2) default(present) async(1)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop collapse(2)
     do j=2,j1
        do i=2,i1
           thl0(i,j,kmax) = thl0av(kmax)
@@ -311,8 +305,7 @@ contains
 
     if (nsv > 0) then
       !$acc parallel loop collapse(3) default(present) async(1)
-      !$omp target teams loop collapse(3) defaultmap(present:aggregate)&
-      !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+      !$omp target teams loop collapse(3)
       do n=1,nsv
          do j=2,j1
             do i=2,i1
@@ -354,7 +347,7 @@ contains
   dtheta=0.0
   dqt=0.0
   !$acc parallel loop default(present) reduction(+:dtheta,dqt)
-  !$omp target teams loop reduction(+:dtheta,dqt) defaultmap(present:allocatable) if(gpu)
+  !$omp target teams loop reduction(+:dtheta,dqt) if(gpu)
   do k = kmax-kav+1, kmax
     dtheta = dtheta + (thl0av(k) - thl0av(k-1)) / dzh(k)
     dqt    = dqt    + (qt0av(k)  - qt0av(k-1))  / dzh(k)
@@ -364,8 +357,7 @@ contains
 
   if ( nsv > 0 ) then
     !$acc parallel loop default(present)
-    !$omp target teams loop defaultmap(present:aggregate) if(gpu)&
-    !$omp defaultmap(present:allocatable)
+    !$omp target teams loop if(gpu)
     do n=1,nsv
       dsv(n) = sum((sv0av(kmax-kav+1:kmax,n)-sv0av(kmax-kav:kmax-1,n))/ &
                  dzh(kmax-kav:kmax-1))/kav
@@ -373,8 +365,7 @@ contains
   endif
   
   !$acc parallel loop collapse(2) default(present)
-  !$omp target teams loop collapse(2) defaultmap(present:aggregate) if(gpu)&
-  !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+  !$omp target teams loop collapse(2) if(gpu)
   do j=2-jh,j1+jh
      do i=2-ih,i1+ih
         thl0(i,j,k1) = thl0(i,j,kmax) + dtheta*dzh(k1)
@@ -387,8 +378,7 @@ contains
   
   if ( nsv > 0) then
      !$acc parallel loop collapse(3) default(present)
-     !$omp target teams loop collapse(3) defaultmap(present:aggregate) if(gpu)&
-     !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+     !$omp target teams loop collapse(3) if(gpu)
      do n=1,nsv
         do j=2,j1
            do i=2,i1
@@ -410,8 +400,7 @@ contains
     integer :: i,j,k
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate) if(gpu)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop collapse(2) if(gpu)
     do j=2-jh,j1+jh
        do i=2-ih,i1+ih
           u0(i,j,k1)   = u0(i,j,kmax)
@@ -423,8 +412,7 @@ contains
 
     if (lrigidlid) then
        !$acc parallel loop collapse(2) default(present)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate) if(gpu)&
-       !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+       !$omp target teams loop collapse(2) if(gpu)
        do j=2-jh,j1+jh
           do i=2-ih,i1+ih
              e120(i,j,k1) = e120(i,j,kmax)
@@ -433,8 +421,7 @@ contains
     endif
 
     !$acc parallel loop collapse(2) default(present)
-    !$omp target teams loop collapse(2) defaultmap(present:aggregate) if(gpu)&
-    !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+    !$omp target teams loop collapse(2) if(gpu)
     do j=2-jh,j1+jh
        do i=2-ih,i1+ih
           um(i,j,k1)   = um(i,j,kmax)
@@ -446,8 +433,7 @@ contains
 
     if (lrigidlid) then
        !$acc parallel loop collapse(2) default(present)
-       !$omp target teams loop collapse(2) defaultmap(present:aggregate) if(gpu)&
-       !$omp defaultmap(present:allocatable) defaultmap(tofrom:scalar)
+       !$omp target teams loop collapse(2) if(gpu)
        do j=2-jh,j1+jh
           do i=2-ih,i1+ih
              e12m(i,j,k1) = e12m(i,j,kmax)
