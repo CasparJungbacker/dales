@@ -366,6 +366,7 @@ contains
     if(lboundary(4).and. .not. lperiodic(4)) p(:,j2,:) = p(:,j1,:)
   else
     ! FIXME: mpi on gpu
+    !$omp target update from(p)
     call excjs( p, 2,i1,2,j1,1,kmax,ih,jh)
     !$omp target update to(p)
   endif
