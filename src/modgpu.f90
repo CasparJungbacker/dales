@@ -104,7 +104,7 @@ contains
     implicit none
 
     !$acc update device(tskin, qskin, ra, rs, obl)
-!!$omp target update to(tskin,qskin,ra,rs,obl)
+    !$omp target update to(tskin,qskin,ra,rs,obl)
 
   end subroutine update_gpu_surface
   

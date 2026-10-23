@@ -856,7 +856,7 @@ contains
       oblav    = -0.1
 
       ! qtsurf act on device data.
-#if defined(_OPENACC)
+#if defined(DALES_GPU)
       call update_gpu_surface
 #endif
       if (lmoist) call qtsurf
