@@ -231,33 +231,37 @@ contains
   select case(igrw_damp)
   case(0) !do nothing
   case(1)
-    !$acc kernels default(present) async(1)
-!!$omp target
-    do k=ksp,kmax
-      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
-      wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
-      thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
-      qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
-    end do
-    !$acc end kernels
-!!$omp end target
-    if(lcoriol) then
-      !$acc kernels default(present) async(1)
-!!$omp target
-      do k=ksp,kmax
-        up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(ug(k)-cu))*((1./(geodamptime*rnu0))*tsc(k))
-        vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(vg(k)-cv))*((1./(geodamptime*rnu0))*tsc(k))
+    !$acc parallel loop collapse(3) default(present) async(1)
+    !$omp target teams loop collapse(3)
+    do k = ksp, kmax
+      do j = 2-jh, j1+jh
+        do i = 2-ih, i1+ih
+          up(i,j,k)  = up(i,j,k)-(u0(i,j,k)-(u0av(k)-cu))*tsc(k)
+          vp(i,j,k)  = vp(i,j,k)-(v0(i,j,k)-(v0av(k)-cv))*tsc(k)
+          wp(i,j,k)  = wp(i,j,k)-w0(i,j,k)*tsc(k)
+          thlp(i,j,k)= thlp(i,j,k)-(thl0(i,j,k)-thl0av(k))*tsc(k)
+          qtp(i,j,k) = qtp(i,j,k)-(qt0(i,j,k)-qt0av(k))*tsc(k)
+        end do
       end do
-      !$acc end kernels
-!!$omp end target
+    end do
+    if(lcoriol) then
+      !$acc parallel loop collapse(3) default(present) async(1)
+      !$omp target teams loop collapse(3)
+      do k = ksp, kmax
+        do j = 2-jh, j1+jh
+          do i = 2-ih, i1+ih
+            up(i,j,k) = up(i,j,k)-(u0(i,j,k)-(ug(k)-cu))*((1./(geodamptime*rnu0))*tsc(k))
+            vp(i,j,k) = vp(i,j,k)-(v0(i,j,k)-(vg(k)-cv))*((1./(geodamptime*rnu0))*tsc(k))
+          end do
+        end do
+      end do
     end if
   case(2)
       !$acc parallel loop collapse(3) default(present) async(1)
       !$omp target teams loop collapse(3)
-      do k=ksp,kmax
-         do j=2-jh,j1+jh
-            do i=2-ih,i1+ih
+      do k = ksp, kmax
+         do j = 2-jh, j1+jh
+            do i = 2-ih, i1+ih
                up(i,j,k)  = up(i,j,k)-(u0(i,j,k)-(ug(k)-cu))*tsc(k)
                vp(i,j,k)  = vp(i,j,k)-(v0(i,j,k)-(vg(k)-cv))*tsc(k)
                wp(i,j,k)  = wp(i,j,k)-w0(i,j,k)*tsc(k)
@@ -267,24 +271,32 @@ contains
          end do
       end do
   case(3)
-    !$acc kernels default(present) async(1)
-!!$omp target
-    do k=ksp,kmax
-      up(:,:,k)  = up(:,:,k)-(u0(:,:,k)-(u0av(k)-cu))*tsc(k)
-      vp(:,:,k)  = vp(:,:,k)-(v0(:,:,k)-(v0av(k)-cv))*tsc(k)
-      wp(:,:,k)  = wp(:,:,k)-w0(:,:,k)*tsc(k)
-      thlp(:,:,k)= thlp(:,:,k)-(thl0(:,:,k)-thl0av(k))*tsc(k)
-      qtp(:,:,k) = qtp(:,:,k)-(qt0(:,:,k)-qt0av(k))*tsc(k)
+    !$acc parallel loop collapse(3) default(present) async(1)
+    !$omp target teams loop collapse(3)
+    do k = ksp, kmax
+      do j = 2-jh, j1+jh
+        do i = 2-ih, i1+ih
+          up(i,j,k)  = up(i,j,k)-(u0(i,j,k)-(u0av(k)-cu))*tsc(k)
+          vp(i,j,k)  = vp(i,j,k)-(v0(i,j,k)-(v0av(k)-cv))*tsc(k)
+          wp(i,j,k)  = wp(i,j,k)-w0(i,j,k)*tsc(k)
+          thlp(i,j,k)= thlp(i,j,k)-(thl0(i,j,k)-thl0av(k))*tsc(k)
+          qtp(i,j,k) = qtp(i,j,k)-(qt0(i,j,k)-qt0av(k))*tsc(k)
+        end do
+      end do
     end do
-    !$acc end kernels
-!!$omp end target
   case(-1)
-    !$acc kernels default(present) async(1)
-!!$omp target
-    up(:,:,:) = up(:,:,:) - unudge * ( sum((u0av(1:kmax) - ug(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax)) ) / rdt
-    vp(:,:,:) = vp(:,:,:) - unudge * ( sum((v0av(1:kmax) - vg(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax)) ) / rdt
-    !$acc end kernels
-!!$omp end target
+    !$acc parallel loop collapse(3) default(present) async(1)
+    !$omp target teams loop collapse(3)
+    do k = ksp, kmax
+      do j = 2-jh, j1+jh
+        do i = 2-ih, i1+ih
+          vint_u = sum((u0av(1:kmax) - ug(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax))
+          vint_v = sum((v0av(1:kmax) - vg(1:kmax)) * dzf(1:kmax)) / sum(dzf(1:kmax))
+          up(i,j,k) = up(i,j,k) - unudge * vint_u / rdt
+          vp(i,j,k) = vp(i,j,k) - unudge * vint_v / rdt
+        end do
+      end do
+    end do
   case default
     call finish(routine, "no gravity wave damping option selected")
   end select
