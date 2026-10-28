@@ -246,7 +246,7 @@ subroutine hadvecv_2nd(a_in, a_out,istart,iend,jstart,jend)
   integer :: i,j,k
 
   !$acc parallel loop collapse(3) default(present) async(2)
-!!$omp target teams loop collapse(3)
+  !$omp target teams loop collapse(3)
   do k = 1, kmax
     do j = jstart, jend
       do i = istart, iend
@@ -348,7 +348,7 @@ subroutine hadvecw_2nd(a_in,a_out,istart,iend,jstart,jend)
   if (leq) then
 
     !$acc parallel loop collapse(3) default(present) async(3)
-!!$omp target teams loop collapse(3)
+    !$omp target teams loop collapse(3)
     do k = 2, kmax
       do j = jstart, jend
         do i = istart, iend
@@ -368,7 +368,7 @@ subroutine hadvecw_2nd(a_in,a_out,istart,iend,jstart,jend)
     end do
   else
     !$acc parallel loop collapse(3) default(present) async(3)
-!!$omp target teams loop collapse(3)
+    !$omp target teams loop collapse(3)
     do k = 2, kmax
       do j = jstart, jend
         do i = istart, iend
