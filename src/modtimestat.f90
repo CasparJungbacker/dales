@@ -1162,6 +1162,8 @@ contains
 
     end select
 
+    !$omp target update to(blh_fld)
+
     select case (iblh_meth)
       case (iblh_flux)
         stride = ceiling(real(imax)/real(blh_nsamp))
