@@ -273,6 +273,7 @@ subroutine tstep_integrate
 
    if (ltliq) then
      !$acc parallel loop collapse(3) default(present) async(1)
+     !$omp target teams loop collapse(3)
      do k = 1, kmax
        do j = 2, j1
          do i = 2, i1
@@ -282,6 +283,7 @@ subroutine tstep_integrate
      end do
    else
      !$acc parallel loop collapse(3) default(present) async(1)
+     !$omp target teams loop collapse(3)
      do k = 1, kmax
        do j = 2, j1
          do i = 2, i1
@@ -329,6 +331,7 @@ subroutine tstep_integrate
 
     if (ltliq) then
       !$acc parallel loop collapse(3) default(present) async(1)
+      !$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1
@@ -339,6 +342,7 @@ subroutine tstep_integrate
       end do
     else
       !$acc parallel loop collapse(3) default(present) async(1)
+      !$omp target teams loop collapse(3)
       do k = 1, kmax
         do j = 2, j1
           do i = 2, i1
@@ -400,6 +404,7 @@ subroutine reset_tendencies()
 
   if (ltliq) then
      !$acc parallel loop collapse(3) default(present) async(1)
+     !$omp target teams loop collapse(3)
      do k = 1, k1
         do j = 2, j1
            do i = 2, i1
