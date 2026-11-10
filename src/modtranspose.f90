@@ -105,50 +105,38 @@ contains
 
     if (ltimer) call timer_tic(routine, 2)
 
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present)
-      do k=1,kmax
-        do j=1,jtot
-          do i=1,itot
-            px(i,j,k) = pz(i+1,j+1,k)
+    n1 = imax
+    n2 = jmax
+    n3 = this%konx
+    
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n2
+          do i = 1, n1
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (k+n*n3 <= kmax) buffer(ii) = pz(i+1,j+1,k+n*n3) 
           end do
         end do
       end do
-    else
+    end do
 
-      n1 = imax
-      n2 = jmax
-      n3 = this%konx
-      
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (k+n*n3 <= kmax) buffer(ii) = pz(i+1,j+1,k+n*n3) 
-            end do
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, commrow, mpierr)
+    !$acc end host_data
+
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n2
+          do i = 1, n1
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            px(i+n*n1,j,k) = buffer(ii)
           end do
         end do
       end do
-
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, commrow, mpierr)
-      !$acc end host_data
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              px(i+n*n1,j,k) = buffer(ii)
-            end do
-          end do
-        end do
-      end do
-    end if
+    end do
 
     if(ltimer) call timer_toc(routine)
 
@@ -173,51 +161,39 @@ contains
     integer :: mpierr
 
     if (ltimer) call timer_tic(routine, 2)
-
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            pz(i+1,j+1,k) = px(i,j,k)
-          end do
-        end do
-      end do
-    else
       
-      n1 = imax
-      n2 = jmax
-      n3 = this%konx
+    n1 = imax
+    n2 = jmax
+    n3 = this%konx
 
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              buffer(ii) = px(i+n*n1,j,k)
-            end do
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n2
+          do i = 1, n1
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            buffer(ii) = px(i+n*n1,j,k)
           end do
         end do
       end do
+    end do
 
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, commrow, mpierr)
-      !$acc end host_data
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, commrow, mpierr)
+    !$acc end host_data
 
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (k+n*n3 <= kmax) pz(i+1,j+1,k+n*n3) = buffer(ii)
-            end do
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n2
+          do i = 1, n1
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (k+n*n3 <= kmax) pz(i+1,j+1,k+n*n3) = buffer(ii)
           end do
         end do
       end do
-    end if
+    end do
 
     if (ltimer) call timer_toc(routine)
 
@@ -243,62 +219,39 @@ contains
 
     if (ltimer) call timer_tic(routine, 2)
 
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present) private(ii)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            ii = i + (j-1)*itot + (k-1)*itot*jtot
-            buffer(ii) = px(i,j,k)
-          end do
-        end do
-      end do
+    n1 = this%iony
+    n2 = jmax
+    n3 = this%konx
 
-      !$acc parallel loop collapse(3) default(present) private(ii)
-      do k = 1, kmax
-        do j = 1, jtot
-         do i = 1, itot
-            ii = i + (j-1)*itot + (k-1)*itot*jtot
-            py(j,k,i) = buffer(ii)
-          end do
-        end do
-      end do
-    else
-
-      n1 = this%iony
-      n2 = jmax
-      n3 = this%konx
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocy-1
-        do k = 1, n3
-          do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (i+n*n1 <= itot) buffer(ii) = px(i+n*n1,j,k)
-            end do
-          end do
-        end do
-      end do
-
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, &
-                        commcol, mpierr)
-      !$acc end host_data
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocy-1
-        do k = 1, n3
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocy-1
+      do k = 1, n3
+        do j = 1, n2
           do i = 1, n1
-            do j = 1, n2
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              py(j+n*n2,k,i) = buffer(ii)
-            end do
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (i+n*n1 <= itot) buffer(ii) = px(i+n*n1,j,k)
           end do
         end do
       end do
-    end if
+    end do
+
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, &
+                      commcol, mpierr)
+    !$acc end host_data
+
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocy-1
+      do k = 1, n3
+        do i = 1, n1
+          do j = 1, n2
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            py(j+n*n2,k,i) = buffer(ii)
+          end do
+        end do
+      end do
+    end do
 
     if (ltimer) call timer_toc(routine)
 
@@ -324,62 +277,39 @@ contains
 
     if (ltimer) call timer_tic(routine, 2)
 
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present) private(ii)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            ii = j + (i-1)*jtot + (k-1)*itot*jtot
-            buffer(ii) = py(j,k,i)
-          end do
-        end do
-      end do
+    n1 = this%iony
+    n2 = jmax
+    n3 = this%konx
 
-      !$acc parallel loop collapse(3) default(present) private(ii)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            ii = j + (i-1)*jtot + (k-1)*itot*jtot
-            px(i,j,k) = buffer(ii)
-          end do
-        end do
-      end do
-    else
-
-      n1 = this%iony
-      n2 = jmax
-      n3 = this%konx
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocy-1
-        do k = 1, n3
-          do i = 1, n1
-            do j = 1, n2
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              buffer(ii) = py(j+n*n2,k,i)
-            end do
-          end do
-        end do
-      end do
-
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, &
-                        commcol, mpierr)
-      !$acc end host_data
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocy-1
-        do k = 1, n3
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocy-1
+      do k = 1, n3
+        do i = 1, n1
           do j = 1, n2
-            do i = 1, n1
-              ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (i+n*n1 <= itot) px(i+n*n1,j,k) = buffer(ii)
-            end do
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            buffer(ii) = py(j+n*n2,k,i)
           end do
         end do
       end do
-    end if
+    end do
+
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, &
+                      commcol, mpierr)
+    !$acc end host_data
+
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocy-1
+      do k = 1, n3
+        do j = 1, n2
+          do i = 1, n1
+            ii = i + (j-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (i+n*n1 <= itot) px(i+n*n1,j,k) = buffer(ii)
+          end do
+        end do
+      end do
+    end do
 
     if (ltimer) call timer_toc(routine)
 
@@ -405,51 +335,39 @@ contains
 
     if (ltimer) call timer_tic(routine, 2)
 
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present)
-      do k = 1, kmax
-        do j = 1, jtot
-          do i = 1, itot
-            pz(i+1,j+1,k) = py(j,k,i)
-          end do
-        end do
-      end do
-    else
+    n1 = this%jonx
+    n2 = this%iony
+    n3 = this%konx
 
-      n1 = this%jonx
-      n2 = this%iony
-      n3 = this%konx
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do i = 1, n2
-            do j = 1, n1
-              ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (j+n*n1 <= jtot) buffer(ii) = py(j+n*n1,k,i)
-            end do
-          end do
-        end do
-      end do
-
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, &
-                        commrow, mpierr)
-      !$acc end host_data
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do i = 1, n2
           do j = 1, n1
-            do i = 1, n2
-              ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (k+n*n3 <= kmax) pz(i,j,k+n*n3) = buffer(ii)
-            end do
+            ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (j+n*n1 <= jtot) buffer(ii) = py(j+n*n1,k,i)
           end do
         end do
       end do
-    end if
+    end do
+
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, &
+                      commrow, mpierr)
+    !$acc end host_data
+
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n1
+          do i = 1, n2
+            ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (k+n*n3 <= kmax) pz(i,j,k+n*n3) = buffer(ii)
+          end do
+        end do
+      end do
+    end do
 
     if (ltimer) call timer_toc(routine)
 
@@ -475,51 +393,39 @@ contains
 
     if (ltimer) call timer_tic(routine, 2)
 
-    if (nprocs == 1) then
-      !$acc parallel loop collapse(3) default(present)
-      do k=1,kmax
-        do j=1,jtot
-          do i=1,itot
-            py(j,k,i) = pz(i+1,j+1,k)
-          end do
-        end do
-      end do
-    else
+    n1 = this%jonx
+    n2 = this%iony
+    n3 = this%konx
 
-      n1 = this%jonx
-      n2 = this%iony
-      n3 = this%konx
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
-          do j = 1, n1
-            do i = 1, n2
-              ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (k+n*n3 <= kmax) buffer(ii) = pz(i,j,k+n*n3)
-            end do
-          end do
-        end do
-      end do
-
-      !$acc host_data use_device(buffer)
-      call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
-                        buffer, n1*n2*n3, MPI_DTYPE, &
-                        commrow, mpierr)
-      !$acc end host_data
-
-      !$acc parallel loop collapse(4) default(present) private(ii)
-      do n = 0, nprocx-1
-        do k = 1, n3
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do j = 1, n1
           do i = 1, n2
-            do j = 1, n1
-              ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
-              if (j+n*n1 <= jtot) py(j+n*n1,k,i) = buffer(ii)
-            end do
+            ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (k+n*n3 <= kmax) buffer(ii) = pz(i,j,k+n*n3)
           end do
         end do
       end do
-    end if
+    end do
+
+    !$acc host_data use_device(buffer)
+    call MPI_ALLTOALL(MPI_IN_PLACE, 0, MPI_DTYPE, &
+                      buffer, n1*n2*n3, MPI_DTYPE, &
+                      commrow, mpierr)
+    !$acc end host_data
+
+    !$acc parallel loop collapse(4) default(present) private(ii)
+    do n = 0, nprocx-1
+      do k = 1, n3
+        do i = 1, n2
+          do j = 1, n1
+            ii = j + (i-1)*n1 + (k-1)*n1*n2 + n*n1*n2*n3
+            if (j+n*n1 <= jtot) py(j+n*n1,k,i) = buffer(ii)
+          end do
+        end do
+      end do
+    end do
 
     if (ltimer) call timer_toc(routine)
 
