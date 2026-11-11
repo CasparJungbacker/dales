@@ -1,7 +1,9 @@
 !> FFT-based Poisson solver with various FFT backends.
 module modpois_fft_solver
 
-  use modglobal,        only: itot, jtot, imax, jmax, kmax, ih, jh, i1, j1, dxi, dyi, PI
+  use modglobal,        only: itot, jtot, imax, jmax, kmax, ih, jh, i1, j1, dxi, dyi, PI, &
+                              dzf, dzh
+  use modfields,        only: rhobf, rhobh
   use modfft_backend_t, only: fft_backend_t, FORWARD_FFT, BACKWARD_FFT
   use modfftpack_backend_t, only: fftpack_backend_t
   use modmpi,           only: myidx, myidy, nprocx, nprocy
@@ -181,11 +183,30 @@ contains
 
     end block
 
-    allocate(a(kmax), b(kmax), c(kmax))
     ps = 1
     pe = iony
     qs = 1
     qe = jonx
+
+    allocate(a(kmax), b(kmax), c(kmax))
+
+    ! Generate tridiagional matrix
+    block 
+
+      integer :: k
+
+      do k = 1, kmax
+        a(k) = rhobh(k) / (dzf(k) * dzh(k))
+        c(k) = rhobh(k+1) / (dzf(k) * dzh(k+1))
+        b(k) = - (a(k) + c(k))
+      end do
+
+      b(1) = b(1) + a(1)
+      a(1) = 0
+      b(kmax) = b(kmax) + c(kmax)
+      c(kmax) = 0
+
+    end block
 
   end subroutine fft_solver_init
 
@@ -288,22 +309,6 @@ contains
     integer :: i, j, k
 
 
-  ! Generate tridiagonal matrix
-
-    !$acc parallel loop default(present) async(1)
-    do k=1,kmax
-      ! SB fixed the coefficients
-      a(k)=rhobh(k)  /(dzf(k)*dzh(k  ))
-      c(k)=rhobh(k+1)/(dzf(k)*dzh(k+1))
-      b(k)=-(a(k)+c(k))
-    end do
-
-    !$acc serial default(present) async(1)
-    b(1   )=b(1)+a(1)        ! -c(1)
-    a(1   )=0.
-    b(kmax)=b(kmax)+c(kmax)  ! -a(kmax)
-    c(kmax)=0.
-    !$acc end serial
 
     ! SOLVE TRIDIAGONAL SYSTEMS WITH GAUSSIAN ELEMINATION
     ! a(i) x(i-1) + b(i) x(i) + c(i) x(i+1) = d(i)
