@@ -46,8 +46,7 @@ contains
     integer,      intent(in) :: size
     integer,      intent(in) :: nbatch
     real(pois_r), intent(in) :: in(:)
-
-    real(pois_r), intent(out) :: out(:)
+    real(pois_r), intent(in) :: out(:)
 
     character(len=*), parameter :: routine = modname//'//fftpack_init'
 

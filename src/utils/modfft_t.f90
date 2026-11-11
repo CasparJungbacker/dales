@@ -43,7 +43,7 @@ module modfft_t
       integer, intent(in) :: size
       integer, intent(in) :: nbatch
       real(pois_r), intent(in) :: in(:)
-      real(pois_r), intent(out) :: out(:)
+      real(pois_r), intent(in) :: out(:)
     end subroutine fft_init
 
     !> Get the work size required for the FFT.
