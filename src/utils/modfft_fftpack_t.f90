@@ -13,13 +13,14 @@ module modfft_fftpack_t
 
   public :: fft_fftpack_t
 
+  !> Implementation of the FFT type using the FFTPACK backend.
   type, extends(fft_t) :: fft_fftpack_t
     private
-    integer :: direction
-    integer :: nbatch
-    integer :: size
-    !> Internal workspace. FFTPACK actually stores values in the work array, so we don't use the externally supplide one.
-    real(pois_r), allocatable :: work(:)
+    integer :: direction !< Direction of the FFT (FORWARD_FFT or BACKWARD_FFT).
+    integer :: nbatch    !< Number of FFTs to perform in a batch.
+    integer :: size      !< Size of the FFT.
+    real(pois_r), allocatable :: work(:) !> Internal workspace. 
+                                         !! FFTPACK actually stores values in the work array, so we don't use the externally supplide one.
   contains
     procedure :: init => fftpack_init
     procedure :: get_worksize => fftpack_get_worksize
