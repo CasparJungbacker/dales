@@ -45,7 +45,6 @@ module modpois_fft_solver
   real(pois_r), allocatable :: d(:,:,:)  !< ?
 
   real(pois_r), allocatable :: a(:), b(:), c(:) !< Coefficients of the tridiagonal system in the z-direction.
-  integer :: ps, pe, qs, qe
 
 contains
 
@@ -183,11 +182,6 @@ contains
 
     end block
 
-    ps = 1
-    pe = iony
-    qs = 1
-    qe = jonx
-
     allocate(a(kmax), b(kmax), c(kmax))
 
     ! Generate tridiagional matrix
@@ -297,8 +291,8 @@ contains
     ! d'(1) = d(1) / b(1)
 
     !$acc parallel loop collapse(2) default(present) private(z) async(1)
-    do j=qs,qe
-      do i=ps,pe
+    do j=1,jonx
+      do i=1,iony
         z        = 1./(b(1)+rhobf(1)*xyrt(i,j))
         d(i,j,1) = c(1)*z
         Fp(i,j,1) = Fp(i,j,1)*z
@@ -309,8 +303,8 @@ contains
     ! c'(i) = c(i) / [ b(i) - c'(i-1) a(i) ]
     ! d'(i) = [ d(i) - d'(i-1) a(i) ] / [ b(i) - c'(i-1) a(i) ]
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
-    do  j=qs,qe
-      do  i=ps,pe
+    do  j=1,jonx
+      do  i=1,iony
         !$acc loop seq
         do k=2,kmax-1
           bbk      = b(k)+rhobf(k)*xyrt(i,j)
@@ -325,8 +319,8 @@ contains
     ! x(n) = d'(n)
 
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
-    do j=qs,qe
-      do i=ps,pe
+    do j=1,jonx
+      do i=1,iony
         bbk = b(kmax) + rhobf(kmax)*xyrt(i,j)
         z        = bbk-a(kmax)*d(i,j,kmax-1)
         if(z/=0.) then
@@ -341,8 +335,8 @@ contains
     ! x(i) = d'(i) - c'(i) x(i+1)
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    do j=qs,qe
-      do i=ps,pe
+    do j=1,jonx
+      do i=1,iony
         !$acc loop seq
         do k=kmax-1,1,-1
           Fp(i,j,k) = Fp(i,j,k)-d(i,j,k)*Fp(i,j,k+1)
