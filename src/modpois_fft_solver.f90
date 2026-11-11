@@ -19,7 +19,6 @@ module modpois_fft_solver
   public :: fft_solver_init
   public :: fft_solve
   public :: fft_solver_exit
-  public :: print_slice
 
   ! FFT engines
   type(fftpack_backend_t) :: fft_fwd_x !< Forward FFT in the x-direction.
@@ -355,38 +354,5 @@ contains
     !$acc wait
 
   end subroutine solmpj
-
-  !> Pretty-print the slice arr(:,:,k) to the screen.
-  !!
-  !! Rows correspond to the first index, columns to the second index.
-  !!
-  !! @param[in] arr 3D array.
-  !! @param[in] k Index along the last dimension.
-  !! @param[in] name Optional label printed in the header.
-  subroutine print_slice(arr, k, name)
-
-    real(pois_r), intent(in) :: arr(:,:,:)
-    integer, intent(in) :: k
-    character(len=*), intent(in), optional :: name
-
-    integer :: i, j
-
-    if (k < 1 .or. k > size(arr, 3)) then
-      write(*,'(a,i0,a,i0,a)') 'print_slice: k = ', k, ' out of range [1, ', size(arr, 3), ']'
-      return
-    end if
-
-    if (present(name)) then
-      write(*,'(a,a,i0,a,i0,a,i0,a)') trim(name), '(1:', size(arr, 1), ', 1:', size(arr, 2), ', ', k, ')'
-    else
-      write(*,'(a,i0,a,i0,a,i0,a)') 'slice (1:', size(arr, 1), ', 1:', size(arr, 2), ', ', k, ')'
-    end if
-
-    write(*,'(a6,*(i12))') 'i\j', (j, j = 1, size(arr, 2))
-    do i = 1, size(arr, 1)
-      write(*,'(i6,*(es12.4))') i, (arr(i, j, k), j = 1, size(arr, 2))
-    end do
-
-  end subroutine print_slice
 
 end module modpois_fft_solver
