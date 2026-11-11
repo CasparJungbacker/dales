@@ -217,7 +217,7 @@ contains
     call fft_fwd_y%exec(p_flat)
     call transposer%y_to_z(py, Fp, work)
 
-    call solmpj
+    call tridiagional_solve
 
     call transposer%z_to_y(Fp, py, work)
     call fft_bwd_y%exec(p_flat)
@@ -242,67 +242,17 @@ contains
 
   end subroutine fft_solver_exit
 
-  subroutine solmpj
-! version: working version, barrou's removed,
-!          correct timing fft's
-!          AAPC with MPI-provided routines
-!          uses only 2 AAPC, using MPI-rovided routines,
-!          to pre-distribute the arrays s.t. complete
-!          2-D planes are present on each processor
-!          uses ALLTOALL instead of ALLTOALLV
-!          ONLY distribution in j-direction allowed
+  subroutine tridiagional_solve
 
-! NOTE: input array p is supposed to have the ip1ray distribution,
-!       i.e. the entire range of the first index must be present on
-!       each processor
-
-!******************************************************************
-!********************  FAST POISSON SOLVER ************************
-!*****                                                        *****
-!***               P_xx + P_yy + P_zz  =f(x,y,z)                ***
-!****                                                         *****
-!******************************************************************
-!   FOURIER TRANSFORMS IN X AND Y DIRECTION   GIVE:
-!   a^2 P + b^2 P + P_zz =  F(x,y,z) = FFT_i [ FTT_j (f(x,y,z))]
-
-!   where a and b are the KNOWN eigenvalues, and P_zz is
-
-!   P_zz =[ P_{i,j,k+1} - 2 P_{i,j,k} +P_{i,j,k-1} ] / (dz * dz)
-
-!   a^2 P + b^2 P + P_zz =
-!   [P_{i,j,k+1}-(2+ a^2 + b^2) P_{i,j,k} + P_{i,j,k-1}]/(dz*dz)=F(x,y,z)
-
-!   The equation above results in a tridiagonal system in k which
-!   can be solved with Gaussian elemination
-
-    use modglobal, only : kmax,dzf,dzh
-    use modfields, only : rhobf, rhobh
-    implicit none
-
-    real(pois_r) :: z,bbk
-    integer :: i, j, k
-
-
-
-    ! SOLVE TRIDIAGONAL SYSTEMS WITH GAUSSIAN ELEMINATION
-    ! a(i) x(i-1) + b(i) x(i) + c(i) x(i+1) = d(i)
-    !
-    ! a(i) => a(k) ~ rho/dz2
-    ! b(i) => b(k)+rhobf(k)*xyrtij ~ -2 rho/dz2 -rho/dx2 -rho/dy2
-    ! c(i) => c(k) ~ rho/dz2
-    ! x(i) => Pij(k)
-    ! d(i) => Pij(k) overwritten in-place
-
-    ! Upward sweep i=1
-    ! c'(1) = c(1) / b(1)
-    ! d'(1) = d(1) / b(1)
+    real(pois_r) :: z, bbk
+    integer      :: i, j, k
 
     !$acc parallel loop collapse(2) default(present) private(z) async(1)
-    do j=1,jonx
-      do i=1,iony
-        z        = 1./(b(1)+rhobf(1)*xyrt(i,j))
-        d(i,j,1) = c(1)*z
-        Fp(i,j,1) = Fp(i,j,1)*z
+    do j = 1, jonx
+      do i = 1, iony
+        z = 1 / (b(1) + rhobf(1) * xyrt(i,j))
+        d(i,j,1) = c(1) * z
+        Fp(i,j,1) = Fp(i,j,1) * z
       end do
     end do
 
@@ -310,14 +260,14 @@ contains
     ! c'(i) = c(i) / [ b(i) - c'(i-1) a(i) ]
     ! d'(i) = [ d(i) - d'(i-1) a(i) ] / [ b(i) - c'(i-1) a(i) ]
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
-    do  j=1,jonx
-      do  i=1,iony
+    do j= 1, jonx
+      do i = 1, iony
         !$acc loop seq
-        do k=2,kmax-1
-          bbk      = b(k)+rhobf(k)*xyrt(i,j)
-          z        = 1./(bbk-a(k)*d(i,j,k-1))
-          d(i,j,k) = c(k)*z
-          Fp(i,j,k) = (Fp(i,j,k)-a(k)*Fp(i,j,k-1))*z
+        do k = 2, kmax - 1
+          bbk = b(k) + rhobf(k) * xyrt(i,j)
+          z = 1 / (bbk - a(k) * d(i,j,k-1))
+          d(i,j,k) = c(k) * z
+          Fp(i,j,k) = (Fp(i,j,k) - a(k) * Fp(i,j,k-1)) * z
         end do
       end do
     end do
@@ -326,14 +276,14 @@ contains
     ! x(n) = d'(n)
 
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
-    do j=1,jonx
-      do i=1,iony
-        bbk = b(kmax) + rhobf(kmax)*xyrt(i,j)
-        z        = bbk-a(kmax)*d(i,j,kmax-1)
-        if(z/=0.) then
-          Fp(i,j,kmax) = (Fp(i,j,kmax)-a(kmax)*Fp(i,j,kmax-1))/z
+    do j= 1, jonx
+      do i = 1, iony
+        bbk = b(kmax) + rhobf(kmax) * xyrt(i,j)
+        z = bbk - a(kmax) * d(i,j,kmax-1)
+        if (z /= 0) then
+          Fp(i,j,kmax) = (Fp(i,j,kmax) - a(kmax) * Fp(i,j,kmax-1)) / z
         else
-          Fp(i,j,kmax) =0.
+          Fp(i,j,kmax) = 0
         end if
       end do
     end do
@@ -342,17 +292,17 @@ contains
     ! x(i) = d'(i) - c'(i) x(i+1)
 
     !$acc parallel loop collapse(2) default(present) async(1)
-    do j=1,jonx
-      do i=1,iony
+    do j = 1, jonx
+      do i = 1, iony
         !$acc loop seq
-        do k=kmax-1,1,-1
-          Fp(i,j,k) = Fp(i,j,k)-d(i,j,k)*Fp(i,j,k+1)
+        do k = kmax - 1, 1, -1
+          Fp(i,j,k) = Fp(i,j,k) - d(i,j,k) * Fp(i,j,k+1)
         end do
       end do
     end do
 
     !$acc wait
 
-  end subroutine solmpj
+  end subroutine tridiagional_solve
 
 end module modpois_fft_solver
