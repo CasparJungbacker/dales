@@ -4,8 +4,8 @@ module modpois_fft_solver
   use modglobal,        only: itot, jtot, imax, jmax, kmax, ih, jh, i1, j1, dxi, dyi, PI, &
                               dzf, dzh
   use modfields,        only: rhobf, rhobh
-  use modfft_backend_t, only: fft_backend_t, FORWARD_FFT, BACKWARD_FFT
-  use modfftpack_backend_t, only: fftpack_backend_t
+  use modfft_t,         only: fft_t, FORWARD_FFT, BACKWARD_FFT
+  use modfft_fftpack_t, only: fft_fftpack_t
   use modmpi,           only: myidx, myidy, nprocx, nprocy
   use modprecision,     only: pois_r, longint
   use modtranspose,     only: t_transposer
@@ -21,10 +21,10 @@ module modpois_fft_solver
   public :: fft_solver_exit
 
   ! FFT engines
-  type(fftpack_backend_t) :: fft_fwd_x !< Forward FFT in the x-direction.
-  type(fftpack_backend_t) :: fft_bwd_x !< Backward FFT in the x-direcction.
-  type(fftpack_backend_t) :: fft_fwd_y !< Forward FFT in the y-direction.
-  type(fftpack_backend_t) :: fft_bwd_y !< Backward FFT in the y-direction.
+  type(fft_fftpack_t) :: fft_fwd_x !< Forward FFT in the x-direction.
+  type(fft_fftpack_t) :: fft_bwd_x !< Backward FFT in the x-direcction.
+  type(fft_fftpack_t) :: fft_fwd_y !< Forward FFT in the y-direction.
+  type(fft_fftpack_t) :: fft_bwd_y !< Backward FFT in the y-direction.
 
   type(t_transposer) :: transposer !< Transposer engine.
 

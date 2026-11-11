@@ -1,4 +1,4 @@
-module modfft_backend_t
+module modfft_t
 
   use modprecision, only: pois_r
 
@@ -8,13 +8,13 @@ module modfft_backend_t
 
   public :: FORWARD_FFT
   public :: BACKWARD_FFT
-  public :: fft_backend_t
+  public :: fft_t
 
   integer, parameter :: FORWARD_FFT = 1
   integer, parameter :: BACKWARD_FFT = -1
 
   !> Abstract type for FFT implementations. Executes batched 1D FFTs.
-  type, abstract :: fft_backend_t
+  type, abstract :: fft_t
   contains
     !> Constructor.
     procedure(fft_init), deferred :: init
@@ -26,7 +26,7 @@ module modfft_backend_t
     procedure(fft_exec), deferred :: exec
     !> Destructor.
     procedure(fft_finalize), deferred :: finalize
-  end type fft_backend_t
+  end type fft_t
 
   abstract interface
     !> Initialize an FFT.
@@ -37,8 +37,8 @@ module modfft_backend_t
     !! @param[in] in Input data.
     !! @param[out] out Output data.
     subroutine fft_init(this, direction, size, nbatch, in, out)
-      import :: fft_backend_t, pois_r
-      class(fft_backend_t), intent(inout) :: this
+      import :: fft_t, pois_r
+      class(fft_t), intent(inout) :: this
       integer, intent(in) :: direction
       integer, intent(in) :: size
       integer, intent(in) :: nbatch
@@ -50,8 +50,8 @@ module modfft_backend_t
     !!
     !! @return Required work size.
     function fft_get_worksize(this) result(worksize)
-      import :: fft_backend_t
-      class(fft_backend_t), intent(in) :: this
+      import :: fft_t
+      class(fft_t), intent(in) :: this
       integer :: worksize
     end function fft_get_worksize
 
@@ -59,8 +59,8 @@ module modfft_backend_t
     !!
     !! @param[in] workspace Workspace to use for the FFT.
     subroutine fft_set_workspace(this, workspace)
-      import :: fft_backend_t, pois_r
-      class(fft_backend_t), intent(inout) :: this
+      import :: fft_t, pois_r
+      class(fft_t), intent(inout) :: this
       real(pois_r), target, intent(in) :: workspace(:)
     end subroutine fft_set_workspace
 
@@ -68,17 +68,17 @@ module modfft_backend_t
     !!
     !! @param[inout] in Input data to transform. Output data is written here.
     subroutine fft_exec(this, in)
-      import :: fft_backend_t, pois_r
-      class(fft_backend_t), intent(in) :: this
+      import :: fft_t, pois_r
+      class(fft_t), intent(in) :: this
       real(pois_r), intent(inout) :: in(:)
     end subroutine fft_exec
 
     !> Finalize the FFT.
     subroutine fft_finalize(this)
-      import :: fft_backend_t
-      class(fft_backend_t), intent(inout) :: this
+      import :: fft_t
+      class(fft_t), intent(inout) :: this
     end subroutine fft_finalize
 
   end interface
 
-end module modfft_backend_t
+end module modfft_t

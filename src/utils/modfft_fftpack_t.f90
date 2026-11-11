@@ -1,19 +1,19 @@
-module modfftpack_backend_t
+module modfft_fftpack_t
 
   use fortran_support, only: finish
   use fftnew, only: rfftf, rfftb, rffti
-  use modfft_backend_t, only: fft_backend_t, FORWARD_FFT, BACKWARD_FFT
+  use modfft_t, only: fft_t, FORWARD_FFT, BACKWARD_FFT
   use modprecision, only: pois_r
 
   implicit none
 
   private
 
-  character(len=*), parameter :: modname = 'modfftpack_backend_t'
+  character(len=*), parameter :: modname = 'modfft_fftpack_t'
 
-  public :: fftpack_backend_t
+  public :: fft_fftpack_t
 
-  type, extends(fft_backend_t) :: fftpack_backend_t
+  type, extends(fft_t) :: fft_fftpack_t
     private
     integer :: direction
     integer :: nbatch
@@ -26,7 +26,7 @@ module modfftpack_backend_t
     procedure :: set_workspace => fftpack_set_workspace
     procedure :: exec => fftpack_exec
     procedure :: finalize => fftpack_finalize
-  end type fftpack_backend_t
+  end type fft_fftpack_t
 
 contains
 
@@ -39,7 +39,7 @@ contains
   !! @param[out] out Output data.
   subroutine fftpack_init(this, direction, size, nbatch, in, out)
 
-    class(fftpack_backend_t), intent(inout) :: this
+    class(fft_fftpack_t), intent(inout) :: this
 
     integer,      intent(in) :: direction
     integer,      intent(in) :: size
@@ -70,7 +70,7 @@ contains
   !! @return Required size of the internal workspace.
   function fftpack_get_worksize(this) result(worksize)
 
-    class(fftpack_backend_t), intent(in) :: this
+    class(fft_fftpack_t), intent(in) :: this
 
     character(len=*), parameter :: routine = modname//'//fftpack_get_worksize'
 
@@ -88,7 +88,7 @@ contains
   !! @param[in] workspace Buffer to use as workspace.
   subroutine fftpack_set_workspace(this, workspace)
 
-    class(fftpack_backend_t), intent(inout) :: this
+    class(fft_fftpack_t), intent(inout) :: this
 
     real(pois_r), target, intent(in) :: workspace(:)
 
@@ -101,7 +101,7 @@ contains
   !! @param[inout] in Input data.
   subroutine fftpack_exec(this, in)
 
-    class(fftpack_backend_t), intent(in) :: this
+    class(fft_fftpack_t), intent(in) :: this
 
     real(pois_r), intent(inout) :: in(:)
 
@@ -124,7 +124,7 @@ contains
   !> Finalize the FFTPACK backend.
   subroutine fftpack_finalize(this)
 
-    class(fftpack_backend_t), intent(inout) :: this
+    class(fft_fftpack_t), intent(inout) :: this
 
     character(len=*), parameter :: routine = modname//'//fftpack_finalize'
 
@@ -132,4 +132,4 @@ contains
 
   end subroutine fftpack_finalize
 
-end module modfftpack_backend_t
+end module modfft_fftpack_t
