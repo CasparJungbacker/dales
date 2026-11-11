@@ -9,6 +9,7 @@ module modfft_t
   public :: FORWARD_FFT
   public :: BACKWARD_FFT
   public :: fft_t
+  public :: fft_make_plan
 
   integer, parameter :: FORWARD_FFT = 1
   integer, parameter :: BACKWARD_FFT = -1
@@ -79,6 +80,27 @@ module modfft_t
       class(fft_t), intent(inout) :: this
     end subroutine fft_finalize
 
+  end interface
+
+  interface
+    !> Create and initialize an FFT plan.
+    !!
+    !! @param[inout] object Allocatable object of type fft_t to be created.
+    !! @param[in] backend_id ID of the FFT backend to use.
+    !! @param[in] direction Direction of the FFT (FORWARD_FFT or BACKWARD_FFT).
+    !! @param[in] size Size of the FFT.
+    !! @param[in] nbatch Number of FFTs to perform in a batch.
+    !! @param[in] in Input data.
+    !! @param[in] out Output data.
+    module subroutine fft_make_plan(object, backend_id, direction, size, nbatch, in, out)
+      class(fft_t), allocatable, intent(inout) :: object
+      integer, intent(in) :: backend_id
+      integer, intent(in) :: direction
+      integer, intent(in) :: size
+      integer, intent(in) :: nbatch
+      real(pois_r), intent(in) :: in(:)
+      real(pois_r), intent(in) :: out(:)
+    end subroutine fft_make_plan
   end interface
 
 end module modfft_t

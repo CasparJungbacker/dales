@@ -4,8 +4,7 @@ module modpois_fft_solver
   use modglobal,        only: itot, jtot, imax, jmax, kmax, ih, jh, i1, j1, dxi, dyi, PI, &
                               dzf, dzh
   use modfields,        only: rhobf, rhobh
-  use modfft_t,         only: fft_t, FORWARD_FFT, BACKWARD_FFT
-  use modfft_fftpack_t, only: fft_fftpack_t
+  use modfft_t,         only: fft_t, FORWARD_FFT, BACKWARD_FFT, fft_make_plan
   use modmpi,           only: myidx, myidy, nprocx, nprocy
   use modprecision,     only: pois_r, longint
   use modtranspose,     only: t_transposer
@@ -21,10 +20,10 @@ module modpois_fft_solver
   public :: fft_solver_exit
 
   ! FFT engines
-  type(fft_fftpack_t) :: fft_fwd_x !< Forward FFT in the x-direction.
-  type(fft_fftpack_t) :: fft_bwd_x !< Backward FFT in the x-direcction.
-  type(fft_fftpack_t) :: fft_fwd_y !< Forward FFT in the y-direction.
-  type(fft_fftpack_t) :: fft_bwd_y !< Backward FFT in the y-direction.
+  class(fft_t), allocatable :: fft_fwd_x !< Forward FFT in the x-direction.
+  class(fft_t), allocatable :: fft_bwd_x !< Backward FFT in the x-direcction.
+  class(fft_t), allocatable :: fft_fwd_y !< Forward FFT in the y-direction.
+  class(fft_t), allocatable :: fft_bwd_y !< Backward FFT in the y-direction.
 
   type(t_transposer) :: transposer !< Transposer engine.
 
@@ -72,10 +71,10 @@ contains
     jonx = transposer%jonx
     konx = transposer%konx
 
-    call fft_fwd_x%init(FORWARD_FFT, itot, jmax*konx, p_flat, p_flat)
-    call fft_bwd_x%init(BACKWARD_FFT, itot, jmax*konx, p_flat, p_flat)
-    call fft_fwd_y%init(FORWARD_FFT, jtot, iony*konx, p_flat, p_flat)
-    call fft_bwd_y%init(BACKWARD_FFT, jtot, iony*konx, p_flat, p_flat)
+    call fft_make_plan(fft_fwd_x, 0, FORWARD_FFT, itot, jmax*konx, p_flat, p_flat)
+    call fft_make_plan(fft_bwd_x, 0, BACKWARD_FFT, itot, jmax*konx, p_flat, p_flat)
+    call fft_make_plan(fft_fwd_y, 0, FORWARD_FFT, jtot, konx*iony, p_flat, p_flat)
+    call fft_make_plan(fft_bwd_y, 0, BACKWARD_FFT, jtot, konx*iony, p_flat, p_flat)
 
     ! For a signal of length N, the FFT will result in floor(N/2) + 1 *complex* coefficients.
     ! Because we are dealing with real input data, the imaginary component of the first coefficient is always zero,
