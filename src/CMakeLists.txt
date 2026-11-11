@@ -69,6 +69,7 @@ set( dales_srcs
 	modopenboundary.f90
 	modpois_data.f90
 	modpois.f90
+	modpois_fft_solver.f90
 	modprecision.f90
 	modprecursor.f90
 	modquadrant.f90
