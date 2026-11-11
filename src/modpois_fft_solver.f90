@@ -210,6 +210,8 @@ contains
 
     character(len=*), parameter :: routine = modname//'/fft_solve'
 
+    integer :: i, j, k
+
     call transposer%z_to_x(p, px, work)
     call fft_fwd_x%exec(p_flat)
     call transposer%x_to_y(px, py, work)
@@ -225,7 +227,13 @@ contains
     call transposer%x_to_z(px, p, work)
 
     ! Normalize the result of the inverse FFTs.
-    p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) = p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) / real(itot*jtot, pois_r)
+    do k = 1, kmax
+      do j = 2, j1
+        do i = 2, i1
+          p(i,j,k) = p(i,j,k) / real(itot*jtot, pois_r)
+        end do
+      end do
+    end do
 
   end subroutine fft_solve
 
