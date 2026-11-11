@@ -235,33 +235,6 @@ contains
 
   end subroutine fft_solve
 
-  subroutine generate_eigenvalues(fft_engine, lperiodic, xyrt)
-
-    class(fft_backend_t), intent(in) :: fft_engine
-    logical,              intent(in) :: lperiodic(5)
-
-    real(pois_r), intent(out) :: xyrt(:,:)
-
-    integer      :: i, j
-    real(pois_r) :: fac
-
-    real(pois_r) :: xrt(itot)
-    real(pois_r) :: yrt(jtot)
-
-    if (lperiodic(1)) then 
-      fac = 1.0_pois_r / (2 * itot)
-    else
-      fac = 1.0_pois_r / (4 * itot)
-    end if
-
-    do i = 1, itot
-      xrt(i) = -4 * dxi**2 * (sin(2 * real(i-1, pois_r) * pi * fac))**2
-    end do
-
-  end subroutine generate_eigenvalues
-
-
-
   subroutine fft_solver_exit()
 
     deallocate(p_flat, work)
