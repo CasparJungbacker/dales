@@ -101,7 +101,7 @@ contains
     allocate(p_flat(sz))
 
     p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_flat(1:(imax+2*ih)*(jmax+2*jh)*kmax)
-    Fp(1:imax,1:jmax,1:konx) => p_flat(1:imax*jmax*konx)
+    Fp(1:iony,1:jonx,1:kmax) => p_flat(1:imax*jmax*konx)
     px(1:itot,1:jmax,1:konx) => p_flat(1:itot*jmax*konx)
     py(1:jtot,1:konx,1:iony) => p_flat(1:jtot*konx*iony)
 
