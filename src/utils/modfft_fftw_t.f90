@@ -1,14 +1,15 @@
+!> FFTW backend for FFT operations.
 module modfft_fftw_t
 
   use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_associated, c_int
 #ifdef USE_FFTW
-  use modfftw_interface, only: fftw_plan_many_r2r_if, fftw_execute_r2r_if, &
-                               fftw_destroy_plan, fftwf_destroy_plan, C_FFTW_R2R_KIND, &
-                               FFTW_R2HC, FFTW_HC2R, FFTW_MEASURE
+  use modfftw_interface,           only: fftw_plan_many_r2r_if, fftw_execute_r2r_if, &
+                                         fftw_destroy_plan, fftwf_destroy_plan, C_FFTW_R2R_KIND, &
+                                         FFTW_R2HC, FFTW_HC2R, FFTW_MEASURE
 #endif
-  use modfft_t, only: fft_t, FORWARD_FFT, BACKWARD_FFT
-  use modprecision, only: pois_r
-  use fortran_support, only: finish
+  use modfft_t,                    only: fft_t, FORWARD_FFT, BACKWARD_FFT
+  use modprecision,                only: pois_r
+  use fortran_support,             only: finish
 
   implicit none
 
@@ -18,9 +19,10 @@ module modfft_fftw_t
 
   public :: fft_fftw_t
 
+  !> Implementation of the FFT type using the FFTW backend.
   type, extends(fft_t) :: fft_fftw_t
     private
-    type(c_ptr) :: plan = c_null_ptr
+    type(c_ptr) :: plan = c_null_ptr !< FFTW plan handle.
   contains
     procedure :: init => fftw_init
     procedure :: get_worksize => fftw_get_worksize
@@ -31,15 +33,16 @@ module modfft_fftw_t
 
 contains
 
+  !> Initialize an FFT with the FFTW backend.
   subroutine fftw_init(this, direction, size, nbatch, in, out)
 
     class(fft_fftw_t), intent(inout) :: this
 
-    integer,      intent(in) :: direction
-    integer,      intent(in) :: size
-    integer,      intent(in) :: nbatch
-    real(pois_r), pointer, intent(in) :: in(:)
-    real(pois_r), pointer, intent(in) :: out(:)
+    integer,               intent(in) :: direction !< Direction of the FFT (FORWARD_FFT or BACKWARD_FFT).
+    integer,               intent(in) :: size      !< Size of the FFT.
+    integer,               intent(in) :: nbatch    !< Number of FFTs to perform in a batch.
+    real(pois_r), pointer, intent(in) :: in(:)     !< Pointer to the input data.
+    real(pois_r), pointer, intent(in) :: out(:)    !< Pointer to the output data.
 
     character(len=*), parameter :: routine = modname//'/fftw_init'
 
@@ -85,27 +88,36 @@ contains
 
   end subroutine fftw_init
 
+  !> Get the workspace size required for the FFTW backend.
+  !!
+  !! FFTW does not require a user-provided workspace, so this function always returns -1.
   function fftw_get_worksize(this) result(worksize)
 
     class(fft_fftw_t), intent(in) :: this
-    integer :: worksize
+
+    integer :: worksize !< Required workspace size. Always -1 for FFTW.
 
     worksize = -1
 
   end function fftw_get_worksize
 
+  !> Set the workspace for the FFTW backend.
+  !!
+  !! FFTW does not require a user-provided workspace, so this function does nothing.
   subroutine fftw_set_workspace(this, workspace)
 
     class(fft_fftw_t), intent(inout) :: this
-    real(pois_r), target, intent(in) :: workspace(:)
+
+    real(pois_r), target, intent(in) :: workspace(:) !< User-provided workspace. Not used by FFTW.
 
   end subroutine fftw_set_workspace
 
+  !> Execute the FFT using the FFTW backend.
   subroutine fftw_exec(this, in)
 
     class(fft_fftw_t), intent(in) :: this
 
-    real(pois_r), intent(inout) :: in(:)
+    real(pois_r), intent(inout) :: in(:) !< Input data to transform.
 
     character(len=*), parameter :: routine = modname//'/fftw_exec'
 
@@ -117,9 +129,11 @@ contains
 
   end subroutine fftw_exec
 
+  !> Finalize the FFTW backend and free resources.
   subroutine fftw_finalize(this)
 
     class(fft_fftw_t), intent(inout) :: this
+
 #ifdef USE_FFTW
     if (c_associated(this%plan)) then
 #if POIS_PRECISION == 32
