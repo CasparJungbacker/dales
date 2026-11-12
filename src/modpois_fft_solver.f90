@@ -134,6 +134,7 @@ contains
       real(pois_r) :: fac
       real(pois_r), allocatable :: xrt(:)
       real(pois_r), allocatable :: yrt(:)
+      real(pois_r), allocatable :: tmp(:)
 
       allocate(xrt(nprocy*iony), yrt(nprocx*jonx))
 
@@ -176,6 +177,26 @@ contains
       if (mod(jtot, 2) == 0) then
         yrt(jtot) = -4 * dyi**2
       end if
+
+      ! Reorder the eigenvalues to match the data layout of the FFT backend.
+      select case (backend_id)
+        case(100) ! FFTW, half-complex format
+          allocate(tmp(max(itot, jtot)))
+
+          tmp(1:itot) = xrt(1:itot)
+          do i = 1, (itot - 1) / 2
+            xrt(i+1) = tmp(2*i)
+            xrt(itot-i+1) = tmp(2*i+1)
+          end do
+          if (mod(itot, 2) == 0) xrt(itot/2+1) = tmp(itot)
+
+          tmp(1:jtot) = yrt(1:jtot)
+          do j = 1, (jtot - 1) / 2
+            yrt(j+1) = tmp(2*j)
+            yrt(jtot-j+1) = tmp(2*j+1)
+          end do
+          if (mod(jtot, 2) == 0) yrt(jtot/2+1) = tmp(jtot)
+      end select
 
       do j = 1, jonx
         do i = 1, iony
