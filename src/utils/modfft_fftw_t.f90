@@ -1,9 +1,11 @@
 module modfft_fftw_t
 
   use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_associated, c_int
+#ifdef USE_FFTW
   use modfftw_interface, only: fftw_plan_many_r2r_if, fftw_execute_r2r_if, &
                                fftw_destroy_plan, fftwf_destroy_plan, C_FFTW_R2R_KIND, &
                                FFTW_R2HC, FFTW_HC2R, FFTW_MEASURE
+#endif
   use modfft_t, only: fft_t, FORWARD_FFT, BACKWARD_FFT
   use modprecision, only: pois_r
   use fortran_support, only: finish
@@ -44,6 +46,7 @@ contains
     integer :: embed(1)
     integer :: kind(1)
 
+#ifdef USE_FFTW
     if (size <= 0 .or. nbatch <= 0) call finish(routine, 'FFT size and batch count must be positive')
 
     ! TODO: implement discrete cosine transform
@@ -76,6 +79,10 @@ contains
 
     if (.not. c_associated(this%plan)) call finish(routine, 'Failed to create FFTW plan')
 
+#else
+    call finish(routine, "DALES was not compiled with FFTW support. Please recompile with FFTW enabled.")
+#endif
+
   end subroutine fftw_init
 
   function fftw_get_worksize(this) result(worksize)
@@ -104,14 +111,16 @@ contains
 
     if (.not. c_associated(this%plan)) call finish(routine, 'FFTW plan is not initialized')
 
+#ifdef USE_FFTW
     call fftw_execute_r2r_if(this%plan, in, in)
+#endif
 
   end subroutine fftw_exec
 
   subroutine fftw_finalize(this)
 
     class(fft_fftw_t), intent(inout) :: this
-
+#ifdef USE_FFTW
     if (c_associated(this%plan)) then
 #if POIS_PRECISION == 32
       call fftwf_destroy_plan(this%plan)
@@ -120,6 +129,7 @@ contains
 #endif
       this%plan = c_null_ptr
     end if
+#endif
 
   end subroutine fftw_finalize
 
