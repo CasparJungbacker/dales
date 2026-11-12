@@ -3,6 +3,7 @@ submodule(modfft_t) submodfft_factory
 
   use fortran_support,  only: finish
   use modfft_fftpack_t, only: fft_fftpack_t
+  use modfft_fftw_t,    only: fft_fftw_t
 
   implicit none
 
@@ -27,8 +28,8 @@ contains
     integer,      intent(in) :: direction
     integer,      intent(in) :: size
     integer,      intent(in) :: nbatch
-    real(pois_r), intent(in) :: in(:)
-    real(pois_r), intent(in) :: out(:)
+    real(pois_r), pointer, intent(in) :: in(:)
+    real(pois_r), pointer, intent(in) :: out(:)
 
     character(len=*), parameter :: routine = modname//'/fft_make_plan'
 
@@ -37,6 +38,8 @@ contains
     select case(backend_id)
       case (0)
         allocate(fft_fftpack_t :: object)
+      case (100)
+        allocate(fft_fftw_t :: object)
       case default
         call finish(routine, 'Unknown FFT backend ID')
     end select

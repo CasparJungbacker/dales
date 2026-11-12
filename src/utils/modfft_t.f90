@@ -43,8 +43,8 @@ module modfft_t
       integer, intent(in) :: direction
       integer, intent(in) :: size
       integer, intent(in) :: nbatch
-      real(pois_r), intent(in) :: in(:)
-      real(pois_r), intent(in) :: out(:)
+      real(pois_r), pointer, intent(in) :: in(:)
+      real(pois_r), pointer, intent(in) :: out(:)
     end subroutine fft_init
 
     !> Get the work size required for the FFT.
@@ -98,8 +98,8 @@ module modfft_t
       integer, intent(in) :: direction
       integer, intent(in) :: size
       integer, intent(in) :: nbatch
-      real(pois_r), intent(in) :: in(:)
-      real(pois_r), intent(in) :: out(:)
+      real(pois_r), pointer, intent(in) :: in(:)
+      real(pois_r), pointer, intent(in) :: out(:)
     end subroutine fft_make_plan
   end interface
 
