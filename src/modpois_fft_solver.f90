@@ -148,13 +148,17 @@ contains
 
       ! The order of the eigenvalues depends on the FFT implementation.
       ! Here, we order the eigenvalues to match the output of FFTPACK.
+
+      xrt(1) = 0
+
       do i = 2, itot - 1, 2
         xrt(i) = -4 * dxi**2 * (sin(real(i, pois_r) * pi * fac))**2
         xrt(i+1) = xrt(i)
       end do
 
-      xrt(1) = 0
-      xrt(itot) = -4 * dxi**2
+      if (mod(itot, 2) == 0) then
+        xrt(itot) = -4 * dxi**2
+      end if
 
       if (lperiodic(3)) then 
         fac = 1.0_pois_r / (2 * jtot)
@@ -162,13 +166,16 @@ contains
         fac = 1.0_pois_r / (4 * jtot)
       end if
 
+      yrt(1) = 0
+
       do j = 2, jtot - 1, 2
         yrt(j) = -4 * dyi**2 * (sin(real(j, pois_r) * pi * fac))**2
         yrt(j+1) = yrt(j)
       end do
 
-      yrt(1) = 0
-      yrt(jtot) = -4 * dyi**2
+      if (mod(jtot, 2) == 0) then
+        yrt(jtot) = -4 * dyi**2
+      end if
 
       do j = 1, jonx
         do i = 1, iony
