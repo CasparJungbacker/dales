@@ -52,8 +52,9 @@ contains
   !!
   !! @param[in] lperiodic Logical array indicating periodicity in each direction.
   !! @param[out] p Pointer to the pressure field.
-  subroutine fft_solver_init(lperiodic, p)
+  subroutine fft_solver_init(backend_id, lperiodic, p)
 
+    integer, intent(in) :: backend_id
     logical, intent(in) :: lperiodic(5)
 
     real(pois_r), pointer, intent(out) :: p(:,:,:)
