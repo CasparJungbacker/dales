@@ -72,11 +72,6 @@ contains
     jonx = transposer%jonx
     konx = transposer%konx
 
-    call fft_make_plan(fft_fwd_x, 0, FORWARD_FFT, itot, jmax*konx, p_flat, p_flat)
-    call fft_make_plan(fft_bwd_x, 0, BACKWARD_FFT, itot, jmax*konx, p_flat, p_flat)
-    call fft_make_plan(fft_fwd_y, 0, FORWARD_FFT, jtot, konx*iony, p_flat, p_flat)
-    call fft_make_plan(fft_bwd_y, 0, BACKWARD_FFT, jtot, konx*iony, p_flat, p_flat)
-
     ! For a signal of length N, the FFT will result in floor(N/2) + 1 *complex* coefficients.
     ! Because we are dealing with real input data, the imaginary component of the first coefficient is always zero,
     ! and the imaginary component of the last coefficient is always zero if N is even.
@@ -104,6 +99,11 @@ contains
     Fp(1:iony,1:jonx,1:kmax) => p_flat(1:imax*jmax*konx)
     px(1:itot,1:jmax,1:konx) => p_flat(1:itot*jmax*konx)
     py(1:jtot,1:konx,1:iony) => p_flat(1:jtot*konx*iony)
+
+    call fft_make_plan(fft_fwd_x, backend_id, FORWARD_FFT, itot, jmax*konx, p_flat, p_flat)
+    call fft_make_plan(fft_bwd_x, backend_id, BACKWARD_FFT, itot, jmax*konx, p_flat, p_flat)
+    call fft_make_plan(fft_fwd_y, backend_id, FORWARD_FFT, jtot, konx*iony, p_flat, p_flat)
+    call fft_make_plan(fft_bwd_y, backend_id, BACKWARD_FFT, jtot, konx*iony, p_flat, p_flat)
 
     ! Work area can be used by the FFT engines and the transposer.
     sz = max( &
