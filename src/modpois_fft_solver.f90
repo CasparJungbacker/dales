@@ -197,6 +197,16 @@ contains
             yrt(jtot-j+1) = tmp(2*j+1)
           end do
           if (mod(jtot, 2) == 0) yrt(jtot/2+1) = tmp(jtot)
+        case(200) ! cuFFT, interleaved complex format, Pedro's flavour
+          allocate(tmp(max(itot, jtot)))
+
+          tmp(1:itot) = xrt(1:itot)
+          xrt(2) = tmp(itot)
+          xrt(3:itot) = tmp(2:itot-1)
+
+          tmp(1:jtot) = yrt(1:jtot)
+          yrt(2) = tmp(jtot)
+          yrt(3:jtot) = tmp(2:jtot-1)
       end select
 
       do j = 1, jonx

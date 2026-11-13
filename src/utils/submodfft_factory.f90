@@ -2,6 +2,7 @@
 submodule(modfft_t) submodfft_factory
 
   use fortran_support,  only: finish
+  use modfft_cufft_t,   only: fft_cufft_t
   use modfft_fftpack_t, only: fft_fftpack_t
   use modfft_fftw_t,    only: fft_fftw_t
 
@@ -40,6 +41,8 @@ contains
         allocate(fft_fftpack_t :: object)
       case (100)
         allocate(fft_fftw_t :: object)
+      case (200)
+        allocate(fft_cufft_t :: object)
       case default
         call finish(routine, 'Unknown FFT backend ID')
     end select
