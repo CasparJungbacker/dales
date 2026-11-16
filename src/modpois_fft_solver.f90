@@ -115,6 +115,8 @@ contains
     )
 
     allocate(work(sz))
+    !$acc enter data copyin(work)
+    !$omp target enter data map(to: work)
 
     call fft_fwd_x%set_workspace(work)
     call fft_bwd_x%set_workspace(work)
@@ -239,6 +241,9 @@ contains
 
     end block
 
+    !$acc enter data copyin(p_flat, work, xyrt, d, a, b, c)
+    !$omp target enter data map(to: p_flat, work, xyrt, d, a, b, c)
+
   end subroutine fft_solver_init
 
   subroutine fft_solve(p)
@@ -264,6 +269,8 @@ contains
     call transposer%x_to_z(px, p, work)
 
     ! Normalize the result of the inverse FFTs.
+    !$acc parallel loop collapse(3) default(present)
+    !$omp target teams loop collapse(3)
     do k = 1, kmax
       do j = 2, j1
         do i = 2, i1
@@ -286,6 +293,7 @@ contains
     integer      :: i, j, k
 
     !$acc parallel loop collapse(2) default(present) private(z) async(1)
+    !$omp target teams loop collapse(2)
     do j = 1, jonx
       do i = 1, iony
         z = 1 / (b(1) + rhobf(1) * xyrt(i,j))
@@ -298,6 +306,7 @@ contains
     ! c'(i) = c(i) / [ b(i) - c'(i-1) a(i) ]
     ! d'(i) = [ d(i) - d'(i-1) a(i) ] / [ b(i) - c'(i-1) a(i) ]
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
+    !$omp target teams loop collapse(2)
     do j= 1, jonx
       do i = 1, iony
         !$acc loop seq
@@ -314,6 +323,7 @@ contains
     ! x(n) = d'(n)
 
     !$acc parallel loop collapse(2) default(present) private(bbk, z) async(1)
+    !$omp target teams loop collapse(2)
     do j= 1, jonx
       do i = 1, iony
         bbk = b(kmax) + rhobf(kmax) * xyrt(i,j)
@@ -330,6 +340,7 @@ contains
     ! x(i) = d'(i) - c'(i) x(i+1)
 
     !$acc parallel loop collapse(2) default(present) async(1)
+    !$omp target teams loop collapse(2)
     do j = 1, jonx
       do i = 1, iony
         !$acc loop seq
