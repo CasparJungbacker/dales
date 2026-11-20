@@ -57,11 +57,11 @@ contains
 #if POIS_PRECISION == 32
         fft_kind = CUFFT_R2C
 #else
-        fft_kind = CUFFT_C2R
+        fft_kind = CUFFT_D2Z
 #endif
       case (BACKWARD_FFT)
 #if POIS_PRECISION == 32
-        fft_kind = CUFFT_D2Z
+        fft_kind = CUFFT_C2R
 #else
         fft_kind = CUFFT_Z2D
 #endif

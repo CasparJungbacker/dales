@@ -94,11 +94,19 @@ contains
     end block
 
     allocate(p_flat(sz))
+    !$acc enter data create(p_flat)
 
     p(2-ih:i1+ih,2-jh:j1+jh,1:kmax) => p_flat(1:(imax+2*ih)*(jmax+2*jh)*kmax)
-    Fp(1:iony,1:jonx,1:kmax) => p_flat(1:imax*jmax*konx)
-    px(1:itot,1:jmax,1:konx) => p_flat(1:itot*jmax*konx)
-    py(1:jtot,1:konx,1:iony) => p_flat(1:jtot*konx*iony)
+    Fp(1:iony,1:jonx,1:kmax) => p_flat(1:iony*jonx*kmax)
+
+    ! cuFFT requires the input data to be padded for in-place transforms.
+    if (backend_id == 200) then
+      px(1:itot+2,1:jmax,1:konx) => p_flat(1:(itot+2)*jmax*konx)
+      py(1:jtot+2,1:konx,1:iony) => p_flat(1:(jtot+2)*konx*iony)
+    else
+      px(1:itot,1:jmax,1:konx) => p_flat(1:itot*jmax*konx)
+      py(1:jtot,1:konx,1:iony) => p_flat(1:jtot*konx*iony)
+    end if
 
     call fft_make_plan(fft_fwd_x, backend_id, FORWARD_FFT, itot, jmax*konx, p_flat, p_flat)
     call fft_make_plan(fft_bwd_x, backend_id, BACKWARD_FFT, itot, jmax*konx, p_flat, p_flat)
@@ -115,7 +123,7 @@ contains
     )
 
     allocate(work(sz))
-    !$acc enter data copyin(work)
+    !$acc enter data create(work)
     !$omp target enter data map(to: work)
 
     call fft_fwd_x%set_workspace(work)
@@ -241,7 +249,7 @@ contains
 
     end block
 
-    !$acc enter data copyin(p_flat, work, xyrt, d, a, b, c)
+    !$acc enter data copyin(xyrt, d, a, b, c)
     !$omp target enter data map(to: p_flat, work, xyrt, d, a, b, c)
 
   end subroutine fft_solver_init
